@@ -255,6 +255,56 @@ class SheetsAPI {
     
     return results;
   }
+
+  async getOutingsWithItems() {
+    await this.initialize();
+    const inventory = await this.getInventory();
+    
+    // Filter to only checked out items
+    const checkedOutItems = inventory.filter(item => 
+      item.status === 'Not available' && 
+      item.outingName && 
+      item.outingName.trim() !== ''
+    );
+    
+    // Group by outing name
+    const outingsMap = {};
+    checkedOutItems.forEach(item => {
+      const outingName = item.outingName;
+      if (!outingsMap[outingName]) {
+        outingsMap[outingName] = {
+          outingName,
+          itemCount: 0,
+          checkedOutDate: item.checkOutDate
+        };
+      }
+      outingsMap[outingName].itemCount++;
+    });
+    
+    // Convert to array
+    return Object.values(outingsMap).map(outing => ({
+      outingName: outing.outingName,
+      itemCount: outing.itemCount,
+      checkedOutDate: outing.checkedOutDate
+    }));
+  }
+
+  async getCheckedOutItemsByOuting(outingName) {
+    await this.initialize();
+    const inventory = await this.getInventory();
+    
+    return inventory.filter(item => 
+      item.status === 'Not available' && 
+      item.outingName === outingName
+    ).map(item => ({
+      itemId: item.itemId,
+      description: item.description,
+      checkedOutTo: item.checkedOutTo,
+      outingName: item.outingName,
+      checkOutDate: item.checkOutDate,
+      condition: item.condition
+    }));
+  }
 }
 
 module.exports = new SheetsAPI();

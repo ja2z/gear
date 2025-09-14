@@ -10,7 +10,7 @@ const Landing = () => {
 
       {/* Content */}
       <div className="px-5 py-8">
-        <div className="space-y-4">
+        <div className="space-y-8">
           <Link
             to="/categories"
             className="block w-full btn-primary p-6 text-center text-lg touch-target"
@@ -19,7 +19,7 @@ const Landing = () => {
           </Link>
 
           <Link
-            to="/checkin"
+            to="/checkin/outings"
             className="block w-full btn-success p-6 text-center text-lg touch-target"
           >
             ✅ Check In Gear

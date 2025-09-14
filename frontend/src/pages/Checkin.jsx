@@ -1,20 +1,38 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
 
 const Checkin = () => {
   const { postData, loading } = useInventory();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
   const [submitError, setSubmitError] = useState(null);
+  const [selectedOuting, setSelectedOuting] = useState(null);
 
   // Mock data for checked out items - in real app, this would come from API
-  const checkedOutItems = [
+  const allCheckedOutItems = [
     { itemId: 'TENT-001', description: 'Zephyr 3', checkedOutTo: 'John Smith', outingName: 'Fall Camping' },
     { itemId: 'SLEEP-001', description: 'Mummy Bag', checkedOutTo: 'Jane Doe', outingName: 'Fall Camping' },
+    { itemId: 'TENT-002', description: 'Half Dome 2+', checkedOutTo: 'Mike Wilson', outingName: 'Fall Camping' },
     { itemId: 'COOK-001', description: 'Camp Stove', checkedOutTo: 'Bob Johnson', outingName: 'Winter Trip' },
+    { itemId: 'SLEEP-002', description: 'Sleeping Pad', checkedOutTo: 'Sarah Davis', outingName: 'Winter Trip' },
+    { itemId: 'COOK-002', description: 'Cook Set', checkedOutTo: 'Tom Brown', outingName: 'Spring Hiking' },
   ];
+
+  // Get outing from URL params
+  useEffect(() => {
+    const outing = searchParams.get('outing');
+    if (outing) {
+      setSelectedOuting(outing);
+    }
+  }, [searchParams]);
+
+  // Filter items by selected outing
+  const checkedOutItems = selectedOuting 
+    ? allCheckedOutItems.filter(item => item.outingName === selectedOuting)
+    : allCheckedOutItems;
 
   const filteredItems = checkedOutItems.filter(item =>
     item.itemId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,7 +81,7 @@ const Checkin = () => {
       const result = await postData('/checkin', checkinData);
       
       if (result.success) {
-        navigate('/success');
+        navigate('/success?action=checkin');
       } else {
         setSubmitError(result.message || 'Checkin failed');
       }
@@ -78,12 +96,14 @@ const Checkin = () => {
       {/* Header */}
       <div className="header">
         <Link
-          to="/"
+          to={selectedOuting ? "/checkin/outings" : "/"}
           className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg"
         >
           ←
         </Link>
-        <h1>Check In Gear</h1>
+        <h1>
+          {selectedOuting ? `Check In: ${selectedOuting}` : 'Check In Gear'}
+        </h1>
       </div>
 
       {/* Search */}

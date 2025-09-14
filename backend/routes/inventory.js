@@ -36,4 +36,27 @@ router.get('/items/:category', async (req, res) => {
   }
 });
 
+// GET /api/inventory/outings - Get outings with checked out items
+router.get('/outings', async (req, res) => {
+  try {
+    const outings = await sheetsAPI.getOutingsWithItems();
+    res.json(outings);
+  } catch (error) {
+    console.error('Error fetching outings:', error);
+    res.status(500).json({ error: 'Failed to fetch outings' });
+  }
+});
+
+// GET /api/inventory/checked-out/:outing - Get checked out items for specific outing
+router.get('/checked-out/:outing', async (req, res) => {
+  try {
+    const { outing } = req.params;
+    const items = await sheetsAPI.getCheckedOutItemsByOuting(outing);
+    res.json(items);
+  } catch (error) {
+    console.error('Error fetching checked out items:', error);
+    res.status(500).json({ error: 'Failed to fetch checked out items' });
+  }
+});
+
 module.exports = router;
