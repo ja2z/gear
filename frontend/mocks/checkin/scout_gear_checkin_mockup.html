@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scout Gear Check-In - Mobile UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .phone-container {
+            max-width: 375px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .screen {
+            display: none;
+            min-height: 667px;
+            position: relative;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        .header {
+            background: #2c5aa0;
+            color: white;
+            padding: 20px 20px 15px;
+            position: relative;
+        }
+        
+        .header.checkin {
+            background: #28a745;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .back-btn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        
+        .content {
+            padding: 0 20px 100px;
+        }
+        
+        .big-button {
+            width: 100%;
+            padding: 25px;
+            margin: 15px 0;
+            background: #2c5aa0;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .big-button.checkin {
+            background: #28a745;
+        }
+        
+        .big-button:hover {
+            background: #1e3d6f;
+            transform: translateY(-2px);
+        }
+        
+        .big-button.checkin:hover {
+            background: #218838;
+        }
+        
+        .outing-list, .category-list {
+            margin-top: 20px;
+        }
+        
+        .outing-item, .category-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .outing-item:hover, .category-item:hover {
+            background: #f8f9fa;
+            border-color: #28a745;
+        }
+        
+        .outing-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #28a745;
+            margin-bottom: 5px;
+        }
+        
+        .outing-meta {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+        
+        .outing-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+        
+        .stat-item {
+            background: #e9ecef;
+            padding: 5px 10px;
+            border-radius: 15px;
+            color: #6c757d;
+        }
+        
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .category-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .category-count {
+            background: #e9ecef;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .item-list {
+            margin-top: 20px;
+        }
+        
+        .item-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            transition: all 0.2s;
+        }
+        
+        .item-card.selected {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+        
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .item-id {
+            font-weight: 600;
+            color: #28a745;
+        }
+        
+        .item-status {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .item-meta {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        
+        .condition-selector {
+            margin-top: 10px;
+        }
+        
+        .condition-label {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .condition-options {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .condition-btn {
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            background: white;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .condition-btn.selected {
+            border-color: #28a745;
+            background: #f8fff9;
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .condition-btn.usable {
+            border-color: #28a745;
+        }
+        
+        .condition-btn.damaged {
+            border-color: #ffc107;
+        }
+        
+        .condition-btn.missing {
+            border-color: #dc3545;
+        }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 375px;
+            background: white;
+            border-top: 1px solid #eee;
+            padding: 15px 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-primary {
+            background: #28a745;
+            color: white;
+        }
+        
+        .success-message {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .success-icon {
+            font-size: 60px;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+        
+        .mockup-note {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #0c5460;
+        }
+        
+        .multi-select-notice {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            padding: 12px 15px;
+            margin: 10px 0 20px 0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #1565c0;
+            text-align: center;
+        }
+        
+        .checkin-notice {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 12px 15px;
+            margin: 10px 0 20px 0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #155724;
+            text-align: center;
+        }
+        
+        .notes-section {
+            margin-top: 15px;
+        }
+        
+        .notes-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 12px;
+            resize: vertical;
+            min-height: 40px;
+        }
+        
+        .screen-nav {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .nav-dot {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #ddd;
+            color: #666;
+            line-height: 30px;
+            margin: 0 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .nav-dot.active {
+            background: #28a745;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="mockup-note">
+        <strong>🔄 Check-In Flow Mockup</strong><br>
+        This demonstrates the 6-step check-in process: Home → Outings → Categories → Items → Condition Selection → Success.
+        Each item requires condition assessment before check-in completion.
+    </div>
+
+    <!-- Screen 1: Landing Page -->
+    <div class="phone-container">
+        <div class="screen active" id="landing">
+            <div class="header">
+                <h1>Scout Gear Management</h1>
+            </div>
+            <div class="content">
+                <button class="big-button" onclick="showScreen('checkout-categories')">
+                    📦 Check Out Gear
+                </button>
+                <button class="big-button checkin" onclick="showScreen('checkin-outings')">
+                    ✅ Check In Gear
+                </button>
+            </div>
+        </div>
+
+        <!-- Screen 2: Check-In Outings List -->
+        <div class="screen" id="checkin-outings">
+            <div class="header checkin">
+                <button class="back-btn" onclick="showScreen('landing')">←</button>
+                <h1>Select Outing</h1>
+            </div>
+            <div class="content">
+                <div class="checkin-notice">
+                    Select the outing to return gear from. Only outings with checked-out items are shown.
+                </div>
+                <div class="outing-list">
+                    <div class="outing-item" onclick="showScreen('checkin-categories', 'Spring Campout 2025')">
+                        <div class="outing-name">Spring Campout 2025</div>
+                        <div class="outing-meta">Checked out: March 15, 2025 • Scout: Alex Smith</div>
+                        <div class="outing-stats">
+                            <span class="stat-item">8 items checked out</span>
+                            <span class="stat-item">5 categories</span>
+                        </div>
+                    </div>
+                    <div class="outing-item" onclick="showScreen('checkin-categories', 'Winter Hike 2025')">
+                        <div class="outing-name">Winter Hike 2025</div>
+                        <div class="outing-meta">Checked out: February 28, 2025 • Scout: Jordan Davis</div>
+                        <div class="outing-stats">
+                            <span class="stat-item">12 items checked out</span>
+                            <span class="stat-item">6 categories</span>
+                        </div>
+                    </div>
+                    <div class="outing-item" onclick="showScreen('checkin-categories', 'Patrol Cookout')">
+                        <div class="outing-name">Patrol Cookout</div>
+                        <div class="outing-meta">Checked out: March 20, 2025 • Scout: Sam Wilson</div>
+                        <div class="outing-stats">
+                            <span class="stat-item">6 items checked out</span>
+                            <span class="stat-item">3 categories</span>
+                        </div>
+                    </div>
+                    <div class="outing-item" onclick="showScreen('checkin-categories', 'Backpacking Trip')">
+                        <div class="outing-name">Backpacking Trip</div>
+                        <div class="outing-meta">Checked out: March 10, 2025 • Scout: Taylor Brown</div>
+                        <div class="outing-stats">
+                            <span class="stat-item">15 items checked out</span>
+                            <span class="stat-item">8 categories</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 3: Check-In Categories -->
+        <div class="screen" id="checkin-categories">
+            <div class="header checkin">
+                <button class="back-btn" onclick="showScreen('checkin-outings')">←</button>
+                <h1 id="checkin-outing-title">Spring Campout 2025</h1>
+            </div>
+            <div class="content">
+                <div class="checkin-notice">
+                    Select a category to check in items. Only categories with checked-out items for this outing are shown.
+                </div>
+                <div class="category-list">
+                    <div class="category-item" onclick="showScreen('checkin-tents')">
+                        <div class="category-header">
+                            <span class="category-name">🏕️ Tents</span>
+                            <span class="category-count">2 items</span>
+                        </div>
+                    </div>
+                    <div class="category-item" onclick="showScreen('checkin-stoves')">
+                        <div class="category-header">
+                            <span class="category-name">🔥 Backpacking Stoves</span>
+                            <span class="category-count">1 item</span>
+                        </div>
+                    </div>
+                    <div class="category-item" onclick="showScreen('checkin-utensils')">
+                        <div class="category-header">
+                            <span class="category-name">🍳 Cooking Utensils</span>
+                            <span class="category-count">3 items</span>
+                        </div>
+                    </div>
+                    <div class="category-item" onclick="showScreen('checkin-lighting')">
+                        <div class="category-header">
+                            <span class="category-name">🔦 Lighting</span>
+                            <span class="category-count">2 items</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 4: Check-In Tents -->
+        <div class="screen" id="checkin-tents">
+            <div class="header checkin">
+                <button class="back-btn" onclick="showScreen('checkin-categories')">←</button>
+                <h1>Check In Tents</h1>
+            </div>
+            <div class="content">
+                <div class="checkin-notice">
+                    Assess the condition of each item before checking in. Select items and set their condition.
+                </div>
+                <div class="item-list">
+                    <div class="item-card" id="tent-001-card">
+                        <div class="item-header">
+                            <span class="item-id">TENT-001</span>
+                            <span class="item-status">Checked Out</span>
+                        </div>
+                        <div class="item-meta">4-Person Dome Tent - REI Co-op</div>
+                        <div class="condition-selector">
+                            <span class="condition-label">Item Condition:</span>
+                            <div class="condition-options">
+                                <button class="condition-btn usable" onclick="selectCondition('TENT-001', 'Usable', this)">Usable</button>
+                                <button class="condition-btn damaged" onclick="selectCondition('TENT-001', 'Damaged', this)">Damaged</button>
+                                <button class="condition-btn missing" onclick="selectCondition('TENT-001', 'Missing', this)">Missing</button>
+                            </div>
+                        </div>
+                        <div class="notes-section">
+                            <textarea class="notes-input" placeholder="Optional notes about condition..." id="notes-TENT-001"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="item-card" id="tent-005-card">
+                        <div class="item-header">
+                            <span class="item-id">TENT-005</span>
+                            <span class="item-status">Checked Out</span>
+                        </div>
+                        <div class="item-meta">8-Person Base Camp Tent - REI Co-op</div>
+                        <div class="condition-selector">
+                            <span class="condition-label">Item Condition:</span>
+                            <div class="condition-options">
+                                <button class="condition-btn usable" onclick="selectCondition('TENT-005', 'Usable', this)">Usable</button>
+                                <button class="condition-btn damaged" onclick="selectCondition('TENT-005', 'Damaged', this)">Damaged</button>
+                                <button class="condition-btn missing" onclick="selectCondition('TENT-005', 'Missing', this)">Missing</button>
+                            </div>
+                        </div>
+                        <div class="notes-section">
+                            <textarea class="notes-input" placeholder="Optional notes about condition..." id="notes-TENT-005"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bottom-nav">
+                <button class="nav-btn btn-secondary" onclick="showScreen('checkin-categories')">Back</button>
+                <button class="nav-btn btn-primary" onclick="processCheckin('checkin-categories')" id="checkin-tents-btn" disabled>Check In Items</button>
+            </div>
+        </div>
+
+        <!-- Screen 5: Check-In Utensils -->
+        <div class="screen" id="checkin-utensils">
+            <div class="header checkin">
+                <button class="back-btn" onclick="showScreen('checkin-categories')">←</button>
+                <h1>Check In Utensils</h1>
+            </div>
+            <div class="content">
+                <div class="checkin-notice">
+                    Assess the condition of each utensil before checking in.
+                </div>
+                <div class="item-list">
+                    <div class="item-card" id="spatula-001-card">
+                        <div class="item-header">
+                            <span class="item-id">SPATULA-001</span>
+                            <span class="item-status">Checked Out</span>
+                        </div>
+                        <div class="item-meta">Metal Spatula - Stainless Steel</div>
+                        <div class="condition-selector">
+                            <span class="condition-label">Item Condition:</span>
+                            <div class="condition-options">
+                                <button class="condition-btn usable" onclick="selectCondition('SPATULA-001', 'Usable', this)">Usable</button>
+                                <button class="condition-btn damaged" onclick="selectCondition('SPATULA-001', 'Damaged', this)">Damaged</button>
+                                <button class="condition-btn missing" onclick="selectCondition('SPATULA-001', 'Missing', this)">Missing</button>
+                            </div>
+                        </div>
+                        <div class="notes-section">
+                            <textarea class="notes-input" placeholder="Optional notes about condition..." id="notes-SPATULA-001"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="item-card" id="spoon-001-card">
+                        <div class="item-header">
+                            <span class="item-id">SPOON-001</span>
+                            <span class="item-status">Checked Out</span>
+                        </div>
+                        <div class="item-meta">Metal Spoon - Large Serving</div>
+                        <div class="condition-selector">
+                            <span class="condition-label">Item Condition:</span>
+                            <div class="condition-options">
+                                <button class="condition-btn usable" onclick="selectCondition('SPOON-001', 'Usable', this)">Usable</button>
+                                <button class="condition-btn damaged" onclick="selectCondition('SPOON-001', 'Damaged', this)">Damaged</button>
+                                <button class="condition-btn missing" onclick="selectCondition('SPOON-001', 'Missing', this)">Missing</button>
+                            </div>
+                        </div>
+                        <div class="notes-section">
+                            <textarea class="notes-input" placeholder="Optional notes about condition..." id="notes-SPOON-001"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="item-card" id="knife-001-card">
+                        <div class="item-header">
+                            <span class="item-id">KNIFE-001</span>
+                            <span class="item-status">Checked Out</span>
+                        </div>
+                        <div class="item-meta">Chef's Knife - 8 inch</div>
+                        <div class="condition-selector">
+                            <span class="condition-label">Item Condition:</span>
+                            <div class="condition-options">
+                                <button class="condition-btn usable" onclick="selectCondition('KNIFE-001', 'Usable', this)">Usable</button>
+                                <button class="condition-btn damaged" onclick="selectCondition('KNIFE-001', 'Damaged', this)">Damaged</button>
+                                <button class="condition-btn missing" onclick="selectCondition('KNIFE-001', 'Missing', this)">Missing</button>
+                            </div>
+                        </div>
+                        <div class="notes-section">
+                            <textarea class="notes-input" placeholder="Optional notes about condition..." id="notes-KNIFE-001"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bottom-nav">
+                <button class="nav-btn btn-secondary" onclick="showScreen('checkin-categories')">Back</button>
+                <button class="nav-btn btn-primary" onclick="processCheckin('checkin-categories')" id="checkin-utensils-btn" disabled>Check In Items</button>
+            </div>
+        </div>
+
+        <!-- Screen 6: Check-In Success -->
+        <div class="screen" id="checkin-success">
+            <div class="header checkin">
+                <h1>Check-In Complete!</h1>
+            </div>
+            <div class="content">
+                <div class="success-message">
+                    <div class="success-icon">✅</div>
+                    <h2>Gear Successfully Checked In</h2>
+                    <p><span id="checkin-count">2</span> items have been checked in from <strong id="checkin-outing-name">Spring Campout 2025</strong></p>
+                    <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: left;">
+                        <h4 style="margin-bottom: 10px;">Summary:</h4>
+                        <div id="checkin-summary">
+                            • TENT-001: Usable condition<br>
+                            • TENT-005: Damaged - needs repair
+                        </div>
+                    </div>
+                    <button class="big-button checkin" onclick="showScreen('landing')" style="margin-top: 30px;">
+                        Return to Home
+                    </button>
+                    <button class="big-button" onclick="showScreen('checkin-categories')" style="background: #6c757d; margin-top: 10px;">
+                        Check In More Items
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demo checkout screen -->
+        <div class="screen" id="checkout-categories">
+            <div class="header">
+                <button class="back-btn" onclick="showScreen('landing')">←</button>
+                <h1>Check Out Categories</h1>
+            </div>
+            <div class="content">
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <h3>Checkout Flow</h3>
+                    <p>This would show the checkout categories screen from the original mockup.</p>
+                    <button class="big-button" onclick="showScreen('landing')" style="margin-top: 20px;">
+                        Return to Home
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Dots -->
+        <div class="screen-nav">
+            <span class="nav-dot active" onclick="showScreen('landing')">1</span>
+            <span class="nav-dot" onclick="showScreen('checkin-outings')">2</span>
+            <span class="nav-dot" onclick="showScreen('checkin-categories')">3</span>
+            <span class="nav-dot" onclick="showScreen('checkin-tents')">4</span>
+            <span class="nav-dot" onclick="showScreen('checkin-success')">5</span>
+        </div>
+    </div>
+
+    <script>
+        let checkinItems = {};
+        let currentOuting = '';
+
+        function showScreen(screenId, outingName = null) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            
+            // Update navigation dots
+            updateNavDots(screenId);
+            
+            // Set outing context if provided
+            if (outingName) {
+                currentOuting = outingName;
+                document.getElementById('checkin-outing-title').textContent = outingName;
+            }
+            
+            // Reset check-in items when starting new flow
+            if (screenId === 'checkin-outings') {
+                checkinItems = {};
+            }
+        }
+
+        function updateNavDots(activeScreen) {
+            const screenMap = {
+                'landing': 0,
+                'checkin-outings': 1,
+                'checkin-categories': 2,
+                'checkin-tents': 3,
+                'checkin-utensils': 3,
+                'checkin-success': 4
+            };
+            
+            document.querySelectorAll('.nav-dot').forEach((dot, index) => {
+                dot.classList.remove('active');
+                if (index === screenMap[activeScreen]) {
+                    dot.classList.add('active');
+                }
+            });
+        }
+
+        function selectCondition(itemId, condition, button) {
+            // Clear previous selections for this item
+            const card = document.getElementById(itemId.toLowerCase() + '-card');
+            const conditionButtons = card.querySelectorAll('.condition-btn');
+            conditionButtons.forEach(btn => btn.classList.remove('selected'));
+            
+            // Select the clicked button
+            button.classList.add('selected');
+            
+            // Store the condition
+            if (!checkinItems[itemId]) {
+                checkinItems[itemId] = {};
+            }
+            checkinItems[itemId].condition = condition;
+            checkinItems[itemId].notes = document.getElementById('notes-' + itemId).value;
+            
+            // Update the check-in button state
+            updateCheckinButton();
+        }
+
+        function updateCheckinButton() {
+            // Check which screen we're on and get the appropriate button and cards
+            const activeScreen = document.querySelector('.screen.active');
+            const screenId = activeScreen.id;
+            
+            if (screenId === 'checkin-tents') {
+                const button = document.getElementById('checkin-tents-btn');
+                const requiredItems = ['TENT-001', 'TENT-005'];
+                const hasAllConditions = requiredItems.every(itemId => 
+                    checkinItems[itemId] && checkinItems[itemId].condition
+                );
+                button.disabled = !hasAllConditions;
+            } else if (screenId === 'checkin-utensils') {
+                const button = document.getElementById('checkin-utensils-btn');
+                const requiredItems = ['SPATULA-001', 'SPOON-001', 'KNIFE-001'];
+                const hasAllConditions = requiredItems.every(itemId => 
+                    checkinItems[itemId] && checkinItems[itemId].condition
+                );
+                button.disabled = !hasAllConditions;
+            }
+        }
+
+        function processCheckin(returnScreen) {
+            // Get notes for all items on current screen
+            const activeScreen = document.querySelector('.screen.active');
+            const noteInputs = activeScreen.querySelectorAll('.notes-input');
+            
+            noteInputs.forEach(input => {
+                const itemId = input.id.replace('notes-', '');
+                if (checkinItems[itemId]) {
+                    checkinItems[itemId].notes = input.value;
+                }
+            });
+            
+            // Show success screen with summary
+            updateCheckinSummary();
+            showScreen('checkin-success');
+            
+            // Here you would make the actual check-in API call
+            console.log('Processing check-in:', checkinItems);
+        }
+
+        function updateCheckinSummary() {
+            const summary = document.getElementById('checkin-summary');
+            const outingName = document.getElementById('checkin-outing-name');
+            const itemCount = document.getElementById('checkin-count');
+            
+            outingName.textContent = currentOuting;
+            
+            let summaryHtml = '';
+            let count = 0;
+            
+            for (const [itemId, data] of Object.entries(checkinItems)) {
+                if (data.condition) {
+                    count++;
+                    let conditionText = data.condition;
+                    if (data.condition === 'Damaged' && data.notes) {
+                        conditionText += ` - ${data.notes}`;
+                    } else if (data.condition === 'Missing') {
+                        conditionText += ' - needs replacement';
+                    }
+                    summaryHtml += `• ${itemId}: ${conditionText}<br>`;
+                }
+            }
+            
+            itemCount.textContent = count;
+            summary.innerHTML = summaryHtml;
+        }
+
+        // Add event listeners for notes inputs to update checkin items
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('notes-input')) {
+                const itemId = e.target.id.replace('notes-', '');
+                if (checkinItems[itemId]) {
+                    checkinItems[itemId].notes = e.target.value;
+                }
+            }
+        });
+
+        // Initialize with landing page
+        showScreen('landing');
+    </script>
+</body>
+</html>
+                        

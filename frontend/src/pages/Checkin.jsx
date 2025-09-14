@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
-import { ArrowLeft, Search, CheckCircle } from 'lucide-react';
 
 const Checkin = () => {
   const { postData, loading } = useInventory();
@@ -75,50 +74,39 @@ const Checkin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link
-              to="/"
-              className="flex items-center space-x-2 text-gray-600 hover:text-scout-blue touch-target"
-            >
-              <ArrowLeft className="w-6 h-6" />
-              <span className="font-medium">Back</span>
-            </Link>
-            
-            <h1 className="text-xl font-bold text-gray-900">Check In Gear</h1>
-            
-            <div className="w-6"></div>
-          </div>
-        </div>
+      <div className="header">
+        <Link
+          to="/"
+          className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg"
+        >
+          ←
+        </Link>
+        <h1>Check In Gear</h1>
       </div>
 
       {/* Search */}
-      <div className="container mx-auto px-4 py-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search checked out items..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-transparent touch-target"
-          />
-        </div>
+      <div className="bg-white px-5 py-4 border-b border-gray-200 sticky top-0 z-10">
+        <input
+          type="text"
+          placeholder="Search checked out items..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="search-input"
+        />
       </div>
 
       {/* Items List */}
-      <div className="container mx-auto px-4 pb-8">
+      <div className="px-5 py-5 pb-20">
         <div className="space-y-3 mb-6">
           {filteredItems.map((item) => {
             const isSelected = selectedItems.find(i => i.itemId === item.itemId);
             return (
               <div
                 key={item.itemId}
-                className={`bg-white rounded-lg p-4 shadow-sm border-2 transition-colors ${
-                  isSelected ? 'border-scout-blue bg-blue-50' : 'border-transparent'
+                className={`card ${
+                  isSelected ? 'card-selected' : ''
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -130,7 +118,7 @@ const Checkin = () => {
                           isSelected ? 'bg-scout-blue border-scout-blue text-white' : 'border-gray-300'
                         }`}
                       >
-                        {isSelected && <CheckCircle className="w-4 h-4" />}
+                        {isSelected && <span className="text-sm">✓</span>}
                       </button>
                       
                       <div>
@@ -191,7 +179,7 @@ const Checkin = () => {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-scout-gold text-white py-4 rounded-lg hover:bg-yellow-600 transition-colors touch-target font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full btn-primary py-4 text-lg touch-target disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Processing...' : `Check In ${selectedItems.length} Item${selectedItems.length > 1 ? 's' : ''}`}
           </button>

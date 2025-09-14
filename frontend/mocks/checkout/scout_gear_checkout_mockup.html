@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scout Gear Checkout - Mobile UI Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .phone-container {
+            max-width: 375px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .screen {
+            display: none;
+            min-height: 667px;
+            position: relative;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        .header {
+            background: #2c5aa0;
+            color: white;
+            padding: 20px 20px 15px;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .back-btn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        
+        .cart-badge {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #ff6b35;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .search-container {
+            padding: 15px 20px;
+            background: white;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+        }
+        
+        .search-input:focus {
+            border-color: #2c5aa0;
+        }
+        
+        .content {
+            padding: 0 20px 100px;
+        }
+        
+        .big-button {
+            width: 100%;
+            padding: 25px;
+            margin: 15px 0;
+            background: #2c5aa0;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .big-button:hover {
+            background: #1e3d6f;
+            transform: translateY(-2px);
+        }
+        
+        .category-list {
+            margin-top: 20px;
+        }
+        
+        .category-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .category-item:hover {
+            background: #f8f9fa;
+            border-color: #2c5aa0;
+        }
+        
+        .category-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .category-count {
+            background: #e9ecef;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .item-list {
+            margin-top: 20px;
+        }
+        
+        .item-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            transition: all 0.2s;
+        }
+        
+        .item-card:hover {
+            border-color: #2c5aa0;
+        }
+        
+        .item-card.selected {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+        
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .item-id {
+            font-weight: 600;
+            color: #2c5aa0;
+        }
+        
+        .item-status {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .item-status.checked-out {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .add-to-cart {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        .add-to-cart:hover {
+            background: #218838;
+        }
+        
+        .add-to-cart:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .cart-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .remove-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+        }
+        
+        .form-group {
+            margin: 20px 0;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+        
+        .form-input:focus {
+            border-color: #2c5aa0;
+        }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 375px;
+            background: white;
+            border-top: 1px solid #eee;
+            padding: 15px 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-primary {
+            background: #2c5aa0;
+            color: white;
+        }
+        
+        .screen-nav {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .nav-dot {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #ddd;
+            color: #666;
+            line-height: 30px;
+            margin: 0 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .nav-dot.active {
+            background: #2c5aa0;
+            color: white;
+        }
+        
+        .success-message {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .success-icon {
+            font-size: 60px;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+        
+        .mockup-note {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #856404;
+        }
+        
+        .multi-select-notice {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            padding: 12px 15px;
+            margin: 10px 0 20px 0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #1565c0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="mockup-note">
+        <strong>📱 Mobile UI Mockup - Updated Data Model</strong><br>
+        Each item now has a unique ID (SPOON-001, SPOON-002, etc.). No more quantity controls - simplified selection process. 
+        Use the navigation dots or click through the interface to see each screen.
+    </div>
+
+    <!-- Screen 1: Landing Page -->
+    <div class="phone-container">
+        <div class="screen active" id="landing">
+            <div class="header">
+                <h1>Scout Gear Checkout</h1>
+            </div>
+            <div class="content">
+                <button class="big-button" onclick="showScreen('categories')">
+                    📦 Check Out Gear
+                </button>
+                <button class="big-button" style="background: #28a745;" onclick="alert('Check In - Coming Soon!')">
+                    ✅ Check In Gear
+                </button>
+            </div>
+        </div>
+
+        <!-- Screen 2: Categories with Search -->
+        <div class="screen" id="categories">
+            <div class="header">
+                <button class="back-btn" onclick="showScreen('landing')">←</button>
+                <h1>Select Category</h1>
+                <div class="cart-badge" onclick="showScreen('cart')">3</div>
+            </div>
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search for gear..." id="searchInput">
+            </div>
+            <div class="content">
+                <div class="category-list" id="categoryList">
+                    <div class="category-item" onclick="showScreen('tents')">
+                        <span class="category-name">🏕️ Tents</span>
+                        <span class="category-count">12 available</span>
+                    </div>
+                    <div class="category-item" onclick="showScreen('stoves')">
+                        <span class="category-name">🔥 Backpacking Stoves</span>
+                        <span class="category-count">8 available</span>
+                    </div>
+                    <div class="category-item" onclick="showScreen('utensils')">
+                        <span class="category-name">🍳 Cooking Utensils</span>
+                        <span class="category-count">25 available</span>
+                    </div>
+                    <div class="category-item">
+                        <span class="category-name">🎒 Backpacks</span>
+                        <span class="category-count">15 available</span>
+                    </div>
+                    <div class="category-item">
+                        <span class="category-name">🧗 Climbing Gear</span>
+                        <span class="category-count">6 available</span>
+                    </div>
+                    <div class="category-item">
+                        <span class="category-name">🔦 Lighting</span>
+                        <span class="category-count">20 available</span>
+                    </div>
+                    <div class="category-item">
+                        <span class="category-name">🧪 Water Treatment</span>
+                        <span class="category-count">10 available</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 3: Individual Tents -->
+        <div class="screen" id="tents">
+            <div class="header">
+                <button class="back-btn" onclick="showScreen('categories')">←</button>
+                <h1>Select Tents</h1>
+                <div class="cart-badge" onclick="showScreen('cart')">3</div>
+            </div>
+            <div class="content">
+                <div class="multi-select-notice">
+                    Tap items to select multiple. Selected items will be highlighted.
+                </div>
+                <div class="item-list">
+                    <div class="item-card" onclick="toggleItem('TENT-001', 'Tent 001', this)">
+                        <div class="item-header">
+                            <span class="item-id">TENT-001</span>
+                            <span class="item-status">Available</span>
+                        </div>
+                        <div>4-Person Dome Tent - REI Co-op</div>
+                    </div>
+                    <div class="item-card" onclick="toggleItem('TENT-002', 'Tent 002', this)">
+                        <div class="item-header">
+                            <span class="item-id">TENT-002</span>
+                            <span class="item-status">Available</span>
+                        </div>
+                        <div>6-Person Family Tent - Coleman</div>
+                    </div>
+                    <div class="item-card">
+                        <div class="item-header">
+                            <span class="item-id">TENT-003</span>
+                            <span class="item-status checked-out">Checked Out</span>
+                        </div>
+                        <div>2-Person Backpacking Tent - MSR</div>
+                    </div>
+                    <div class="item-card" onclick="toggleItem('TENT-004', 'Tent 004', this)">
+                        <div class="item-header">
+                            <span class="item-id">TENT-004</span>
+                            <span class="item-status">Available</span>
+                        </div>
+                        <div>3-Person Ultralight Tent - Big Agnes</div>
+                    </div>
+                    <div class="item-card" onclick="toggleItem('TENT-005', 'Tent 005', this)">
+                        <div class="item-header">
+                            <span class="item-id">TENT-005</span>
+                            <span class="item-status">Available</span>
+                        </div>
+                        <div>8-Person Base Camp Tent - REI Co-op</div>
+                    </div>
+                </div>
+            </div>
+            <div class="bottom-nav">
+                <button class="nav-btn btn-secondary" onclick="showScreen('categories')">Back</button>
+                <button class="nav-btn btn-primary" onclick="addSelectedToCart('categories')">Add to Cart</button>
+            </div>
+        </div>
+
+        <!-- Screen 4: Cooking Utensils -->
+        <div class="screen" id="utensils">
+            <div class="header">
+                <button class="back-btn" onclick="showScreen('categories')">←</button>
+                <h1>Cooking Utensils</h1>
+                <div class="cart-badge" onclick="showScreen('cart')">3</div>
+            </div>
+            <div class="content">
+                <div class="multi-select-notice">
+                    Each utensil has a unique ID. Select the specific items you need.
+                </div>
+                <div class="item-list">
+                    <div class="item-card" onclick="toggleItem('SPATULA-001', 'Metal Spatula 001', this)">
+                        <div class="item-header">
+                            <span class="item-id">SPATULA-001</span>
+                            <span class="item-status">Available</span>
+                        </div>
+                        <div>Metal Spatula - Stainless Steel</div>
+                    </div>
+                    <div class="item-card" onclick="toggleItem('SPATULA-002', 'Metal Spatula 002', this)">
+                        <div class="item-header">
+                            <span class="item-id">SPATULA-002</span>
+                            <span class="item-status">Available</span>
+                        </div>
+                        <div>Metal Spatula - Stainless Steel</div>
+                    </div>
+                    <div class="item-card" onclick="toggleItem('SPATULA-003', 'Metal Spatula 003', this)">
+                        <div class="item-header">
+                            <span class="item-id">SPATULA-003</span>
+                            <span class="item-status">Available</span>
+                        </div>
+                        <div>Metal Spatula - Stainless Steel</div>
+                    </div>
+                    <div class="item-card" onclick="toggleItem('SPOON-001', 'Metal Spoon 001', this)">
+                        <div class="item-header">
+                            <span class="item-id">SPOON-001</span>
+                            <span class="item-status">Available</span>
+                        </div>
+                        <div>Metal Spoon - Large Serving</div>
+                    </div>
+                    <div class="item-card" onclick="toggleItem('SPOON-002', 'Metal Spoon 002', this)">
+                        <div class="item-header">
+                            <span class="item-id">SPOON-002</span>
+                            <span class="item-status">Available</span>
+                        </div>
+                        <div>Metal Spoon - Large Serving</div>
+                    </div>
+                    <div class="item-card">
+                        <div class="item-header">
+                            <span class="item-id">SPOON-003</span>
+                            <span class="item-status checked-out">Checked Out</span>
+                        </div>
+                        <div>Metal Spoon - Large Serving</div>
+                    </div>
+                    <div class="item-card" onclick="toggleItem('KNIFE-001', 'Chef Knife 001', this)">
+                        <div class="item-header">
+                            <span class="item-id">KNIFE-001</span>
+                            <span class="item-status">Available</span>
+                        </div>
+                        <div>Chef's Knife - 8 inch</div>
+                    </div>
+                </div>
+            </div>
+            <div class="bottom-nav">
+                <button class="nav-btn btn-secondary" onclick="showScreen('categories')">Back</button>
+                <button class="nav-btn btn-primary" onclick="addSelectedToCart('categories')">Add to Cart</button>
+            </div>
+        </div>
+
+        <!-- Screen 5: Cart Summary -->
+        <div class="screen" id="cart">
+            <div class="header">
+                <button class="back-btn" onclick="showScreen('categories')">←</button>
+                <h1>Your Cart</h1>
+            </div>
+            <div class="content">
+                <div id="cart-items">
+                    <div class="cart-item">
+                        <div>
+                            <strong>TENT-001</strong><br>
+                            4-Person Dome Tent - REI Co-op
+                        </div>
+                        <button class="remove-btn" onclick="removeFromCart('TENT-001')">×</button>
+                    </div>
+                    <div class="cart-item">
+                        <div>
+                            <strong>STOVE-002</strong><br>
+                            MSR WhisperLite International
+                        </div>
+                        <button class="remove-btn" onclick="removeFromCart('STOVE-002')">×</button>
+                    </div>
+                    <div class="cart-item">
+                        <div>
+                            <strong>SPATULA-001</strong><br>
+                            Metal Spatula - Stainless Steel
+                        </div>
+                        <button class="remove-btn" onclick="removeFromCart('SPATULA-001')">×</button>
+                    </div>
+                </div>
+            </div>
+            <div class="bottom-nav">
+                <button class="nav-btn btn-secondary" onclick="showScreen('categories')">Back</button>
+                <button class="nav-btn btn-primary" onclick="showScreen('checkout-info')">Next</button>
+            </div>
+        </div>
+
+        <!-- Screen 6: Scout Information -->
+        <div class="screen" id="checkout-info">
+            <div class="header">
+                <button class="back-btn" onclick="showScreen('cart')">←</button>
+                <h1>Checkout Information</h1>
+            </div>
+            <div class="content">
+                <div class="form-group">
+                    <label class="form-label">Scout Name *</label>
+                    <input type="text" class="form-input" placeholder="Enter scout name" id="scoutName">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Outing Name *</label>
+                    <input type="text" class="form-input" placeholder="e.g. Spring Campout 2025" id="outingName">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date *</label>
+                    <input type="date" class="form-input" id="outingDate">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes (Optional)</label>
+                    <textarea class="form-input" rows="3" placeholder="Any special notes or instructions..."></textarea>
+                </div>
+            </div>
+            <div class="bottom-nav">
+                <button class="nav-btn btn-secondary" onclick="showScreen('cart')">Back</button>
+                <button class="nav-btn btn-primary" onclick="completeCheckout()">Complete Checkout</button>
+            </div>
+        </div>
+
+        <!-- Screen 7: Success -->
+        <div class="screen" id="success">
+            <div class="header">
+                <h1>Checkout Complete!</h1>
+            </div>
+            <div class="content">
+                <div class="success-message">
+                    <div class="success-icon">✅</div>
+                    <h2>Gear Successfully Checked Out</h2>
+                    <p>3 items have been checked out to <strong id="checkout-scout">Alex Smith</strong> for <strong id="checkout-outing">Spring Campout 2025</strong></p>
+                    <button class="big-button" onclick="showScreen('landing')" style="margin-top: 30px;">
+                        Return to Home
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Dots -->
+        <div class="screen-nav">
+            <span class="nav-dot active" onclick="showScreen('landing')">1</span>
+            <span class="nav-dot" onclick="showScreen('categories')">2</span>
+            <span class="nav-dot" onclick="showScreen('cart')">3</span>
+            <span class="nav-dot" onclick="showScreen('checkout-info')">4</span>
+            <span class="nav-dot" onclick="showScreen('success')">5</span>
+        </div>
+    </div>
+
+    <script>
+        let cart = [];
+        let selectedItems = [];
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            
+            // Clear selection when moving between screens
+            if (screenId === 'categories') {
+                clearSelection();
+            }
+            
+            // Update cart display when showing cart screen
+            if (screenId === 'cart') {
+                updateCartDisplay();
+            }
+        }
+
+        function goHome() {
+            if (cart.length === 0) {
+                showScreen('landing');
+            } else {
+                if (confirm('Going home will empty your cart. Are you sure?')) {
+                    cart = [];
+                    updateCartBadge();
+                    showScreen('landing');
+                }
+            }
+        }
+
+        function updateCartDisplay() {
+            const cartItemsContainer = document.getElementById('cart-items');
+            cartItemsContainer.innerHTML = '';
+            
+            if (cart.length === 0) {
+                cartItemsContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Your cart is empty</div>';
+                return;
+            }
+            
+            cart.forEach(item => {
+                const cartItemDiv = document.createElement('div');
+                cartItemDiv.className = 'cart-item';
+                cartItemDiv.innerHTML = `
+                    <div>
+                        <strong>${item.id}</strong><br>
+                        ${item.name}
+                    </div>
+                    <button class="remove-btn" onclick="removeFromCart('${item.id}')">×</button>
+                `;
+                cartItemsContainer.appendChild(cartItemDiv);
+            });
+        }
+
+        function toggleItem(itemId, itemName, element) {
+            const index = selectedItems.findIndex(item => item.id === itemId);
+            
+            if (index === -1) {
+                // Add to selection
+                selectedItems.push({ id: itemId, name: itemName });
+                element.classList.add('selected');
+            } else {
+                // Remove from selection
+                selectedItems.splice(index, 1);
+                element.classList.remove('selected');
+            }
+        }
+
+        function addSelectedToCart(returnScreen) {
+            if (selectedItems.length === 0) {
+                alert('Please select at least one item');
+                return;
+            }
+            
+            // Add all selected items to cart
+            selectedItems.forEach(item => {
+                if (!cart.find(cartItem => cartItem.id === item.id)) {
+                    cart.push(item);
+                }
+            });
+            
+            updateCartBadge();
+            clearSelection();
+            showScreen(returnScreen);
+        }
+
+        function clearSelection() {
+            selectedItems = [];
+            document.querySelectorAll('.item-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+        }
+
+        function removeFromCart(itemId) {
+            cart = cart.filter(item => item.id !== itemId);
+            updateCartBadge();
+            updateCartDisplay();
+        }
+
+        function updateCartBadge() {
+            const totalItems = cart.length;
+            document.querySelectorAll('.cart-badge').forEach(badge => {
+                badge.textContent = totalItems;
+                badge.style.display = totalItems > 0 ? 'flex' : 'none';
+            });
+        }
+
+        function completeCheckout() {
+            const scoutName = document.getElementById('scoutName').value;
+            const outingName = document.getElementById('outingName').value;
+            
+            if (!scoutName || !outingName) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            document.getElementById('checkout-scout').textContent = scoutName;
+            document.getElementById('checkout-outing').textContent = outingName;
+            
+            // Here you would make the actual checkout API call
+            showScreen('success');
+            
+            // Reset cart
+            cart = [];
+            updateCartBadge();
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const categories = document.querySelectorAll('.category-item');
+            
+            categories.forEach(category => {
+                const categoryName = category.querySelector('.category-name').textContent.toLowerCase();
+                if (categoryName.includes(searchTerm)) {
+                    category.style.display = 'flex';
+                } else {
+                    category.style.display = 'none';
+                }
+            });
+        });
+
+        // Initialize with some demo items in cart for demonstration
+        function initializeDemoCart() {
+            cart = [
+                { id: 'TENT-001', name: '4-Person Dome Tent - REI Co-op' },
+                { id: 'STOVE-002', name: 'MSR WhisperLite International' },
+                { id: 'SPATULA-001', name: 'Metal Spatula - Stainless Steel' }
+            ];
+            updateCartBadge();
+        }
+
+        // Initialize
+        initializeDemoCart();
+    </script>
+</body>
+</html>

@@ -1,39 +1,30 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { ArrowLeft, ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react';
 
 const Cart = () => {
-  const { items, updateQuantity, removeItem, getTotalItems } = useCart();
+  const { items, removeItem, getTotalItems } = useCart();
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white shadow-sm border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <Link
-                to="/categories"
-                className="flex items-center space-x-2 text-gray-600 hover:text-scout-blue touch-target"
-              >
-                <ArrowLeft className="w-6 h-6" />
-                <span className="font-medium">Back</span>
-              </Link>
-              
-              <h1 className="text-xl font-bold text-gray-900">Shopping Cart</h1>
-              
-              <div className="w-6"></div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-100">
+        <div className="header">
+          <Link
+            to="/categories"
+            className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg"
+          >
+            ←
+          </Link>
+          <h1>Your Cart</h1>
         </div>
 
-        <div className="container mx-auto px-4 py-12">
+        <div className="px-5 py-12">
           <div className="text-center">
-            <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <div className="text-6xl mb-4">🛒</div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
             <p className="text-gray-600 mb-6">Add some gear to get started!</p>
             <Link
               to="/categories"
-              className="inline-block bg-scout-blue text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors touch-target"
+              className="inline-block btn-primary px-6 py-3 touch-target"
             >
               Browse Categories
             </Link>
@@ -44,79 +35,59 @@ const Cart = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link
-              to="/categories"
-              className="flex items-center space-x-2 text-gray-600 hover:text-scout-blue touch-target"
-            >
-              <ArrowLeft className="w-6 h-6" />
-              <span className="font-medium">Back</span>
-            </Link>
-            
-            <h1 className="text-xl font-bold text-gray-900">
-              Cart ({getTotalItems()} items)
-            </h1>
-            
-            <div className="w-6"></div>
-          </div>
-        </div>
+      <div className="header">
+        <Link
+          to="/categories"
+          className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg"
+        >
+          ←
+        </Link>
+        <h1>Your Cart</h1>
       </div>
 
       {/* Cart Items */}
-      <div className="container mx-auto px-4 py-4">
-        <div className="space-y-3 mb-6">
+      <div className="px-5 py-5 pb-20">
+        <div className="space-y-3">
           {items.map((item) => (
-            <div key={item.itemId} className="bg-white rounded-lg p-4 shadow-sm">
+            <div key={item.itemId} className="card">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="font-semibold text-gray-900 mb-1">
                     {item.itemId}
                   </h3>
                   <p className="text-sm text-gray-600">{item.description}</p>
                 </div>
                 
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => updateQuantity(item.itemId, item.quantity - 1)}
-                      className="bg-gray-200 text-gray-700 p-1 rounded touch-target"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <span className="text-lg font-semibold w-8 text-center">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => updateQuantity(item.itemId, item.quantity + 1)}
-                      className="bg-gray-200 text-gray-700 p-1 rounded touch-target"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                  
-                  <button
-                    onClick={() => removeItem(item.itemId)}
-                    className="text-red-500 hover:text-red-700 p-1 touch-target"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => removeItem(item.itemId)}
+                  className="btn-danger rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold ml-3 touch-target"
+                >
+                  ×
+                </button>
               </div>
             </div>
           ))}
         </div>
+      </div>
 
-        {/* Checkout Button */}
-        <Link
-          to="/checkout"
-          className="block w-full bg-scout-green text-white text-center py-4 rounded-lg hover:bg-green-700 transition-colors touch-target font-semibold text-lg"
-        >
-          Proceed to Checkout
-        </Link>
+      {/* Bottom Navigation */}
+      <div className="bottom-nav">
+        <div className="flex gap-3">
+          <Link
+            to="/categories"
+            className="nav-btn btn-secondary text-center"
+          >
+            Back
+          </Link>
+          <Link
+            to="/checkout"
+            className="nav-btn btn-primary text-center"
+          >
+            Next
+          </Link>
+        </div>
       </div>
     </div>
   );
