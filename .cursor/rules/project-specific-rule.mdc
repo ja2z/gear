@@ -1,0 +1,180 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Scout Troop Gear Management System - Project Context
+
+## Background
+I am an assistant scout master (ASM) for a Scouts BSA troop. One of my roles is quartermaster mentor which means I am in charge of the troop gear. I have just started this position and want to implement changes. Top of mind, I want to implement a digital online tracking system for troop gear. The current system is using a paper process.
+
+## Technology Decision
+After much research and consideration of budget constraints, I have decided to build an inventory management and checkout system using a **modern web stack with Vite + React frontend and Express.js backend**. 
+
+**Key Requirements:**
+- System needs to allow us to take inventory (e.g. 3 times a year)
+- Have a check out/check in process that works on a mobile device
+- **Mobile-first design is critical** - scouts will primarily use phones
+- Budget-conscious solution using existing resources
+- Our troop has its own server where I can run Node.js applications
+
+## Architecture Decision
+**Frontend:** Vite + React (mobile-first design)
+**Backend:** Express.js with Node.js
+**Data Storage:** Google Sheets (source of truth) via Google Sheets API
+**Hosting:** Our own troop server
+**Mobile Experience:** Progressive web app capabilities, touch-optimized UI
+
+**Why this stack:**
+- Fast development with Vite's hot reload
+- Excellent mobile performance
+- Simple deployment to our existing server
+- Familiar technologies that are easy to maintain
+- Google Sheets integration keeps data accessible to leadership
+
+## Mobile UI Flow Design
+The system follows an e-commerce shopping cart pattern familiar to users:
+
+### Checkout Process Flow:
+1. **Landing Page** - Two large buttons: "Check Out Gear" and "Check In Gear"
+2. **Category Selection** - Scrollable list of ~20 gear categories with search functionality
+3. **Item Selection** - Category-specific item selection (individual items like TENT-001, TENT-002, SPOON-001, SPOON-002)
+4. **Shopping Cart** - Review selected items, add more, or proceed
+5. **Scout Information** - Capture scout name, outing name, date, and notes
+6. **Confirmation** - Complete checkout and show success message
+
+### Key Mobile UX Features:
+- Shopping cart with persistent item counter
+- Search functionality always visible on category page
+- Large, touch-friendly buttons and controls (44px+ touch targets)
+- Clear navigation breadcrumbs and back buttons
+- Real-time availability checking
+- Responsive design that works on all mobile screen sizes
+
+## Data Model
+
+### 1. Master Inventory Sheet (Google Sheets)
+Sheet is updated when check out/in occurs. Each row represents a unique item.
+Some items like TENT-001 get physical tags. Other items are fungible like SPOON-001 and SPOON-002 - we track individual spoons but they're interchangeable.
+
+**Columns:**
+- `Item Class` - e.g. TENT, BRCAN (bear can)
+- `Item Desc` - long description of class, e.g. Bear Can for BRCAN
+- `Item Num` - 3 digit suffix sequence number to uniquely identify item in a class, e.g. 001, 002
+- `Item ID` - Unique identifier (TENT-001, SPOON-001)
+- `Description` - Human-readable item description, e.g. Zephyr 3 or Half Dome 2+
+- `Is Tagged` - boolean, true when item has a printed tag that can be attached to item
+- `Condition` - Usable, Not usable, Missing
+- `Status` - Available, Not available
+- `Purchase Date` - When item was acquired
+- `Cost` - Purchase price if known
+- `Checked Out To` - Current holder (scout name)
+- `Checked Out By` - For accountability, who processed the checkout
+- `Check Out Date` - When item was checked out
+- `Outing Name` - Current outing assignment
+- `Notes` - Additional information
+
+### 2. Transaction Log Sheet (Google Sheets)
+Append-only audit trail of all checkout/checkin activities.
+
+**Columns:**
+- `Transaction ID` - Unique transaction identifier (auto-generated)
+- `Timestamp` - When transaction occurred
+- `Action` - "Check in" or "Check out"
+- `Item ID` - Which item was affected, e.g. TENT-001
+- `Outing Name` - Associated outing
+- `Condition` - Item condition (for checkin transactions). Values: Usable, Not usable, Missing
+- `Processed By` - System user who processed (for accountability)
+- `Notes` - Additional transaction details
+
+## Technical Implementation Plan
+
+### Frontend Structure (Vite + React):
+```
+src/
+├── components/
+│   ├── CategoryList.jsx
+│   ├── ItemCard.jsx
+│   ├── ShoppingCart.jsx
+│   ├── CheckoutForm.jsx
+│   └── Navigation.jsx
+├── pages/
+│   ├── Landing.jsx
+│   ├── Categories.jsx
+│   ├── Items.jsx
+│   ├── Cart.jsx
+│   ├── Checkout.jsx
+│   └── Success.jsx
+├── hooks/
+│   ├── useInventory.js
+│   └── useCart.js
+└── App.jsx
+```
+
+### Backend Structure (Express.js):
+```
+server/
+├── routes/
+│   ├── inventory.js
+│   ├── checkout.js
+│   └── checkin.js
+├── services/
+│   └── sheets-api.js
+├── middleware/
+└── server.js
+```
+
+### Core API Endpoints:
+- `GET /api/categories` - Fetch available categories with item counts
+- `GET /api/items/:category` - Get items for specific category
+- `POST /api/checkout` - Process checkout transaction
+- `POST /api/checkin` - Process checkin transaction
+- `GET /api/inventory` - Get current inventory status
+
+### Google Sheets Integration:
+- Use `google-spreadsheet` npm package for seamless API integration
+- **Service account authentication** for secure, automated access (no user OAuth needed)
+- **Real-time inventory updates** with optimistic UI for better user experience
+- **Batch operations** for multiple item checkouts to improve performance
+- **Error handling** with retry logic for network issues
+- **Data validation** on both client and server sides
+- **Concurrent access handling** to prevent inventory conflicts
+
+### Google Sheets Setup:
+```javascript
+// Example configuration
+const { GoogleSpreadsheet } = require('google-spreadsheet');
+
+const doc = new GoogleSpreadsheet('your-spreadsheet-id');
+await doc.useServiceAccountAuth({
+  client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+  private_key: process.env.GOOGLE_PRIVATE_KEY,
+});
+
+// Access patterns for inventory updates
+const inventorySheet = doc.sheetsByTitle['Master Inventory'];
+const transactionSheet = doc.sheetsByTitle['Transaction Log'];
+```
+
+## Development Approach
+- Start with basic checkout flow: Categories → Items → Cart → Checkout
+- Mobile-first responsive design using Tailwind CSS
+- Component-based architecture for reusability
+- Simple state management (React context or useState)
+- Iterative development: Core functionality first, then enhancements
+
+## Success Metrics
+- Eliminate paper-based tracking
+- Reduce gear loss through better accountability
+- Improve checkout/checkin efficiency at outings
+- Enable real-time inventory visibility
+- Provide audit trail for all gear movements
+- Excellent mobile user experience for scouts
+
+## Future Enhancements (Not Initial Scope)
+- QR code scanning for quick item selection
+- Offline capability with service workers
+- Push notifications for overdue items
+- Advanced reporting and analytics
+- User authentication with Google OAuth
+- SQLite caching for improved performance
