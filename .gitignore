@@ -86,3 +86,12 @@ jspm_packages/
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
+
+# Security - Credential files
+*.pem
+*.key
+*.p12
+*.pfx
+*-key.json
+*service-account*.json
+credentials.json

@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+// Use relative URL so it works in both development and production
+// In development: Vite proxy will handle /api requests to backend
+// In production: Same domain as frontend, so relative URLs work automatically
+const API_BASE_URL = '/api';
 
 export const useInventory = () => {
   const [loading, setLoading] = useState(false);
