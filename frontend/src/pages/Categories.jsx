@@ -38,14 +38,6 @@ const Categories = () => {
         </Link>
         <h1>Select Category</h1>
         <div className="absolute right-5 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-          <button
-            onClick={refreshCategories}
-            disabled={loading}
-            className="text-white text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-3 py-1 rounded"
-            title="Refresh from Google Sheets"
-          >
-            🔄
-          </button>
           {getTotalItems() > 0 && (
             <Link
               to="/cart"
