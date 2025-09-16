@@ -98,6 +98,14 @@ const Items = () => {
                       </span>
                     </div>
                     <p className="text-sm text-gray-600">{item.description}</p>
+                    {!isAvailable && item.outingName && (
+                      <div className="mt-2">
+                        <span className="text-xs text-gray-500">Currently on: </span>
+                        <span className="outing-badge">
+                          {item.outingName}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

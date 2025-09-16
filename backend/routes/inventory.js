@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const sqliteAPI = require('../services/sqlite-api');
 const sheetsAPI = require('../services/sheets-api');
 
 // GET /api/inventory - Get all inventory
 router.get('/', async (req, res) => {
   try {
-    const inventory = await sheetsAPI.getInventory();
+    const inventory = await sqliteAPI.getInventory();
     res.json(inventory);
   } catch (error) {
     console.error('Error fetching inventory:', error);
@@ -16,7 +17,7 @@ router.get('/', async (req, res) => {
 // GET /api/inventory/categories - Get all categories with counts
 router.get('/categories', async (req, res) => {
   try {
-    const categories = await sheetsAPI.getCategories();
+    const categories = await sqliteAPI.getCategories();
     res.json(categories);
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -28,7 +29,7 @@ router.get('/categories', async (req, res) => {
 router.get('/items/:category', async (req, res) => {
   try {
     const { category } = req.params;
-    const items = await sheetsAPI.getItemsByCategory(category);
+    const items = await sqliteAPI.getItemsByCategory(category);
     res.json(items);
   } catch (error) {
     console.error('Error fetching items by category:', error);
@@ -39,7 +40,7 @@ router.get('/items/:category', async (req, res) => {
 // GET /api/inventory/outings - Get outings with checked out items
 router.get('/outings', async (req, res) => {
   try {
-    const outings = await sheetsAPI.getOutingsWithItems();
+    const outings = await sqliteAPI.getOutingsWithItems();
     res.json(outings);
   } catch (error) {
     console.error('Error fetching outings:', error);
@@ -51,11 +52,50 @@ router.get('/outings', async (req, res) => {
 router.get('/checked-out/:outing', async (req, res) => {
   try {
     const { outing } = req.params;
-    const items = await sheetsAPI.getCheckedOutItemsByOuting(outing);
+    const items = await sqliteAPI.getCheckedOutItemsByOuting(outing);
     res.json(items);
   } catch (error) {
     console.error('Error fetching checked out items:', error);
     res.status(500).json({ error: 'Failed to fetch checked out items' });
+  }
+});
+
+// POST /api/inventory/sync-from-sheets - Sync inventory from Google Sheets to SQLite
+router.post('/sync-from-sheets', async (req, res) => {
+  try {
+    console.log('🔄 Starting sync from Google Sheets...');
+    const inventory = await sheetsAPI.syncFromGoogleSheets();
+    res.json({ 
+      success: true, 
+      message: `Successfully synced ${inventory.length} items from Google Sheets`,
+      itemCount: inventory.length
+    });
+  } catch (error) {
+    console.error('Error syncing from Google Sheets:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to sync from Google Sheets',
+      details: error.message
+    });
+  }
+});
+
+// GET /api/inventory/validate-sheets - Validate Google Sheets data without syncing
+router.get('/validate-sheets', async (req, res) => {
+  try {
+    console.log('🔍 Validating Google Sheets data...');
+    const validation = await sheetsAPI.validateGoogleSheetsData();
+    res.json({ 
+      success: true, 
+      validation
+    });
+  } catch (error) {
+    console.error('Error validating Google Sheets:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to validate Google Sheets data',
+      details: error.message
+    });
   }
 });
 

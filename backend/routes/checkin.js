@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const sqliteAPI = require('../services/sqlite-api');
 const sheetsAPI = require('../services/sheets-api');
 
 // POST /api/checkin - Process checkin transaction
@@ -16,11 +17,22 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Processed by is required' });
     }
     
+    // Step 1: Sync from Google Sheets to get fresh data
+    console.log('🔄 Syncing from Google Sheets before checkin...');
+    try {
+      await sheetsAPI.syncFromGoogleSheets();
+      console.log('✅ Fresh data loaded from Google Sheets');
+    } catch (syncError) {
+      console.warn('⚠️ Failed to sync from Google Sheets, using cached data:', syncError.message);
+      // Continue with cached data if sync fails
+    }
+    
     // Default conditions to 'Usable' if not provided
     const defaultConditions = itemIds.map(() => 'Usable');
     const finalConditions = conditions || defaultConditions;
     
-    const results = await sheetsAPI.checkinItems(
+    // Step 2: Process checkin in SQLite
+    const results = await sqliteAPI.checkinItems(
       itemIds,
       finalConditions,
       processedBy,
@@ -29,6 +41,33 @@ router.post('/', async (req, res) => {
     
     const successful = results.filter(r => r.success);
     const failed = results.filter(r => !r.success);
+    
+    // Step 3: Sync successful transactions to Google Sheets
+    if (successful.length > 0) {
+      console.log('🔄 Syncing successful transactions to Google Sheets...');
+      try {
+        for (let i = 0; i < successful.length; i++) {
+          const result = successful[i];
+          const condition = finalConditions[i] || 'Usable';
+          
+          const transactionData = {
+            transactionId: result.transactionId,
+            timestamp: new Date().toISOString(),
+            action: 'Check in',
+            itemId: result.itemId,
+            outingName: '', // Checkin doesn't have outing name
+            condition: condition,
+            processedBy: processedBy,
+            notes: notes
+          };
+          await sheetsAPI.syncToGoogleSheets(transactionData);
+        }
+        console.log('✅ Successfully synced transactions to Google Sheets');
+      } catch (syncError) {
+        console.error('❌ Failed to sync to Google Sheets:', syncError.message);
+        // Don't fail the entire operation if sync fails
+      }
+    }
     
     res.json({
       success: failed.length === 0,
