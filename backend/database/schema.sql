@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS items (
   check_out_date DATE,
   outing_name TEXT,
   notes TEXT,
+  in_app BOOLEAN DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -44,6 +45,7 @@ SELECT
   COUNT(*) as total_count,
   SUM(CASE WHEN status = 'Available' AND condition = 'Usable' THEN 1 ELSE 0 END) as available_count
 FROM items 
+WHERE in_app = 1
 GROUP BY item_class, item_desc;
 
 -- Indexes for better performance
@@ -51,5 +53,6 @@ CREATE INDEX IF NOT EXISTS idx_items_item_id ON items(item_id);
 CREATE INDEX IF NOT EXISTS idx_items_status ON items(status);
 CREATE INDEX IF NOT EXISTS idx_items_condition ON items(condition);
 CREATE INDEX IF NOT EXISTS idx_items_outing ON items(outing_name);
+CREATE INDEX IF NOT EXISTS idx_items_in_app ON items(in_app);
 CREATE INDEX IF NOT EXISTS idx_transactions_item_id ON transactions(item_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_timestamp ON transactions(timestamp);

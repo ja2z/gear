@@ -60,18 +60,29 @@ export const useInventory = () => {
   };
 };
 
-export const useCategories = () => {
+export const useCategories = (shouldSync = false) => {
   const [categories, setCategories] = useState([]);
-  const { loading, error, getData } = useInventory();
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { error, getData } = useInventory();
 
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const data = await getData('/inventory/categories');
-        setCategories(data);
-      } catch (err) {
-        console.error('Failed to load categories:', err);
-        // Fallback to mock data if API fails
+  const loadCategories = async (forceRefresh = false, syncFromSheets = false) => {
+    if (hasLoaded && !forceRefresh) return; // Prevent multiple loads unless forced
+    
+    // Only show loading if we don't have cached data
+    if (!hasLoaded) {
+      setIsLoading(true);
+    }
+    
+    try {
+      const endpoint = syncFromSheets ? '/inventory/categories?sync=true' : '/inventory/categories';
+      const data = await getData(endpoint);
+      setCategories(data);
+      setHasLoaded(true);
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+      // Fallback to mock data if API fails - only set once
+      if (!hasLoaded) {
         setCategories([
           { name: 'TENT', description: 'Tents', availableCount: 8, totalCount: 12 },
           { name: 'SLEEP', description: 'Sleeping Bags', availableCount: 15, totalCount: 20 },
@@ -80,26 +91,51 @@ export const useCategories = () => {
           { name: 'NAV', description: 'Navigation', availableCount: 5, totalCount: 8 },
           { name: 'FIRST', description: 'First Aid', availableCount: 3, totalCount: 5 },
         ]);
+        setHasLoaded(true);
       }
-    };
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    loadCategories();
-  }, []); // Remove getData dependency to prevent infinite re-renders
+  useEffect(() => {
+    loadCategories(false, shouldSync);
+  }, [getData, hasLoaded, shouldSync]);
 
-  return { categories, loading, error };
+  return { 
+    categories, 
+    loading: isLoading, // Only show loading when actually loading, not when using cache
+    error, 
+    refreshCategories: () => loadCategories(true, true) // Manual refresh always syncs
+  };
 };
 
 export const useItems = (category) => {
   const [items, setItems] = useState([]);
-  const { loading, error, getData } = useInventory();
+  const [loadedCategory, setLoadedCategory] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { error, getData } = useInventory();
 
   useEffect(() => {
-    if (!category) return;
+    if (!category) {
+      setItems([]);
+      setLoadedCategory(null);
+      return;
+    }
+
+    // Only load if category changed
+    if (loadedCategory === category) return;
 
     const loadItems = async () => {
+      // Only show loading if we don't have cached data for this category
+      if (loadedCategory !== category) {
+        setIsLoading(true);
+      }
+      
       try {
         const data = await getData(`/inventory/items/${category}`);
         setItems(data);
+        setLoadedCategory(category);
       } catch (err) {
         console.error('Failed to load items:', err);
         // Fallback to mock data if API fails
@@ -108,11 +144,14 @@ export const useItems = (category) => {
           { itemId: `${category}-002`, description: 'Sample Item 2', condition: 'Usable', status: 'Available' },
           { itemId: `${category}-003`, description: 'Sample Item 3', condition: 'Usable', status: 'Not available' },
         ]);
+        setLoadedCategory(category);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadItems();
-  }, [category]); // Remove getData dependency to prevent infinite re-renders
+  }, [category, getData, loadedCategory]);
 
-  return { items, loading, error };
+  return { items, loading: isLoading, error };
 };

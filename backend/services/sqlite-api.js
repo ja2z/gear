@@ -33,8 +33,9 @@ class SQLiteAPI {
         SELECT 
           item_class, item_desc, item_num, item_id, description, is_tagged,
           condition, status, purchase_date, cost, checked_out_to, checked_out_by,
-          check_out_date, outing_name, notes
+          check_out_date, outing_name, notes, in_app
         FROM items 
+        WHERE in_app = 1
         ORDER BY item_class, item_num
       `;
       
@@ -58,7 +59,8 @@ class SQLiteAPI {
             checkedOutBy: row.checked_out_by,
             checkOutDate: row.check_out_date,
             outingName: row.outing_name,
-            notes: row.notes
+            notes: row.notes,
+            inApp: Boolean(row.in_app)
           }));
           resolve(inventory);
         }
@@ -96,9 +98,9 @@ class SQLiteAPI {
         SELECT 
           item_class, item_desc, item_num, item_id, description, is_tagged,
           condition, status, purchase_date, cost, checked_out_to, checked_out_by,
-          check_out_date, outing_name, notes
+          check_out_date, outing_name, notes, in_app
         FROM items 
-        WHERE item_class = ?
+        WHERE item_class = ? AND in_app = 1
         ORDER BY item_num
       `;
       
@@ -122,7 +124,8 @@ class SQLiteAPI {
             checkedOutBy: row.checked_out_by,
             checkOutDate: row.check_out_date,
             outingName: row.outing_name,
-            notes: row.notes
+            notes: row.notes,
+            inApp: Boolean(row.in_app)
           }));
           resolve(items);
         }
@@ -238,9 +241,9 @@ class SQLiteAPI {
         SELECT 
           item_class, item_desc, item_num, item_id, description, is_tagged,
           condition, status, purchase_date, cost, checked_out_to, checked_out_by,
-          check_out_date, outing_name, notes
+          check_out_date, outing_name, notes, in_app
         FROM items 
-        WHERE item_id = ?
+        WHERE item_id = ? AND in_app = 1
       `;
       
       this.db.get(query, [itemId], (err, row) => {
@@ -262,7 +265,8 @@ class SQLiteAPI {
             checkedOutBy: row.checked_out_by,
             checkOutDate: row.check_out_date,
             outingName: row.outing_name,
-            notes: row.notes
+            notes: row.notes,
+            inApp: Boolean(row.in_app)
           });
         } else {
           resolve(null);
@@ -331,6 +335,7 @@ class SQLiteAPI {
         WHERE status = 'Not available' 
           AND outing_name IS NOT NULL 
           AND outing_name != ''
+          AND in_app = 1
         GROUP BY outing_name
         ORDER BY checked_out_date DESC
       `;
@@ -359,7 +364,7 @@ class SQLiteAPI {
           item_id, description, checked_out_to, outing_name, 
           check_out_date, condition
         FROM items 
-        WHERE status = 'Not available' AND outing_name = ?
+        WHERE status = 'Not available' AND outing_name = ? AND in_app = 1
         ORDER BY item_class, item_num
       `;
       

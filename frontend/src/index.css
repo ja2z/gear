@@ -273,6 +273,15 @@ body {
   border-radius: 9999px;
 }
 
+.status-unusable {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  border-radius: 9999px;
+}
+
 .outing-badge {
   background-color: #eff6ff;
   color: #2c5aa0;

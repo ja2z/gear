@@ -31,7 +31,7 @@ const Items = () => {
     window.history.back();
   };
 
-  if (loading) {
+  if (loading && items.length === 0) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -52,7 +52,7 @@ const Items = () => {
         >
           ←
         </Link>
-        <h1>Select {category}</h1>
+        <h1>{items.length > 0 ? items[0].itemDesc : category}</h1>
         {getTotalItems() > 0 && (
           <Link
             to="/cart"
@@ -76,16 +76,20 @@ const Items = () => {
           {items.map((item) => {
             const isSelected = selectedItems.find(selected => selected.itemId === item.itemId);
             const isAvailable = item.status === 'Available';
+            const isUsable = item.condition === 'Usable';
+            const isSelectable = isAvailable && isUsable;
             
             return (
               <div
                 key={item.itemId}
-                onClick={() => isAvailable && toggleItem(item)}
-                className={`card touch-target cursor-pointer ${
+                onClick={() => isSelectable && toggleItem(item)}
+                className={`card touch-target ${
+                  isSelectable ? 'cursor-pointer' : 'cursor-not-allowed'
+                } ${
                   isSelected 
                     ? 'card-selected' 
-                    : !isAvailable 
-                      ? 'opacity-60 cursor-not-allowed' 
+                    : !isSelectable 
+                      ? 'opacity-60' 
                       : ''
                 }`}
               >
@@ -93,9 +97,16 @@ const Items = () => {
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-semibold text-scout-blue">{item.itemId}</span>
-                      <span className={item.status === 'Available' ? 'status-available' : 'status-checked-out'}>
-                        {item.status}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        {!isUsable && isAvailable && (
+                          <span className="status-unusable">
+                            Unusable
+                          </span>
+                        )}
+                        <span className={item.status === 'Available' ? 'status-available' : 'status-checked-out'}>
+                          {item.status}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-sm text-gray-600">{item.description}</p>
                     {!isAvailable && item.outingName && (
@@ -125,7 +136,12 @@ const Items = () => {
           </button>
           <button
             onClick={handleAddSelectedToCart}
-            className="nav-btn btn-primary"
+            disabled={selectedItems.length === 0}
+            className={`nav-btn ${
+              selectedItems.length === 0 
+                ? 'btn-secondary disabled:opacity-50 disabled:cursor-not-allowed' 
+                : 'btn-primary'
+            }`}
           >
             Add to Cart
           </button>

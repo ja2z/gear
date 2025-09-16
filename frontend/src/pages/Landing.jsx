@@ -12,7 +12,7 @@ const Landing = () => {
       <div className="px-5 py-8">
         <div className="space-y-8">
           <Link
-            to="/categories"
+            to="/categories?sync=true"
             className="block w-full btn-primary p-6 text-center text-lg touch-target"
           >
             📦 Check Out Gear

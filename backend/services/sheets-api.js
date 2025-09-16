@@ -75,7 +75,8 @@ class SheetsAPI {
           checkedOutBy: (row.get('Checked Out By') || '').trim(),
           checkOutDate: row.get('Check Out Date') || null,
           outingName: (row.get('Outing Name') || '').trim(),
-          notes: (row.get('Notes') || '').trim()
+          notes: (row.get('Notes') || '').trim(),
+          inApp: !(row.get('In App') === 'FALSE' || row.get('In App') === false)
         };
       });
       
@@ -218,23 +219,51 @@ class SheetsAPI {
     let insertedCount = 0;
     for (const item of inventoryData) {
       await new Promise((resolve, reject) => {
-        const query = `
-          INSERT OR REPLACE INTO items (
-            item_class, item_desc, item_num, item_id, description, is_tagged,
-            condition, status, purchase_date, cost, checked_out_to, checked_out_by,
-            check_out_date, outing_name, notes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        // Use a simpler approach: always update, then insert if no rows were affected
+        const updateQuery = `
+          UPDATE items SET 
+            item_class = ?, item_desc = ?, item_num = ?, description = ?, is_tagged = ?,
+            condition = ?, status = ?, purchase_date = ?, cost = ?, checked_out_to = ?, 
+            checked_out_by = ?, check_out_date = ?, outing_name = ?, notes = ?, in_app = ?,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE item_id = ?
         `;
         
-        sqliteAPI.db.run(query, [
-          item.itemClass, item.itemDesc, item.itemNum, item.itemId, item.description,
+        const insertQuery = `
+          INSERT INTO items (
+            item_class, item_desc, item_num, item_id, description, is_tagged,
+            condition, status, purchase_date, cost, checked_out_to, checked_out_by,
+            check_out_date, outing_name, notes, in_app
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        
+        sqliteAPI.db.run(updateQuery, [
+          item.itemClass, item.itemDesc, item.itemNum, item.description,
           item.isTagged, item.condition, item.status, item.purchaseDate, item.cost,
-          item.checkedOutTo, item.checkedOutBy, item.checkOutDate, item.outingName, item.notes
+          item.checkedOutTo, item.checkedOutBy, item.checkOutDate, item.outingName, item.notes, item.inApp,
+          item.itemId
         ], function(err) {
           if (err) {
             reject(err);
+            return;
+          }
+          
+          // If no rows were updated (item doesn't exist), insert it
+          if (this.changes === 0) {
+            sqliteAPI.db.run(insertQuery, [
+              item.itemClass, item.itemDesc, item.itemNum, item.itemId, item.description,
+              item.isTagged, item.condition, item.status, item.purchaseDate, item.cost,
+              item.checkedOutTo, item.checkedOutBy, item.checkOutDate, item.outingName, item.notes, item.inApp
+            ], function(insertErr) {
+              if (insertErr) {
+                console.error(`Insert error for ${item.itemId}:`, insertErr.message);
+                reject(insertErr);
+              } else {
+                insertedCount++;
+                resolve();
+              }
+            });
           } else {
-            insertedCount++;
             resolve();
           }
         });

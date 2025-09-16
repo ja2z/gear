@@ -17,6 +17,21 @@ router.get('/', async (req, res) => {
 // GET /api/inventory/categories - Get all categories with counts
 router.get('/categories', async (req, res) => {
   try {
+    const { sync } = req.query;
+    
+    // Only sync from Google Sheets if explicitly requested (new session)
+    if (sync === 'true') {
+      console.log('🔄 Syncing from Google Sheets before fetching categories...');
+      try {
+        await sheetsAPI.syncFromGoogleSheets();
+        console.log('✅ Fresh data loaded from Google Sheets');
+      } catch (syncError) {
+        console.warn('⚠️ Failed to sync from Google Sheets, using cached data:', syncError.message);
+        // Continue with cached data if sync fails
+      }
+    }
+    
+    // Get categories from SQLite (fresh data if synced, cached if not)
     const categories = await sqliteAPI.getCategories();
     res.json(categories);
   } catch (error) {
@@ -29,6 +44,8 @@ router.get('/categories', async (req, res) => {
 router.get('/items/:category', async (req, res) => {
   try {
     const { category } = req.params;
+    
+    // Get items from SQLite cache (no sync needed - data is already fresh from categories page)
     const items = await sqliteAPI.getItemsByCategory(category);
     res.json(items);
   } catch (error) {

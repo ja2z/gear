@@ -1,19 +1,21 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useCategories } from '../hooks/useInventory';
 
 const Categories = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchParams] = useSearchParams();
   const { getTotalItems } = useCart();
-  const { categories, loading } = useCategories();
+  const shouldSync = searchParams.get('sync') === 'true';
+  const { categories, loading, refreshCategories } = useCategories(shouldSync);
 
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     category.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) {
+  if (loading && categories.length === 0) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -35,14 +37,24 @@ const Categories = () => {
           ←
         </Link>
         <h1>Select Category</h1>
-        {getTotalItems() > 0 && (
-          <Link
-            to="/cart"
-            className="absolute right-5 top-1/2 transform -translate-y-1/2 cart-badge"
+        <div className="absolute right-5 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
+          <button
+            onClick={refreshCategories}
+            disabled={loading}
+            className="text-white text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-3 py-1 rounded"
+            title="Refresh from Google Sheets"
           >
-            {getTotalItems()}
-          </Link>
-        )}
+            🔄
+          </button>
+          {getTotalItems() > 0 && (
+            <Link
+              to="/cart"
+              className="cart-badge"
+            >
+              {getTotalItems()}
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Search */}
