@@ -5,6 +5,11 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Development security middleware (only for dev)
+if (process.env.NODE_ENV === 'development') {
+  app.use(require('./middleware/dev-security'));
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -30,7 +35,8 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Scout Gear Management API running on port ${PORT}`);
   console.log(`📱 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🌐 Network access: http://0.0.0.0:${PORT}/api/health`);
 });
