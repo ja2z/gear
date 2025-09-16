@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
@@ -6,7 +6,7 @@ export const useInventory = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchData = async (endpoint) => {
+  const fetchData = useCallback(async (endpoint) => {
     setLoading(true);
     setError(null);
     
@@ -23,9 +23,9 @@ export const useInventory = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const postData = async (endpoint, data) => {
+  const postData = useCallback(async (endpoint, data) => {
     setLoading(true);
     setError(null);
     
@@ -50,24 +50,24 @@ export const useInventory = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return {
     loading,
     error,
-    fetchData,
+    getData: fetchData,
     postData,
   };
 };
 
 export const useCategories = () => {
   const [categories, setCategories] = useState([]);
-  const { loading, error, fetchData } = useInventory();
+  const { loading, error, getData } = useInventory();
 
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const data = await fetchData('/inventory/categories');
+        const data = await getData('/inventory/categories');
         setCategories(data);
       } catch (err) {
         console.error('Failed to load categories:', err);
@@ -84,21 +84,21 @@ export const useCategories = () => {
     };
 
     loadCategories();
-  }, []);
+  }, []); // Remove getData dependency to prevent infinite re-renders
 
   return { categories, loading, error };
 };
 
 export const useItems = (category) => {
   const [items, setItems] = useState([]);
-  const { loading, error, fetchData } = useInventory();
+  const { loading, error, getData } = useInventory();
 
   useEffect(() => {
     if (!category) return;
 
     const loadItems = async () => {
       try {
-        const data = await fetchData(`/inventory/items/${category}`);
+        const data = await getData(`/inventory/items/${category}`);
         setItems(data);
       } catch (err) {
         console.error('Failed to load items:', err);
@@ -112,7 +112,7 @@ export const useItems = (category) => {
     };
 
     loadItems();
-  }, [category]);
+  }, [category]); // Remove getData dependency to prevent infinite re-renders
 
   return { items, loading, error };
 };

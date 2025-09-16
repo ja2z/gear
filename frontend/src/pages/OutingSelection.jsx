@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
 
@@ -6,30 +6,24 @@ const OutingSelection = () => {
   const { getData, loading } = useInventory();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [outingsWithItems, setOutingsWithItems] = useState([]);
+  const [error, setError] = useState(null);
 
-  // Mock data for outings with checked out items - in real app, this would come from API
-  const outingsWithItems = [
-    { 
-      outingName: 'Fall Camping', 
-      itemCount: 8,
-      checkedOutDate: '2024-10-15'
-    },
-    { 
-      outingName: 'Winter Trip', 
-      itemCount: 12,
-      checkedOutDate: '2024-11-20'
-    },
-    { 
-      outingName: 'Spring Hiking', 
-      itemCount: 6,
-      checkedOutDate: '2024-12-01'
-    },
-    { 
-      outingName: 'Summer Camp Prep', 
-      itemCount: 15,
-      checkedOutDate: '2024-12-10'
-    }
-  ];
+  // Fetch real outings data from API
+  useEffect(() => {
+    const fetchOutings = async () => {
+      try {
+        setError(null);
+        const data = await getData('/inventory/outings');
+        setOutingsWithItems(data);
+      } catch (err) {
+        console.error('Error fetching outings:', err);
+        setError('Failed to load outings. Please try again.');
+      }
+    };
+
+    fetchOutings();
+  }, []); // Remove getData dependency to prevent infinite re-renders
 
   const filteredOutings = outingsWithItems.filter(outing =>
     outing.outingName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -63,57 +57,77 @@ const OutingSelection = () => {
         />
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className="px-5 py-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800 text-sm">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="px-5 py-12">
+          <div className="text-center">
+            <p className="text-gray-500">Loading outings...</p>
+          </div>
+        </div>
+      )}
+
       {/* Outings List */}
-      <div className="px-5 py-5">
-        <div className="space-y-3">
-          {filteredOutings.map((outing) => (
-            <div
-              key={outing.outingName}
-              className="card cursor-pointer hover:shadow-card-hover transition-all"
-              onClick={() => handleOutingSelect(outing.outingName)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                    {outing.outingName}
-                  </h3>
-                  <div className="flex items-center space-x-4 text-sm text-gray-600">
-                    <span className="flex items-center">
-                      📦 {outing.itemCount} item{outing.itemCount !== 1 ? 's' : ''}
-                    </span>
-                    <span className="flex items-center">
-                      📅 {new Date(outing.checkedOutDate).toLocaleDateString()}
-                    </span>
+      {!loading && !error && (
+        <div className="px-5 py-5">
+          <div className="space-y-3">
+            {filteredOutings.map((outing) => (
+              <div
+                key={outing.outingName}
+                className="card cursor-pointer hover:shadow-card-hover transition-all"
+                onClick={() => handleOutingSelect(outing.outingName)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                      {outing.outingName}
+                    </h3>
+                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      <span className="flex items-center">
+                        📦 {outing.itemCount} item{outing.itemCount !== 1 ? 's' : ''}
+                      </span>
+                      <span className="flex items-center">
+                        📅 {new Date(outing.checkedOutDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-gray-400">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </div>
                 </div>
-                <div className="text-gray-400">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
               </div>
+            ))}
+          </div>
+
+          {filteredOutings.length === 0 && outingsWithItems.length > 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No outings found matching your search.</p>
             </div>
-          ))}
+          )}
+
+          {outingsWithItems.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No items are currently checked out.</p>
+              <Link
+                to="/"
+                className="inline-block mt-4 btn-primary px-6 py-3 rounded-lg"
+              >
+                Back to Home
+              </Link>
+            </div>
+          )}
         </div>
-
-        {filteredOutings.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No outings found matching your search.</p>
-          </div>
-        )}
-
-        {outingsWithItems.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No items are currently checked out.</p>
-            <Link
-              to="/"
-              className="inline-block mt-4 btn-primary px-6 py-3 rounded-lg"
-            >
-              Back to Home
-            </Link>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 };

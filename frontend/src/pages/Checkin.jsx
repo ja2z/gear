@@ -3,25 +3,18 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
 
 const Checkin = () => {
-  const { postData, loading } = useInventory();
+  const { getData, postData, loading } = useInventory();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
   const [submitError, setSubmitError] = useState(null);
   const [selectedOuting, setSelectedOuting] = useState(null);
+  const [allCheckedOutItems, setAllCheckedOutItems] = useState([]);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [dataError, setDataError] = useState(null);
 
-  // Mock data for checked out items - in real app, this would come from API
-  const allCheckedOutItems = [
-    { itemId: 'TENT-001', description: 'Zephyr 3', checkedOutTo: 'John Smith', outingName: 'Fall Camping' },
-    { itemId: 'SLEEP-001', description: 'Mummy Bag', checkedOutTo: 'Jane Doe', outingName: 'Fall Camping' },
-    { itemId: 'TENT-002', description: 'Half Dome 2+', checkedOutTo: 'Mike Wilson', outingName: 'Fall Camping' },
-    { itemId: 'COOK-001', description: 'Camp Stove', checkedOutTo: 'Bob Johnson', outingName: 'Winter Trip' },
-    { itemId: 'SLEEP-002', description: 'Sleeping Pad', checkedOutTo: 'Sarah Davis', outingName: 'Winter Trip' },
-    { itemId: 'COOK-002', description: 'Cook Set', checkedOutTo: 'Tom Brown', outingName: 'Spring Hiking' },
-  ];
-
-  // Get outing from URL params
+  // Get outing from URL params and fetch data
   useEffect(() => {
     const outing = searchParams.get('outing');
     if (outing) {
@@ -29,15 +22,43 @@ const Checkin = () => {
     }
   }, [searchParams]);
 
-  // Filter items by selected outing
+  // Fetch checked out items data
+  useEffect(() => {
+    const fetchCheckedOutItems = async () => {
+      try {
+        setDataLoading(true);
+        setDataError(null);
+        
+        if (selectedOuting) {
+          // Fetch items for specific outing
+          const data = await getData(`/inventory/checked-out/${encodeURIComponent(selectedOuting)}`);
+          setAllCheckedOutItems(data);
+        } else {
+          // Fetch all checked out items (for general checkin)
+          const inventory = await getData('/inventory');
+          const checkedOutItems = inventory.filter(item => item.status === 'Not available');
+          setAllCheckedOutItems(checkedOutItems);
+        }
+      } catch (err) {
+        console.error('Error fetching checked out items:', err);
+        setDataError('Failed to load checked out items. Please try again.');
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    fetchCheckedOutItems();
+  }, [selectedOuting]); // Remove getData dependency to prevent infinite re-renders
+
+  // Filter items by selected outing (if not already filtered by API)
   const checkedOutItems = selectedOuting 
-    ? allCheckedOutItems.filter(item => item.outingName === selectedOuting)
+    ? allCheckedOutItems // Already filtered by API for specific outing
     : allCheckedOutItems;
 
   const filteredItems = checkedOutItems.filter(item =>
     item.itemId.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.checkedOutTo.toLowerCase().includes(searchTerm.toLowerCase())
+    (item.checkedOutTo && item.checkedOutTo.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const handleItemSelect = (item) => {
@@ -117,8 +138,27 @@ const Checkin = () => {
         />
       </div>
 
+      {/* Error Display */}
+      {dataError && (
+        <div className="px-5 py-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800 text-sm">{dataError}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {dataLoading && (
+        <div className="px-5 py-12">
+          <div className="text-center">
+            <p className="text-gray-500">Loading checked out items...</p>
+          </div>
+        </div>
+      )}
+
       {/* Items List */}
-      <div className="px-5 py-5 pb-20">
+      {!dataLoading && !dataError && (
+        <div className="px-5 py-5 pb-20">
         <div className="space-y-3 mb-6">
           {filteredItems.map((item) => {
             const isSelected = selectedItems.find(i => i.itemId === item.itemId);
@@ -194,17 +234,18 @@ const Checkin = () => {
           </div>
         )}
 
-        {/* Submit Button */}
-        {selectedItems.length > 0 && (
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full btn-primary py-4 text-lg touch-target disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Processing...' : `Check In ${selectedItems.length} Item${selectedItems.length > 1 ? 's' : ''}`}
-          </button>
-        )}
-      </div>
+          {/* Submit Button */}
+          {selectedItems.length > 0 && (
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full btn-primary py-4 text-lg touch-target disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Processing...' : `Check In ${selectedItems.length} Item${selectedItems.length > 1 ? 's' : ''}`}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
