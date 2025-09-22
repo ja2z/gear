@@ -19,7 +19,6 @@ const Landing = () => {
       const healthData = await checkHealth();
       if (healthData.googleSheets === 'connected') {
         resetSync(); // Reset sync state for new checkout session
-        markSynced('checkout'); // Mark that we're starting a checkout session
         navigate('/categories?sync=true');
       } else {
         setConnectionError(true);
@@ -38,7 +37,6 @@ const Landing = () => {
       const healthData = await checkHealth();
       if (healthData.googleSheets === 'connected') {
         resetSync(); // Reset sync state for new checkin session
-        markSynced('checkin'); // Mark that we're starting a checkin session
         navigate('/checkin/outings');
       } else {
         setConnectionError(true);

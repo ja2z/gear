@@ -10,7 +10,7 @@ const Categories = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { getTotalItems } = useCart();
-  const { shouldSync } = useSync();
+  const { shouldSync, markSynced } = useSync();
   const urlSync = searchParams.get('sync') === 'true';
   const { categories, loading, error, refreshCategories } = useCategories(urlSync);
   const [connectionError, setConnectionError] = useState(false);
@@ -21,6 +21,13 @@ const Categories = () => {
       setConnectionError(true);
     }
   }, [error, loading]);
+
+  // Mark as synced after successful load
+  useEffect(() => {
+    if (categories.length > 0 && urlSync) {
+      markSynced('checkout');
+    }
+  }, [categories, urlSync, markSynced]);
 
   const handleRetry = () => {
     setConnectionError(false);

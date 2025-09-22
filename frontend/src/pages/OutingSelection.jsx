@@ -6,7 +6,7 @@ import ConnectionError from '../components/ConnectionError';
 
 const OutingSelection = () => {
   const { getData, loading } = useInventory();
-  const { shouldSync } = useSync();
+  const { shouldSync, markSynced } = useSync();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [outingsWithItems, setOutingsWithItems] = useState([]);
@@ -23,6 +23,11 @@ const OutingSelection = () => {
         const endpoint = shouldSync('checkin') ? '/inventory/outings?sync=true' : '/inventory/outings';
         const data = await getData(endpoint);
         setOutingsWithItems(data);
+        
+        // Mark as synced after successful sync
+        if (shouldSync('checkin')) {
+          markSynced('checkin');
+        }
       } catch (err) {
         console.error('Error fetching outings:', err);
         setConnectionError(true);
@@ -30,7 +35,7 @@ const OutingSelection = () => {
     };
 
     fetchOutings();
-  }, [shouldSync]); // Remove getData dependency to prevent infinite re-renders
+  }, [shouldSync, markSynced]); // Remove getData dependency to prevent infinite re-renders
 
   const filteredOutings = outingsWithItems.filter(outing =>
     outing.outingName.toLowerCase().includes(searchTerm.toLowerCase())
