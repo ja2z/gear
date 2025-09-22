@@ -95,3 +95,8 @@ jspm_packages/
 *-key.json
 *service-account*.json
 credentials.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
