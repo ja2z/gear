@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
+import ConnectionError from '../components/ConnectionError';
 
 const Checkin = () => {
   const { getData, postData, loading } = useInventory();
@@ -13,6 +14,7 @@ const Checkin = () => {
   const [allCheckedOutItems, setAllCheckedOutItems] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState(null);
+  const [connectionError, setConnectionError] = useState(false);
 
   // Get outing from URL params and fetch data
   useEffect(() => {
@@ -28,6 +30,7 @@ const Checkin = () => {
       try {
         setDataLoading(true);
         setDataError(null);
+        setConnectionError(false);
         
         if (selectedOuting) {
           // Fetch items for specific outing
@@ -41,7 +44,7 @@ const Checkin = () => {
         }
       } catch (err) {
         console.error('Error fetching checked out items:', err);
-        setDataError('Failed to load checked out items. Please try again.');
+        setConnectionError(true);
       } finally {
         setDataLoading(false);
       }
@@ -111,6 +114,20 @@ const Checkin = () => {
       setSubmitError('Failed to process checkin. Please try again.');
     }
   };
+
+  const handleRetry = () => {
+    setConnectionError(false);
+    // Trigger a re-fetch by updating the dependency
+    window.location.reload();
+  };
+
+  const handleGoHome = () => {
+    navigate('/');
+  };
+
+  if (connectionError) {
+    return <ConnectionError onRetry={handleRetry} onGoHome={handleGoHome} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">

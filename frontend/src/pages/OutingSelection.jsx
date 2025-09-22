@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
+import ConnectionError from '../components/ConnectionError';
 
 const OutingSelection = () => {
   const { getData, loading } = useInventory();
@@ -8,17 +9,19 @@ const OutingSelection = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [outingsWithItems, setOutingsWithItems] = useState([]);
   const [error, setError] = useState(null);
+  const [connectionError, setConnectionError] = useState(false);
 
   // Fetch real outings data from API
   useEffect(() => {
     const fetchOutings = async () => {
       try {
         setError(null);
+        setConnectionError(false);
         const data = await getData('/inventory/outings');
         setOutingsWithItems(data);
       } catch (err) {
         console.error('Error fetching outings:', err);
-        setError('Failed to load outings. Please try again.');
+        setConnectionError(true);
       }
     };
 
@@ -32,6 +35,20 @@ const OutingSelection = () => {
   const handleOutingSelect = (outingName) => {
     navigate(`/checkin/items?outing=${encodeURIComponent(outingName)}`);
   };
+
+  const handleRetry = () => {
+    setConnectionError(false);
+    // Trigger a re-fetch by updating the dependency
+    window.location.reload();
+  };
+
+  const handleGoHome = () => {
+    navigate('/');
+  };
+
+  if (connectionError) {
+    return <ConnectionError onRetry={handleRetry} onGoHome={handleGoHome} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">

@@ -1,19 +1,42 @@
-import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useCategories } from '../hooks/useInventory';
+import ConnectionError from '../components/ConnectionError';
 
 const Categories = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { getTotalItems } = useCart();
   const shouldSync = searchParams.get('sync') === 'true';
-  const { categories, loading, refreshCategories } = useCategories(shouldSync);
+  const { categories, loading, error, refreshCategories } = useCategories(shouldSync);
+  const [connectionError, setConnectionError] = useState(false);
+
+  // Handle errors from the useCategories hook
+  useEffect(() => {
+    if (error && !loading) {
+      setConnectionError(true);
+    }
+  }, [error, loading]);
+
+  const handleRetry = () => {
+    setConnectionError(false);
+    refreshCategories();
+  };
+
+  const handleGoHome = () => {
+    navigate('/');
+  };
 
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     category.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (connectionError) {
+    return <ConnectionError onRetry={handleRetry} onGoHome={handleGoHome} />;
+  }
 
   if (loading && categories.length === 0) {
     return (

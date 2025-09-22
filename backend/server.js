@@ -20,8 +20,27 @@ app.use('/api/checkout', require('./routes/checkout'));
 app.use('/api/checkin', require('./routes/checkin'));
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Scout Gear Management API is running' });
+app.get('/api/health', async (req, res) => {
+  try {
+    const sheetsAPI = require('./services/sheets-api');
+    
+    // Test Google Sheets connectivity
+    await sheetsAPI.initialize();
+    
+    res.json({ 
+      status: 'OK', 
+      message: 'Scout Gear Management API is running',
+      googleSheets: 'connected'
+    });
+  } catch (error) {
+    console.error('Health check failed:', error.message);
+    res.status(503).json({ 
+      status: 'ERROR', 
+      message: 'Cannot connect to Google Sheets',
+      googleSheets: 'disconnected',
+      error: error.message
+    });
+  }
 });
 
 // Error handling middleware

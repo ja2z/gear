@@ -1,13 +1,23 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useItems } from '../hooks/useInventory';
+import ConnectionError from '../components/ConnectionError';
 
 const Items = () => {
   const { category } = useParams();
+  const navigate = useNavigate();
   const { addMultipleItems, getTotalItems } = useCart();
-  const { items, loading } = useItems(category);
+  const { items, loading, error } = useItems(category);
   const [selectedItems, setSelectedItems] = useState([]);
+  const [connectionError, setConnectionError] = useState(false);
+
+  // Handle errors from the useItems hook
+  useEffect(() => {
+    if (error && !loading) {
+      setConnectionError(true);
+    }
+  }, [error, loading]);
 
   const toggleItem = (item) => {
     setSelectedItems(prev => {
@@ -30,6 +40,20 @@ const Items = () => {
     // Navigate back to categories
     window.history.back();
   };
+
+  const handleRetry = () => {
+    setConnectionError(false);
+    // The useItems hook will automatically retry when the component re-renders
+    window.location.reload();
+  };
+
+  const handleGoHome = () => {
+    navigate('/');
+  };
+
+  if (connectionError) {
+    return <ConnectionError onRetry={handleRetry} onGoHome={handleGoHome} />;
+  }
 
   if (loading && items.length === 0) {
     return (
