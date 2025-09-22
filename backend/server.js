@@ -43,6 +43,54 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// Debug endpoint for troubleshooting Google Sheets connection
+app.get('/api/debug/sheets', async (req, res) => {
+  try {
+    const debugInfo = {
+      environment: process.env.NODE_ENV || 'production',
+      hasSheetId: !!process.env.GOOGLE_SHEET_ID,
+      hasServiceAccountEmail: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      hasPrivateKey: !!process.env.GOOGLE_PRIVATE_KEY,
+      sheetIdLength: process.env.GOOGLE_SHEET_ID ? process.env.GOOGLE_SHEET_ID.length : 0,
+      serviceAccountEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ? 
+        process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL.substring(0, 20) + '...' : 'NOT SET',
+      privateKeyLength: process.env.GOOGLE_PRIVATE_KEY ? process.env.GOOGLE_PRIVATE_KEY.length : 0,
+      privateKeyStart: process.env.GOOGLE_PRIVATE_KEY ? 
+        process.env.GOOGLE_PRIVATE_KEY.substring(0, 50) + '...' : 'NOT SET'
+    };
+
+    // Try to initialize Google Sheets
+    const sheetsAPI = require('./services/sheets-api');
+    await sheetsAPI.initialize();
+    
+    res.json({
+      status: 'SUCCESS',
+      message: 'Google Sheets connection successful',
+      debugInfo
+    });
+  } catch (error) {
+    console.error('Debug endpoint error:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Google Sheets connection failed',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      debugInfo: {
+        environment: process.env.NODE_ENV || 'production',
+        hasSheetId: !!process.env.GOOGLE_SHEET_ID,
+        hasServiceAccountEmail: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        hasPrivateKey: !!process.env.GOOGLE_PRIVATE_KEY,
+        sheetIdLength: process.env.GOOGLE_SHEET_ID ? process.env.GOOGLE_SHEET_ID.length : 0,
+        serviceAccountEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ? 
+          process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL.substring(0, 20) + '...' : 'NOT SET',
+        privateKeyLength: process.env.GOOGLE_PRIVATE_KEY ? process.env.GOOGLE_PRIVATE_KEY.length : 0,
+        privateKeyStart: process.env.GOOGLE_PRIVATE_KEY ? 
+          process.env.GOOGLE_PRIVATE_KEY.substring(0, 50) + '...' : 'NOT SET'
+      }
+    });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

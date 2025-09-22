@@ -14,12 +14,31 @@ class SheetsAPI {
     if (this.initialized) return;
 
     try {
+      // Validate environment variables first
+      if (!this.spreadsheetId) {
+        throw new Error('GOOGLE_SHEET_ID environment variable is not set');
+      }
+      if (!this.serviceAccountEmail) {
+        throw new Error('GOOGLE_SERVICE_ACCOUNT_EMAIL environment variable is not set');
+      }
+      if (!process.env.GOOGLE_PRIVATE_KEY) {
+        throw new Error('GOOGLE_PRIVATE_KEY environment variable is not set');
+      }
+
+      console.log('🔧 Initializing Google Sheets connection...');
+      console.log(`📊 Sheet ID: ${this.spreadsheetId}`);
+      console.log(`📧 Service Account: ${this.serviceAccountEmail}`);
+      console.log(`🔑 Private Key Length: ${process.env.GOOGLE_PRIVATE_KEY.length}`);
+
       // Create JWT auth for google-spreadsheet v5.x
       const privateKey = process.env.GOOGLE_PRIVATE_KEY
         .replace(/^""/, '')  // Remove leading double quote
         .replace(/^"/, '')   // Remove leading single quote
         .replace(/"$/, '')   // Remove trailing quote
         .replace(/\\n/g, '\n');  // Convert \n to actual newlines
+      
+      console.log(`🔑 Processed Private Key Length: ${privateKey.length}`);
+      console.log(`🔑 Private Key Starts With: ${privateKey.substring(0, 30)}...`);
       
       const auth = new JWT({
         email: this.serviceAccountEmail,
@@ -33,6 +52,16 @@ class SheetsAPI {
       this.initialized = true;
     } catch (error) {
       console.error('❌ Error connecting to Google Sheets:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        code: error.code,
+        status: error.status,
+        response: error.response ? {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data
+        } : undefined
+      });
       throw error;
     }
   }
