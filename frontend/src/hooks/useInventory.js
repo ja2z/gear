@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 
-// Use relative URL so it works in both development and production
+// Configure API base URL based on environment
 // In development: Vite proxy will handle /api requests to backend
-// In production: Same domain as frontend, so relative URLs work automatically
-const API_BASE_URL = '/api';
+// In production: Use full backend URL since frontend and backend are on different domains
+const API_BASE_URL = import.meta.env.PROD 
+  ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api')
+  : '/api';
 
 export const useInventory = () => {
   const [loading, setLoading] = useState(false);
