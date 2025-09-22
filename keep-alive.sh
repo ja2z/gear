@@ -14,17 +14,25 @@ touch "$LOG_FILE"
 timestamp=$(date '+%Y-%m-%d %H:%M:%S')
 
 # Ping the app and capture response
-response=$(curl -s -w "%{http_code}" -o /dev/null "$APP_URL")
+response_body=$(curl -s "$APP_URL")
+response_code=$(curl -s -w "%{http_code}" -o /dev/null "$APP_URL")
 curl_exit_code=$?
 
 # Log the result
-if [ "$curl_exit_code" -eq 0 ] && [ "$response" = "200" ]; then
-    echo "$timestamp - SUCCESS: App is healthy (HTTP $response)" >> "$LOG_FILE"
+if [ "$curl_exit_code" -eq 0 ] && [ "$response_code" = "200" ]; then
+    # Extract uptime from JSON response (assuming jq is available, fallback to grep if not)
+    if command -v jq >/dev/null 2>&1; then
+        uptime=$(echo "$response_body" | jq -r '.uptime // "unknown"')
+    else
+        uptime=$(echo "$response_body" | grep -o '"uptime":[0-9.]*' | cut -d':' -f2 || echo "unknown")
+    fi
+    
+    echo "$timestamp - SUCCESS: App is healthy (HTTP $response_code, uptime: ${uptime}s)" >> "$LOG_FILE"
 else
-    echo "$timestamp - ERROR: App returned HTTP $response (curl exit code: $curl_exit_code)" >> "$LOG_FILE"
+    echo "$timestamp - ERROR: App returned HTTP $response_code (curl exit code: $curl_exit_code)" >> "$LOG_FILE"
     
     # Optional: Send email notification (uncomment and configure if desired)
-    # echo "Scout Gear Management API is down! HTTP $response at $timestamp" | mail -s "Scout Gear App Alert" your-email@example.com
+    # echo "Scout Gear Management API is down! HTTP $response_code at $timestamp" | mail -s "Scout Gear App Alert" your-email@example.com
 fi
 
 # Keep log file size manageable (keep last 1000 lines)
