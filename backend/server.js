@@ -19,6 +19,16 @@ app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/checkout', require('./routes/checkout'));
 app.use('/api/checkin', require('./routes/checkin'));
 
+// Lightweight ping endpoint for keep-alive
+app.get('/api/ping', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Scout Gear Management API is running',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
   try {
