@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useSync } from '../context/SyncContext';
 import { useCategories } from '../hooks/useInventory';
 import ConnectionError from '../components/ConnectionError';
 
@@ -9,8 +10,9 @@ const Categories = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { getTotalItems } = useCart();
-  const shouldSync = searchParams.get('sync') === 'true';
-  const { categories, loading, error, refreshCategories } = useCategories(shouldSync);
+  const { shouldSync } = useSync();
+  const urlSync = searchParams.get('sync') === 'true';
+  const { categories, loading, error, refreshCategories } = useCategories(urlSync);
   const [connectionError, setConnectionError] = useState(false);
 
   // Handle errors from the useCategories hook

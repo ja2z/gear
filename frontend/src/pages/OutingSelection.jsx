@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
+import { useSync } from '../context/SyncContext';
 import ConnectionError from '../components/ConnectionError';
 
 const OutingSelection = () => {
   const { getData, loading } = useInventory();
+  const { shouldSync } = useSync();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [outingsWithItems, setOutingsWithItems] = useState([]);
@@ -17,7 +19,9 @@ const OutingSelection = () => {
       try {
         setError(null);
         setConnectionError(false);
-        const data = await getData('/inventory/outings');
+        // Use sync parameter based on context
+        const endpoint = shouldSync('checkin') ? '/inventory/outings?sync=true' : '/inventory/outings';
+        const data = await getData(endpoint);
         setOutingsWithItems(data);
       } catch (err) {
         console.error('Error fetching outings:', err);
@@ -26,7 +30,7 @@ const OutingSelection = () => {
     };
 
     fetchOutings();
-  }, []); // Remove getData dependency to prevent infinite re-renders
+  }, [shouldSync]); // Remove getData dependency to prevent infinite re-renders
 
   const filteredOutings = outingsWithItems.filter(outing =>
     outing.outingName.toLowerCase().includes(searchTerm.toLowerCase())

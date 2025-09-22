@@ -17,21 +17,11 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Processed by is required' });
     }
     
-    // Step 1: Sync from Google Sheets to get fresh data
-    console.log('🔄 Syncing from Google Sheets before checkin...');
-    try {
-      await sheetsAPI.syncFromGoogleSheets();
-      console.log('✅ Fresh data loaded from Google Sheets');
-    } catch (syncError) {
-      console.warn('⚠️ Failed to sync from Google Sheets, using cached data:', syncError.message);
-      // Continue with cached data if sync fails
-    }
-    
     // Default conditions to 'Usable' if not provided
     const defaultConditions = itemIds.map(() => 'Usable');
     const finalConditions = conditions || defaultConditions;
     
-    // Step 2: Process checkin in SQLite
+    // Process checkin in SQLite (data should already be fresh from session start)
     const results = await sqliteAPI.checkinItems(
       itemIds,
       finalConditions,
@@ -42,7 +32,7 @@ router.post('/', async (req, res) => {
     const successful = results.filter(r => r.success);
     const failed = results.filter(r => !r.success);
     
-    // Step 3: Sync successful transactions to Google Sheets
+    // Step 2: Sync successful transactions to Google Sheets
     if (successful.length > 0) {
       console.log('🔄 Syncing successful transactions to Google Sheets...');
       try {

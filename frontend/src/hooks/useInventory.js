@@ -92,7 +92,8 @@ export const useCategories = (shouldSync = false) => {
   const { error, getData } = useInventory();
 
   const loadCategories = async (forceRefresh = false, syncFromSheets = false) => {
-    if (hasLoaded && !forceRefresh) return; // Prevent multiple loads unless forced
+    // If we already have data and this isn't a forced refresh, don't reload
+    if (hasLoaded && !forceRefresh) return;
     
     // Only show loading if we don't have cached data
     if (!hasLoaded) {
@@ -117,7 +118,7 @@ export const useCategories = (shouldSync = false) => {
 
   useEffect(() => {
     loadCategories(false, shouldSync);
-  }, [getData, hasLoaded, shouldSync]);
+  }, [getData, shouldSync]); // Remove hasLoaded from dependencies to prevent re-runs
 
   return { 
     categories, 

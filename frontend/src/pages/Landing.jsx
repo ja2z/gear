@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
+import { useSync } from '../context/SyncContext';
 import ConnectionError from '../components/ConnectionError';
 
 const Landing = () => {
   const navigate = useNavigate();
   const { checkHealth, loading } = useInventory();
+  const { resetSync, markSynced } = useSync();
   const [connectionError, setConnectionError] = useState(false);
   const [retryError, setRetryError] = useState(null);
 
@@ -16,6 +18,8 @@ const Landing = () => {
     try {
       const healthData = await checkHealth();
       if (healthData.googleSheets === 'connected') {
+        resetSync(); // Reset sync state for new checkout session
+        markSynced('checkout'); // Mark that we're starting a checkout session
         navigate('/categories?sync=true');
       } else {
         setConnectionError(true);
@@ -33,6 +37,8 @@ const Landing = () => {
     try {
       const healthData = await checkHealth();
       if (healthData.googleSheets === 'connected') {
+        resetSync(); // Reset sync state for new checkin session
+        markSynced('checkin'); // Mark that we're starting a checkin session
         navigate('/checkin/outings');
       } else {
         setConnectionError(true);

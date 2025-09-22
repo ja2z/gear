@@ -17,17 +17,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Scout name, outing name, and processed by are required' });
     }
     
-    // Step 1: Sync from Google Sheets to get fresh data
-    console.log('🔄 Syncing from Google Sheets before checkout...');
-    try {
-      await sheetsAPI.syncFromGoogleSheets();
-      console.log('✅ Fresh data loaded from Google Sheets');
-    } catch (syncError) {
-      console.warn('⚠️ Failed to sync from Google Sheets, using cached data:', syncError.message);
-      // Continue with cached data if sync fails
-    }
-    
-    // Step 2: Process checkout in SQLite
+    // Process checkout in SQLite (data should already be fresh from session start)
     const results = await sqliteAPI.checkoutItems(
       itemIds,
       scoutName,
@@ -39,7 +29,7 @@ router.post('/', async (req, res) => {
     const successful = results.filter(r => r.success);
     const failed = results.filter(r => !r.success);
     
-    // Step 3: Sync successful transactions to Google Sheets
+    // Step 2: Sync successful transactions to Google Sheets
     if (successful.length > 0) {
       console.log('🔄 Syncing successful transactions to Google Sheets...');
       try {

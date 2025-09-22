@@ -57,6 +57,20 @@ router.get('/items/:category', async (req, res) => {
 // GET /api/inventory/outings - Get outings with checked out items
 router.get('/outings', async (req, res) => {
   try {
+    const { sync } = req.query;
+    
+    // Only sync from Google Sheets if explicitly requested (new session)
+    if (sync === 'true') {
+      console.log('🔄 Syncing from Google Sheets before fetching outings...');
+      try {
+        await sheetsAPI.syncFromGoogleSheets();
+        console.log('✅ Fresh data loaded from Google Sheets');
+      } catch (syncError) {
+        console.warn('⚠️ Failed to sync from Google Sheets, using cached data:', syncError.message);
+        // Continue with cached data if sync fails
+      }
+    }
+    
     const outings = await sqliteAPI.getOutingsWithItems();
     res.json(outings);
   } catch (error) {

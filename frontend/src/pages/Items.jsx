@@ -37,8 +37,8 @@ const Items = () => {
     }
     addMultipleItems(selectedItems);
     setSelectedItems([]);
-    // Navigate back to categories
-    window.history.back();
+    // Navigate back to categories using React Router
+    navigate('/categories');
   };
 
   const handleRetry = () => {
@@ -153,7 +153,7 @@ const Items = () => {
       <div className="bottom-nav">
         <div className="flex gap-3">
           <button
-            onClick={() => window.history.back()}
+            onClick={() => navigate('/categories')}
             className="nav-btn btn-secondary"
           >
             Back
