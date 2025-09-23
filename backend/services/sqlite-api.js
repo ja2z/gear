@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
 class SQLiteAPI {
   constructor() {
@@ -12,13 +13,43 @@ class SQLiteAPI {
     if (this.initialized) return;
 
     return new Promise((resolve, reject) => {
-      this.db = new sqlite3.Database(this.dbPath, (err) => {
+      this.db = new sqlite3.Database(this.dbPath, async (err) => {
         if (err) {
           console.error('❌ Error opening SQLite database:', err);
           reject(err);
         } else {
           console.log('✅ SQLite database connected');
-          this.initialized = true;
+          
+          // Create tables if they don't exist
+          try {
+            await this.createTables();
+            this.initialized = true;
+            resolve();
+          } catch (tableErr) {
+            console.error('❌ Error creating tables:', tableErr);
+            reject(tableErr);
+          }
+        }
+      });
+    });
+  }
+
+  async createTables() {
+    const schemaPath = path.join(__dirname, '..', 'database', 'schema.sql');
+    
+    if (!fs.existsSync(schemaPath)) {
+      throw new Error(`Schema file not found at ${schemaPath}`);
+    }
+    
+    const schema = fs.readFileSync(schemaPath, 'utf8');
+    
+    return new Promise((resolve, reject) => {
+      this.db.exec(schema, (err) => {
+        if (err) {
+          console.error('❌ Error creating tables:', err);
+          reject(err);
+        } else {
+          console.log('✅ Database tables created/verified');
           resolve();
         }
       });
