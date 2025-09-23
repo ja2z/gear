@@ -50,8 +50,22 @@ class SQLiteAPI {
           console.error('❌ Error creating tables:', err);
           reject(err);
         } else {
+          // Set performance optimizations
+          this.db.run("PRAGMA journal_mode=WAL", (err) => {
+            if (err) console.warn('⚠️ Could not set WAL mode:', err.message);
+          });
+          this.db.run("PRAGMA synchronous=NORMAL", (err) => {
+            if (err) console.warn('⚠️ Could not set synchronous mode:', err.message);
+          });
+          this.db.run("PRAGMA cache_size=10000", (err) => {
+            if (err) console.warn('⚠️ Could not set cache size:', err.message);
+          });
+          this.db.run("PRAGMA temp_store=MEMORY", (err) => {
+            if (err) console.warn('⚠️ Could not set temp store:', err.message);
+          });
+          
           const timestamp = new Date().toISOString();
-          console.log(`[${timestamp}] ✅ Database tables created/verified`);
+          console.log(`[${timestamp}] ✅ Database tables created/verified with performance optimizations`);
           resolve();
         }
       });

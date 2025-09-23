@@ -288,10 +288,13 @@ class SheetsAPI {
     console.log(`[${timestamp}] 💾 Starting SQLite insert operations for ${inventoryData.length} items...`);
     const insertStartTime = Date.now();
     
-    // Simple approach: since Google Sheets is source of truth, just INSERT all items
-    let insertedCount = 0;
-    for (const item of inventoryData) {
-      await new Promise((resolve, reject) => {
+    // Optimized approach: Use batch transaction with prepared statements
+    return new Promise((resolve, reject) => {
+      sqliteAPI.db.serialize(() => {
+        // Begin transaction for better performance
+        sqliteAPI.db.run("BEGIN TRANSACTION");
+        
+        // Prepare the insert statement once
         const insertQuery = `
           INSERT INTO items (
             item_class, item_desc, item_num, item_id, description, is_tagged,
@@ -300,30 +303,54 @@ class SheetsAPI {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         
-        sqliteAPI.db.run(insertQuery, [
-          item.itemClass, item.itemDesc, item.itemNum, item.itemId, item.description,
-          item.isTagged, item.condition, item.status, item.purchaseDate, item.cost,
-          item.checkedOutTo, item.checkedOutBy, item.checkOutDate, item.outingName, item.notes, item.inApp
-        ], function(err) {
+        const stmt = sqliteAPI.db.prepare(insertQuery);
+        let insertedCount = 0;
+        let hasError = false;
+        
+        // Insert all items using the prepared statement
+        for (const item of inventoryData) {
+          if (hasError) break;
+          
+          stmt.run([
+            item.itemClass, item.itemDesc, item.itemNum, item.itemId, item.description,
+            item.isTagged, item.condition, item.status, item.purchaseDate, item.cost,
+            item.checkedOutTo, item.checkedOutBy, item.checkOutDate, item.outingName, item.notes, item.inApp
+          ], function(err) {
+            if (err) {
+              console.error(`❌ Insert error for ${item.itemId}:`, err.message);
+              console.error(`   Error code: ${err.code}, Error number: ${err.errno}`);
+              console.error(`   Item data:`, {
+                itemClass: item.itemClass,
+                itemId: item.itemId,
+                description: item.description
+              });
+              hasError = true;
+            } else {
+              insertedCount++;
+            }
+          });
+        }
+        
+        // Finalize the prepared statement
+        stmt.finalize();
+        
+        // Commit the transaction
+        sqliteAPI.db.run("COMMIT", (err) => {
           if (err) {
-            console.error(`❌ Insert error for ${item.itemId}:`, err.message);
-            console.error(`   Error code: ${err.code}, Error number: ${err.errno}`);
-            console.error(`   Item data:`, {
-              itemClass: item.itemClass,
-              itemId: item.itemId,
-              description: item.description
-            });
+            console.error('❌ Error committing transaction:', err);
             reject(err);
+          } else if (hasError) {
+            console.error('❌ Some items failed to insert');
+            reject(new Error('Some items failed to insert'));
           } else {
-            insertedCount++;
+            const insertElapsedTime = Date.now() - insertStartTime;
+            console.log(`[${timestamp}] 💾 SQLite insert operations completed in ${insertElapsedTime}ms`);
+            console.log(`[${timestamp}] 📝 Successfully inserted ${insertedCount} items into SQLite database`);
             resolve();
           }
         });
       });
-    }
-    const insertElapsedTime = Date.now() - insertStartTime;
-    console.log(`[${timestamp}] 💾 SQLite insert operations completed in ${insertElapsedTime}ms`);
-    console.log(`[${timestamp}] 📝 Successfully inserted ${insertedCount} items into SQLite database`);
+    });
   }
 
   async getLastSyncTime() {
