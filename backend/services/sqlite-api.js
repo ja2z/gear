@@ -18,7 +18,8 @@ class SQLiteAPI {
           console.error('❌ Error opening SQLite database:', err);
           reject(err);
         } else {
-          console.log('✅ SQLite database connected');
+          const timestamp = new Date().toISOString();
+          console.log(`[${timestamp}] ✅ SQLite database connected`);
           
           // Create tables if they don't exist
           try {
@@ -49,7 +50,8 @@ class SQLiteAPI {
           console.error('❌ Error creating tables:', err);
           reject(err);
         } else {
-          console.log('✅ Database tables created/verified');
+          const timestamp = new Date().toISOString();
+          console.log(`[${timestamp}] ✅ Database tables created/verified`);
           resolve();
         }
       });

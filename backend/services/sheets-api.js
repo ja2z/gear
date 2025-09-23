@@ -49,7 +49,8 @@ class SheetsAPI {
 
       this.doc = new GoogleSpreadsheet(this.spreadsheetId, auth);
       await this.doc.loadInfo();
-      console.log('✅ Google Sheets connected:', this.doc.title);
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] ✅ Google Sheets API connection established - Spreadsheet: "${this.doc.title}"`);
       this.initialized = true;
     } catch (error) {
       console.error('❌ Error connecting to Google Sheets:', error);
@@ -93,8 +94,12 @@ class SheetsAPI {
       }
 
       // Load inventory data
+      console.log(`[${timestamp}] 🌐 Calling Google Sheets API to fetch inventory data...`);
+      const apiStartTime = Date.now();
       const inventoryRows = await inventorySheet.getRows();
-      console.log(`[${timestamp}] 📊 Loaded ${inventoryRows.length} inventory items from Google Sheets`);
+      const apiElapsedTime = Date.now() - apiStartTime;
+      console.log(`[${timestamp}] 🌐 Google Sheets API call completed in ${apiElapsedTime}ms`);
+      console.log(`[${timestamp}] 📊 Fetched ${inventoryRows.length} raw rows from Google Sheets API`);
 
       // Map Google Sheets columns to our data structure with robust validation
       const allItems = inventoryRows.map((row, index) => {
@@ -150,7 +155,7 @@ class SheetsAPI {
           console.log(`[${timestamp}]   ${duplicateId} appears ${duplicateItems.length} times:`, duplicateItems.map(item => `Row ${item.rowIndex}`));
         });
       } else {
-        console.log(`[${timestamp}] ✅ No duplicate item IDs found in Google Sheets data`);
+        console.log(`[${timestamp}] ✅ Data validation passed - no duplicate item IDs found in processed data`);
       }
       
       
@@ -163,6 +168,8 @@ class SheetsAPI {
           console.log(`[${timestamp}]   ... and ${filteredItems.length - 10} more rows`);
         }
       }
+
+      console.log(`[${timestamp}] 🔄 Processed ${inventoryData.length} valid inventory items from ${inventoryRows.length} raw rows`);
 
       // Clear and repopulate SQLite
       await this.clearSQLiteInventory();
@@ -184,7 +191,8 @@ class SheetsAPI {
     await this.initialize();
     
     try {
-      console.log('🔄 Syncing transaction to Google Sheets...');
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] 🔄 Syncing transaction to Google Sheets...`);
       
       // Get the Transaction Log sheet
       const transactionSheet = this.doc.sheetsByTitle['Transaction Log'];
@@ -208,7 +216,7 @@ class SheetsAPI {
       // Update inventory in Google Sheets
       await this.updateInventoryInSheets(transactionData);
       
-      console.log('✅ Sync to Google Sheets completed');
+      console.log(`[${timestamp}] ✅ Sync to Google Sheets completed`);
       
     } catch (error) {
       console.error('❌ Error syncing to Google Sheets:', error);
@@ -264,7 +272,8 @@ class SheetsAPI {
         if (err) {
           reject(err);
         } else {
-          console.log('🗑️ Cleared existing inventory data from SQLite');
+          const timestamp = new Date().toISOString();
+          console.log(`[${timestamp}] 🗑️ Cleared existing inventory data from SQLite`);
           resolve();
         }
       });
@@ -274,6 +283,10 @@ class SheetsAPI {
   async populateSQLiteInventory(inventoryData) {
     // Initialize SQLite if needed
     await sqliteAPI.initialize();
+    
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] 💾 Starting SQLite insert operations for ${inventoryData.length} items...`);
+    const insertStartTime = Date.now();
     
     // Simple approach: since Google Sheets is source of truth, just INSERT all items
     let insertedCount = 0;
@@ -308,7 +321,9 @@ class SheetsAPI {
         });
       });
     }
-    console.log(`📝 Inserted ${insertedCount} items in SQLite`);
+    const insertElapsedTime = Date.now() - insertStartTime;
+    console.log(`[${timestamp}] 💾 SQLite insert operations completed in ${insertElapsedTime}ms`);
+    console.log(`[${timestamp}] 📝 Successfully inserted ${insertedCount} items into SQLite database`);
   }
 
   async getLastSyncTime() {
