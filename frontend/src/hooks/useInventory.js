@@ -14,11 +14,17 @@ export const useInventory = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchData = useCallback(async (endpoint) => {
+  const fetchData = useCallback(async (endpoint, forceRefresh = false) => {
     setLoading(true);
     setError(null);
     
     try {
+      // If force refresh is requested, clear cache for this endpoint
+      if (forceRefresh) {
+        console.log('🔄 Force refresh requested for:', endpoint);
+        requestCache.delete(endpoint);
+      }
+      
       // Check if this exact request is already in progress
       if (requestCache.has(endpoint)) {
         console.log('🔄 Using cached request for:', endpoint);
@@ -35,6 +41,7 @@ export const useInventory = () => {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
           const data = await response.json();
+          console.log('📦 API Response for', endpoint, ':', data.length, 'items');
           return data;
         });
       
@@ -43,10 +50,8 @@ export const useInventory = () => {
       
       const data = await requestPromise;
       
-      // Clean up cache after a short delay to prevent race conditions
-      setTimeout(() => {
-        requestCache.delete(endpoint);
-      }, 100);
+      // Clean up cache immediately after successful completion
+      requestCache.delete(endpoint);
       
       return data;
     } catch (err) {
@@ -105,12 +110,18 @@ export const useInventory = () => {
     }
   }, []);
 
+  const clearCache = useCallback(() => {
+    console.log('🧹 Clearing request cache');
+    requestCache.clear();
+  }, []);
+
   return {
     loading,
     error,
     getData: fetchData,
     postData,
     checkHealth,
+    clearCache,
   };
 };
 

@@ -4,7 +4,7 @@ import { useInventory } from '../hooks/useInventory';
 import ConnectionError from '../components/ConnectionError';
 
 const Checkin = () => {
-  const { getData, postData, loading } = useInventory();
+  const { getData, postData, loading, clearCache } = useInventory();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,9 +20,12 @@ const Checkin = () => {
   useEffect(() => {
     const outing = searchParams.get('outing');
     if (outing) {
+      console.log('🎯 FRONTEND: URL outing parameter changed to:', outing);
+      // Clear cache when outing changes to prevent stale data
+      clearCache();
       setSelectedOuting(outing);
     }
-  }, [searchParams]);
+  }, [searchParams, clearCache]);
 
   // Fetch checked out items data
   useEffect(() => {
@@ -32,9 +35,22 @@ const Checkin = () => {
         setDataError(null);
         setConnectionError(false);
         
+        // Clear previous data immediately to prevent stale data display
+        setAllCheckedOutItems([]);
+        
         if (selectedOuting) {
-          // Fetch items for specific outing
-          const data = await getData(`/inventory/checked-out/${encodeURIComponent(selectedOuting)}`);
+          console.log(`🎯 FRONTEND: Fetching items for outing: "${selectedOuting}"`);
+          const endpoint = `/inventory/checked-out/${encodeURIComponent(selectedOuting)}`;
+          console.log(`🎯 FRONTEND: API endpoint: ${endpoint}`);
+          
+          // Fetch items for specific outing with force refresh to prevent cache issues
+          const data = await getData(endpoint, true);
+          console.log(`🎯 FRONTEND: Received ${data.length} items from API:`, data.map(item => ({
+            itemId: item.itemId,
+            outingName: item.outingName,
+            checkedOutTo: item.checkedOutTo
+          })));
+          
           setAllCheckedOutItems(data);
         } else {
           // Fetch all checked out items (for general checkin)
