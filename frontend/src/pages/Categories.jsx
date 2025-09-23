@@ -38,10 +38,14 @@ const Categories = () => {
     navigate('/');
   };
 
-  const filteredCategories = categories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCategories = categories.filter(category => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      category.name.toLowerCase().includes(searchLower) ||
+      category.description.toLowerCase().includes(searchLower) ||
+      (category.item_descriptions && category.item_descriptions.toLowerCase().includes(searchLower))
+    );
+  });
 
   if (connectionError) {
     return <ConnectionError onRetry={handleRetry} onGoHome={handleGoHome} />;
