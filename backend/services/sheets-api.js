@@ -115,7 +115,7 @@ class SheetsAPI {
           description: (row.get('Description') || '').trim(),
           isTagged: row.get('Is Tagged') === 'TRUE' || row.get('Is Tagged') === true,
           condition: (row.get('Condition') || 'Usable').trim(),
-          status: (row.get('Status') || 'Available').trim(),
+          status: (row.get('Status') || 'In shed').trim(),
           purchaseDate: row.get('Purchase Date') || null,
           cost: row.get('Cost') || null,
           checkedOutTo: (row.get('Checked Out To') || '').trim(),
@@ -239,13 +239,13 @@ class SheetsAPI {
       
       // Update the row based on transaction action
       if (transactionData.action === 'Check out') {
-        targetRow.set('Status', 'Not available');
+        targetRow.set('Status', 'Checked out');
         targetRow.set('Checked Out To', transactionData.outingName); // Using outing name as placeholder
         targetRow.set('Checked Out By', transactionData.processedBy);
         targetRow.set('Check Out Date', new Date().toISOString().split('T')[0]);
         targetRow.set('Outing Name', transactionData.outingName);
       } else if (transactionData.action === 'Check in') {
-        targetRow.set('Status', 'Available');
+        targetRow.set('Status', 'In shed');
         targetRow.set('Checked Out To', '');
         targetRow.set('Checked Out By', '');
         targetRow.set('Check Out Date', '');
@@ -418,6 +418,69 @@ class SheetsAPI {
       
     } catch (error) {
       console.error('❌ Error validating Google Sheets data:', error);
+      throw error;
+    }
+  }
+
+  async syncAllInventoryFromSheets() {
+    try {
+      console.log('🔄 Syncing all inventory from Google Sheets...');
+      
+      await this.initialize();
+      
+      const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
+      const rows = await inventorySheet.getRows();
+      
+      console.log(`📊 Found ${rows.length} rows in Master Inventory sheet`);
+      
+      const inventoryData = rows.map((row, index) => {
+        const itemId = row.get('Item ID');
+        const itemClass = row.get('Item Class');
+        const itemDesc = row.get('Item Desc');
+        const itemNum = row.get('Item Num');
+        const description = row.get('Description');
+        const isTagged = row.get('Is Tagged') === 'TRUE';
+        const condition = (row.get('Condition') || 'Usable').trim();
+        const status = (row.get('Status') || 'In shed').trim();
+        const purchaseDate = row.get('Purchase Date') || null;
+        const cost = row.get('Cost') ? parseFloat(row.get('Cost')) : null;
+        const checkedOutTo = row.get('Checked Out To') || '';
+        const checkedOutBy = row.get('Checked Out By') || '';
+        const checkOutDate = row.get('Check Out Date') || null;
+        const outingName = row.get('Outing Name') || '';
+        const notes = row.get('Notes') || '';
+        
+        return {
+          itemClass,
+          itemDesc,
+          itemNum,
+          itemId,
+          description,
+          isTagged,
+          condition,
+          status,
+          purchaseDate,
+          cost,
+          checkedOutTo,
+          checkedOutBy,
+          checkOutDate,
+          outingName,
+          notes,
+          inApp: true
+        };
+      }).filter(item => item.itemId); // Only include items with valid itemId
+      
+      console.log(`✅ Processed ${inventoryData.length} inventory items from Google Sheets`);
+      
+      // Clear existing SQLite data and populate with fresh data
+      await this.clearSQLiteInventory();
+      await this.populateSQLiteInventory(inventoryData);
+      
+      console.log('✅ Successfully synced all inventory from Google Sheets to SQLite');
+      return inventoryData;
+      
+    } catch (error) {
+      console.error('❌ Error syncing inventory from Google Sheets:', error);
       throw error;
     }
   }

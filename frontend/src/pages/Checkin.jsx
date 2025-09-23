@@ -39,7 +39,7 @@ const Checkin = () => {
         } else {
           // Fetch all checked out items (for general checkin)
           const inventory = await getData('/inventory');
-          const checkedOutItems = inventory.filter(item => item.status === 'Not available');
+          const checkedOutItems = inventory.filter(item => item.status === 'Checked out');
           setAllCheckedOutItems(checkedOutItems);
         }
       } catch (err) {

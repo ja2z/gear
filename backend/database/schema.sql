@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS items (
   description TEXT,
   is_tagged BOOLEAN DEFAULT 0,
   condition TEXT DEFAULT 'Usable',
-  status TEXT DEFAULT 'Available',
+  status TEXT DEFAULT 'In shed',
   purchase_date DATE,
   cost DECIMAL(10,2),
   checked_out_to TEXT,
@@ -43,7 +43,7 @@ SELECT
   item_class as name,
   item_desc as description,
   COUNT(*) as total_count,
-  SUM(CASE WHEN status = 'Available' AND condition = 'Usable' THEN 1 ELSE 0 END) as available_count
+  SUM(CASE WHEN status = 'In shed' AND condition = 'Usable' THEN 1 ELSE 0 END) as available_count
 FROM items 
 WHERE in_app = 1
 GROUP BY item_class, item_desc;

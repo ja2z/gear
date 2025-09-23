@@ -67,13 +67,18 @@ export const CartProvider = ({ children }) => {
     return state.items.length;
   };
 
+  const isItemInCart = (itemId) => {
+    return state.items.some(item => item.itemId === itemId);
+  };
+
   const value = {
     items: state.items,
     addItem,
     addMultipleItems,
     removeItem,
     clearCart,
-    getTotalItems
+    getTotalItems,
+    isItemInCart
   };
 
   return (

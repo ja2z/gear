@@ -146,7 +146,7 @@ class SQLiteAPI {
           item_class as name,
           item_desc as description,
           COUNT(*) as total_count,
-          SUM(CASE WHEN status = 'Available' AND condition = 'Usable' THEN 1 ELSE 0 END) as available_count,
+          SUM(CASE WHEN status = 'In shed' AND condition = 'Usable' THEN 1 ELSE 0 END) as available_count,
           GROUP_CONCAT(COALESCE(description, ''), ' ') as item_descriptions
         FROM items 
         WHERE in_app = 1
@@ -222,14 +222,14 @@ class SQLiteAPI {
           continue;
         }
         
-        if (item.status !== 'Available' || item.condition !== 'Usable') {
+        if (item.status !== 'In shed' || item.condition !== 'Usable') {
           results.push({ itemId, success: false, error: 'Item not available' });
           continue;
         }
         
         // Update item status
         await this.updateItemStatus(itemId, {
-          status: 'Not available',
+          status: 'Checked out',
           checkedOutTo: scoutName,
           checkedOutBy: processedBy,
           checkOutDate: checkoutDate,
@@ -278,7 +278,7 @@ class SQLiteAPI {
         
         // Update item status
         await this.updateItemStatus(itemId, {
-          status: 'Available',
+          status: 'In shed',
           checkedOutTo: '',
           checkedOutBy: '',
           checkOutDate: null,
@@ -407,7 +407,7 @@ class SQLiteAPI {
           COUNT(*) as item_count,
           MIN(check_out_date) as checked_out_date
         FROM items 
-        WHERE status = 'Not available' 
+        WHERE status = 'Checked out' 
           AND outing_name IS NOT NULL 
           AND outing_name != ''
           AND in_app = 1
@@ -439,7 +439,7 @@ class SQLiteAPI {
           item_id, description, checked_out_to, outing_name, 
           check_out_date, condition
         FROM items 
-        WHERE status = 'Not available' AND outing_name = ? AND in_app = 1
+        WHERE status = 'Checked out' AND outing_name = ? AND in_app = 1
         ORDER BY item_class, item_num
       `;
       

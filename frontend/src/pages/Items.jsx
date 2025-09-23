@@ -7,7 +7,7 @@ import ConnectionError from '../components/ConnectionError';
 const Items = () => {
   const { category } = useParams();
   const navigate = useNavigate();
-  const { addMultipleItems, getTotalItems } = useCart();
+  const { addMultipleItems, getTotalItems, isItemInCart } = useCart();
   const { items, loading, error } = useItems(category);
   const [selectedItems, setSelectedItems] = useState([]);
   const [connectionError, setConnectionError] = useState(false);
@@ -90,7 +90,7 @@ const Items = () => {
       {/* Multi-select notice */}
       <div className="bg-blue-50 border border-blue-200 px-5 py-3 mx-5 mt-5 rounded-lg">
         <p className="text-blue-800 text-sm text-center">
-          Tap items to select multiple. Selected items will be highlighted.
+          Tap items to select multiple. Items already in your cart cannot be selected again.
         </p>
       </div>
 
@@ -99,9 +99,11 @@ const Items = () => {
         <div className="space-y-3">
           {items.map((item) => {
             const isSelected = selectedItems.find(selected => selected.itemId === item.itemId);
-            const isAvailable = item.status === 'Available';
+            const isAvailable = item.status === 'In shed';
             const isUsable = item.condition === 'Usable';
-            const isSelectable = isAvailable && isUsable;
+            const isUnknown = item.condition === 'Unknown';
+            const inCart = isItemInCart(item.itemId);
+            const isSelectable = isAvailable && (isUsable || isUnknown) && !inCart;
             
             return (
               <div
@@ -112,9 +114,11 @@ const Items = () => {
                 } ${
                   isSelected 
                     ? 'card-selected' 
-                    : !isSelectable 
-                      ? 'opacity-60' 
-                      : ''
+                    : inCart
+                      ? 'opacity-60 bg-green-50 border-green-200'
+                      : !isSelectable 
+                        ? 'opacity-60' 
+                        : ''
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -122,12 +126,17 @@ const Items = () => {
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-semibold text-scout-blue">{item.itemId}</span>
                       <div className="flex items-center space-x-2">
-                        {!isUsable && isAvailable && (
-                          <span className="status-unusable">
-                            Unusable
+                        {inCart && (
+                          <span className="status-in-cart">
+                            In cart
                           </span>
                         )}
-                        <span className={item.status === 'Available' ? 'status-available' : 'status-checked-out'}>
+                        {!isUsable && isAvailable && (
+                          <span className={isUnknown ? 'status-condition-unknown' : 'status-unusable'}>
+                            {isUnknown ? 'Condition unknown' : 'Unusable'}
+                          </span>
+                        )}
+                        <span className={item.status === 'In shed' ? 'status-in-shed' : item.status === 'Checked out' ? 'status-checked-out' : item.status === 'Missing' ? 'status-missing' : 'status-out-for-repair'}>
                           {item.status}
                         </span>
                       </div>
@@ -151,7 +160,7 @@ const Items = () => {
 
       {/* Bottom Navigation */}
       <div className="bottom-nav">
-        <div className="flex gap-3">
+        <div className="flex gap-4">
           <button
             onClick={() => navigate('/categories')}
             className="nav-btn btn-secondary"

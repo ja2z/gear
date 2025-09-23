@@ -157,7 +157,7 @@ const Checkout = () => {
 
       {/* Bottom Navigation */}
       <div className="bottom-nav">
-        <div className="flex gap-3">
+        <div className="flex gap-4">
           <Link
             to="/cart"
             className="nav-btn btn-secondary text-center"
