@@ -39,13 +39,13 @@ const Checkin = () => {
         setAllCheckedOutItems([]);
         
         if (selectedOuting) {
-          console.log(`🎯 FRONTEND: Fetching items for outing: "${selectedOuting}"`);
+          console.log(`🎯 FRONTEND v2.1: Fetching items for outing: "${selectedOuting}"`);
           const endpoint = `/inventory/checked-out/${encodeURIComponent(selectedOuting)}`;
-          console.log(`🎯 FRONTEND: API endpoint: ${endpoint}`);
+          console.log(`🎯 FRONTEND v2.1: API endpoint: ${endpoint}`);
           
           // Fetch items for specific outing with force refresh to prevent cache issues
           const data = await getData(endpoint, true);
-          console.log(`🎯 FRONTEND: Received ${data.length} items from API:`, data.map(item => ({
+          console.log(`🎯 FRONTEND v2.1: Received ${data.length} items from API:`, data.map(item => ({
             itemId: item.itemId,
             outingName: item.outingName,
             checkedOutTo: item.checkedOutTo
@@ -53,11 +53,11 @@ const Checkin = () => {
           
           setAllCheckedOutItems(data);
         } else {
-          console.log(`🎯 FRONTEND: No selectedOuting, fetching all checked out items`);
+          console.log(`🎯 FRONTEND v2.1: No selectedOuting, fetching all checked out items`);
           // Fetch all checked out items (for general checkin)
           const inventory = await getData('/inventory', true);
           const checkedOutItems = inventory.filter(item => item.status === 'Checked out');
-          console.log(`🎯 FRONTEND: Filtered ${checkedOutItems.length} checked out items from ${inventory.length} total items`);
+          console.log(`🎯 FRONTEND v2.1: Filtered ${checkedOutItems.length} checked out items from ${inventory.length} total items`);
           setAllCheckedOutItems(checkedOutItems);
         }
       } catch (err) {
@@ -68,9 +68,12 @@ const Checkin = () => {
       }
     };
 
-    // Only fetch if we have initialized (to prevent the initial null selectedOuting from triggering a fetch)
-    if (hasInitialized.current) {
+    // Only fetch if we have a selectedOuting (prevent the null case from running)
+    if (selectedOuting) {
+      console.log(`🎯 FRONTEND v2.1: selectedOuting is "${selectedOuting}", fetching data`);
       fetchCheckedOutItems();
+    } else {
+      console.log(`🎯 FRONTEND v2.1: selectedOuting is null, skipping fetch`);
     }
   }, [selectedOuting]); // Remove getData dependency to prevent infinite re-renders
 
