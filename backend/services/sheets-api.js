@@ -279,12 +279,21 @@ class SheetsAPI {
           targetRow.set('Check Out Date', new Date().toISOString().split('T')[0]);
           targetRow.set('Outing Name', transaction.outingName);
         } else if (transaction.action === 'Check in') {
-          targetRow.set('Status', 'In shed');
+          // Special handling for Missing items
+          const itemStatus = transaction.condition === 'Missing' ? 'Missing' : 'In shed';
+          const itemCondition = transaction.condition === 'Missing' ? 'Unknown' : transaction.condition;
+          
+          console.log(`🔍 Check-in debug for ${transaction.itemId}:`);
+          console.log(`  Original condition: "${transaction.condition}"`);
+          console.log(`  Setting status: "${itemStatus}"`);
+          console.log(`  Setting condition: "${itemCondition}"`);
+          
+          targetRow.set('Status', itemStatus);
           targetRow.set('Checked Out To', '');
           targetRow.set('Checked Out By', '');
           targetRow.set('Check Out Date', '');
           targetRow.set('Outing Name', '');
-          targetRow.set('Condition', transaction.condition);
+          targetRow.set('Condition', itemCondition);
         }
         
         inventoryUpdates.push(targetRow);
@@ -325,12 +334,21 @@ class SheetsAPI {
         targetRow.set('Check Out Date', new Date().toISOString().split('T')[0]);
         targetRow.set('Outing Name', transactionData.outingName);
       } else if (transactionData.action === 'Check in') {
-        targetRow.set('Status', 'In shed');
+        // Special handling for Missing items
+        const itemStatus = transactionData.condition === 'Missing' ? 'Missing' : 'In shed';
+        const itemCondition = transactionData.condition === 'Missing' ? 'Unknown' : transactionData.condition;
+        
+        console.log(`🔍 Single check-in debug for ${transactionData.itemId}:`);
+        console.log(`  Original condition: "${transactionData.condition}"`);
+        console.log(`  Setting status: "${itemStatus}"`);
+        console.log(`  Setting condition: "${itemCondition}"`);
+        
+        targetRow.set('Status', itemStatus);
         targetRow.set('Checked Out To', '');
         targetRow.set('Checked Out By', '');
         targetRow.set('Check Out Date', '');
         targetRow.set('Outing Name', '');
-        targetRow.set('Condition', transactionData.condition);
+        targetRow.set('Condition', itemCondition);
       }
       
       await targetRow.save();

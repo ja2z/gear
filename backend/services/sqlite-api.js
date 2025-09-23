@@ -276,14 +276,17 @@ class SQLiteAPI {
           continue;
         }
         
-        // Update item status
+        // Update item status - special handling for Missing items
+        const itemStatus = condition === 'Missing' ? 'Missing' : 'In shed';
+        const itemCondition = condition === 'Missing' ? 'Unknown' : condition;
+        
         await this.updateItemStatus(itemId, {
-          status: 'In shed',
+          status: itemStatus,
           checkedOutTo: '',
           checkedOutBy: '',
           checkOutDate: null,
           outingName: '',
-          condition: condition,
+          condition: itemCondition,
           notes: notes
         });
         
@@ -299,7 +302,13 @@ class SQLiteAPI {
           notes
         });
         
-        results.push({ itemId, success: true, transactionId });
+        results.push({ 
+          itemId, 
+          success: true, 
+          transactionId,
+          status: itemStatus,
+          condition: itemCondition
+        });
         
       } catch (error) {
         console.error(`Error checking in item ${itemId}:`, error);
