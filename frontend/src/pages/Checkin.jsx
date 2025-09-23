@@ -74,6 +74,23 @@ const Checkin = () => {
     ? allCheckedOutItems // Already filtered by API for specific outing
     : allCheckedOutItems;
 
+  // DEBUG: Log what we're about to display
+  console.log(`🎯 FRONTEND DISPLAY DEBUG:`, {
+    selectedOuting,
+    allCheckedOutItemsCount: allCheckedOutItems.length,
+    allCheckedOutItems: allCheckedOutItems.map(item => ({
+      itemId: item.itemId,
+      outingName: item.outingName,
+      checkedOutTo: item.checkedOutTo
+    })),
+    searchTerm,
+    filteredItemsCount: checkedOutItems.filter(item =>
+      item.itemId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.checkedOutTo && item.checkedOutTo.toLowerCase().includes(searchTerm.toLowerCase()))
+    ).length
+  });
+
   const filteredItems = checkedOutItems.filter(item =>
     item.itemId.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
