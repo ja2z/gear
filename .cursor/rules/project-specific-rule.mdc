@@ -64,8 +64,8 @@ Some items like TENT-001 get physical tags. Other items are fungible like SPOON-
 - `Item ID` - Unique identifier (TENT-001, SPOON-001)
 - `Description` - Human-readable item description, e.g. Zephyr 3 or Half Dome 2+
 - `Is Tagged` - boolean, true when item has a printed tag that can be attached to item
-- `Condition` - Usable, Not usable, Missing
-- `Status` - Available, Not available
+- `Condition` - Usable, Not usable, Unknown
+- `Status` - Available, Not available, Missing
 - `Purchase Date` - When item was acquired
 - `Cost` - Purchase price if known
 - `Checked Out To` - Current holder (scout name)
@@ -83,7 +83,7 @@ Append-only audit trail of all checkout/checkin activities.
 - `Action` - "Check in" or "Check out"
 - `Item ID` - Which item was affected, e.g. TENT-001
 - `Outing Name` - Associated outing
-- `Condition` - Item condition (for checkin transactions). Values: Usable, Not usable, Missing
+- `Condition` - Item condition (for checkin transactions). Values: Usable, Not usable, Unknown
 - `Processed By` - System user who processed (for accountability)
 - `Notes` - Additional transaction details
 
