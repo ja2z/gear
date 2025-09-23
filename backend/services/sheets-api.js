@@ -283,10 +283,6 @@ class SheetsAPI {
           const itemStatus = transaction.condition === 'Missing' ? 'Missing' : 'In shed';
           const itemCondition = transaction.condition === 'Missing' ? 'Unknown' : transaction.condition;
           
-          console.log(`🔍 Check-in debug for ${transaction.itemId}:`);
-          console.log(`  Original condition: "${transaction.condition}"`);
-          console.log(`  Setting status: "${itemStatus}"`);
-          console.log(`  Setting condition: "${itemCondition}"`);
           
           targetRow.set('Status', itemStatus);
           targetRow.set('Checked Out To', '');
@@ -338,10 +334,6 @@ class SheetsAPI {
         const itemStatus = transactionData.condition === 'Missing' ? 'Missing' : 'In shed';
         const itemCondition = transactionData.condition === 'Missing' ? 'Unknown' : transactionData.condition;
         
-        console.log(`🔍 Single check-in debug for ${transactionData.itemId}:`);
-        console.log(`  Original condition: "${transactionData.condition}"`);
-        console.log(`  Setting status: "${itemStatus}"`);
-        console.log(`  Setting condition: "${itemCondition}"`);
         
         targetRow.set('Status', itemStatus);
         targetRow.set('Checked Out To', '');
