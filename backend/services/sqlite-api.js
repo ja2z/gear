@@ -137,6 +137,34 @@ class SQLiteAPI {
     });
   }
 
+  async getCategoriesWithItemDescriptions() {
+    await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const query = `
+        SELECT 
+          item_class as name,
+          item_desc as description,
+          COUNT(*) as total_count,
+          SUM(CASE WHEN status = 'Available' AND condition = 'Usable' THEN 1 ELSE 0 END) as available_count,
+          GROUP_CONCAT(COALESCE(description, ''), ' ') as item_descriptions
+        FROM items 
+        WHERE in_app = 1
+        GROUP BY item_class, item_desc
+        ORDER BY item_class
+      `;
+      
+      this.db.all(query, [], (err, rows) => {
+        if (err) {
+          console.error('Error fetching categories with item descriptions:', err);
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
+  }
+
   async getItemsByCategory(category) {
     await this.initialize();
     

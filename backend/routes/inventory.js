@@ -34,7 +34,7 @@ router.get('/categories', async (req, res) => {
     }
     
     // Get categories from SQLite (fresh data if synced, cached if not)
-    const categories = await sqliteAPI.getCategories();
+    const categories = await sqliteAPI.getCategoriesWithItemDescriptions();
     res.json(categories);
   } catch (error) {
     console.error('Error fetching categories:', error);
