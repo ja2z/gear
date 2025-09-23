@@ -103,14 +103,14 @@ const Categories = () => {
             <Link
               key={category.name}
               to={`/items/${category.name}`}
-              className="card touch-target block"
+              className="card touch-target block category-link"
             >
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-base">
                   {category.description}
                 </span>
-                <span className="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs">
-                  {category.availableCount} available
+                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs no-underline">
+                  {category.available_count} available
                 </span>
               </div>
             </Link>

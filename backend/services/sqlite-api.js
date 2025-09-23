@@ -146,7 +146,7 @@ class SQLiteAPI {
           item_class as name,
           item_desc as description,
           COUNT(*) as total_count,
-          SUM(CASE WHEN status = 'In shed' AND condition = 'Usable' THEN 1 ELSE 0 END) as available_count,
+          SUM(CASE WHEN status = 'In shed' AND (condition = 'Usable' OR condition = 'Unknown') THEN 1 ELSE 0 END) as available_count,
           GROUP_CONCAT(COALESCE(description, ''), ' ') as item_descriptions
         FROM items 
         WHERE in_app = 1

@@ -367,3 +367,15 @@ body {
   line-height: 1.5rem;
   min-height: 44px;
 }
+
+.no-underline {
+  text-decoration: none !important;
+}
+
+.category-link {
+  text-decoration: none !important;
+}
+
+.category-link:hover {
+  text-decoration: none !important;
+}
