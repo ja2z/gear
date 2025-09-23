@@ -65,7 +65,7 @@ Some items like TENT-001 get physical tags. Other items are fungible like SPOON-
 - `Description` - Human-readable item description, e.g. Zephyr 3 or Half Dome 2+
 - `Is Tagged` - boolean, true when item has a printed tag that can be attached to item
 - `Condition` - Usable, Not usable, Unknown
-- `Status` - Available, Not available, Missing
+- `Status` - In shed, Checked out, Missing, Out for repair
 - `Purchase Date` - When item was acquired
 - `Cost` - Purchase price if known
 - `Checked Out To` - Current holder (scout name)
