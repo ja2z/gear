@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Configure API base URL based on environment
 // In development: Vite proxy will handle /api requests to backend
@@ -6,6 +6,9 @@ import { useState, useEffect, useCallback } from 'react';
 const API_BASE_URL = import.meta.env.PROD 
   ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api')
   : '/api';
+
+// Request cache to prevent duplicate API calls
+const requestCache = new Map();
 
 export const useInventory = () => {
   const [loading, setLoading] = useState(false);
@@ -16,14 +19,40 @@ export const useInventory = () => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Check if this exact request is already in progress
+      if (requestCache.has(endpoint)) {
+        console.log('🔄 Using cached request for:', endpoint);
+        const cachedData = await requestCache.get(endpoint);
+        return cachedData;
       }
-      const data = await response.json();
+      
+      console.log('🚀 Making new request for:', endpoint);
+      
+      // Start new request and cache the promise
+      const requestPromise = fetch(`${API_BASE_URL}${endpoint}`)
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          return data;
+        });
+      
+      // Cache the promise immediately
+      requestCache.set(endpoint, requestPromise);
+      
+      const data = await requestPromise;
+      
+      // Clean up cache after a short delay to prevent race conditions
+      setTimeout(() => {
+        requestCache.delete(endpoint);
+      }, 100);
+      
       return data;
     } catch (err) {
       setError(err.message);
+      // Clean up cache on error
+      requestCache.delete(endpoint);
       throw err;
     } finally {
       setLoading(false);
@@ -89,11 +118,21 @@ export const useCategories = (shouldSync = false) => {
   const [categories, setCategories] = useState([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const isLoadingRef = useRef(false); // Ref to track loading state
   const { error, getData } = useInventory();
 
   const loadCategories = async (forceRefresh = false, syncFromSheets = false) => {
     // If we already have data and this isn't a forced refresh, don't reload
-    if (hasLoaded && !forceRefresh) return;
+    if (hasLoaded && !forceRefresh) {
+      return;
+    }
+    
+    // If we're already loading, don't start another load
+    if (isLoadingRef.current) {
+      return;
+    }
+    
+    isLoadingRef.current = true;
     
     // Only show loading if we don't have cached data
     if (!hasLoaded) {
@@ -113,12 +152,13 @@ export const useCategories = (shouldSync = false) => {
       throw err; // Re-throw to let calling components handle the error
     } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
   };
 
   useEffect(() => {
     loadCategories(false, shouldSync);
-  }, [getData, shouldSync]); // Remove hasLoaded from dependencies to prevent re-runs
+  }, [shouldSync]); // Remove getData from dependencies to prevent re-runs
 
   return { 
     categories, 

@@ -8,6 +8,7 @@ class SheetsAPI {
     this.initialized = false;
     this.spreadsheetId = process.env.GOOGLE_SHEET_ID;
     this.serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    this.syncInProgress = false;
   }
 
   async initialize() {
@@ -69,8 +70,20 @@ class SheetsAPI {
   async syncFromGoogleSheets() {
     await this.initialize();
     
+    const timestamp = new Date().toISOString();
+    
+    // Prevent concurrent sync operations with more robust checking
+    if (this.syncInProgress) {
+      console.log(`[${timestamp}] ⏳ Sync already in progress, skipping...`);
+      return;
+    }
+    
+    // Set the flag immediately to prevent race conditions
+    this.syncInProgress = true;
+    console.log(`[${timestamp}] 🔒 Sync lock acquired`);
+    
     try {
-      console.log('🔄 Syncing from Google Sheets to SQLite...');
+      console.log(`[${timestamp}] 🔄 Syncing from Google Sheets to SQLite...`);
       
       // Get the Master Inventory sheet
       const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
@@ -81,7 +94,7 @@ class SheetsAPI {
 
       // Load inventory data
       const inventoryRows = await inventorySheet.getRows();
-      console.log(`📊 Loaded ${inventoryRows.length} inventory items from Google Sheets`);
+      console.log(`[${timestamp}] 📊 Loaded ${inventoryRows.length} inventory items from Google Sheets`);
 
       // Map Google Sheets columns to our data structure with robust validation
       const allItems = inventoryRows.map((row, index) => {
@@ -126,13 +139,28 @@ class SheetsAPI {
         }
       });
       
+      // Check for duplicate item IDs in the data
+      const itemIds = inventoryData.map(item => item.itemId);
+      const duplicates = itemIds.filter((id, index) => itemIds.indexOf(id) !== index);
+      if (duplicates.length > 0) {
+        console.log(`[${timestamp}] ⚠️ Found ${duplicates.length} duplicate item IDs in Google Sheets data:`, [...new Set(duplicates)]);
+        // Log details for each duplicate
+        [...new Set(duplicates)].forEach(duplicateId => {
+          const duplicateItems = inventoryData.filter(item => item.itemId === duplicateId);
+          console.log(`[${timestamp}]   ${duplicateId} appears ${duplicateItems.length} times:`, duplicateItems.map(item => `Row ${item.rowIndex}`));
+        });
+      } else {
+        console.log(`[${timestamp}] ✅ No duplicate item IDs found in Google Sheets data`);
+      }
+      
+      
       if (filteredItems.length > 0) {
-        console.log(`⚠️ Filtered out ${filteredItems.length} invalid rows:`);
+        console.log(`[${timestamp}] ⚠️ Filtered out ${filteredItems.length} invalid rows:`);
         filteredItems.slice(0, 10).forEach(item => {
-          console.log(`  Row ${item.row}: ${item.reason} (ID: ${item.itemId}, Class: ${item.itemClass})`);
+          console.log(`[${timestamp}]   Row ${item.row}: ${item.reason} (ID: ${item.itemId}, Class: ${item.itemClass})`);
         });
         if (filteredItems.length > 10) {
-          console.log(`  ... and ${filteredItems.length - 10} more rows`);
+          console.log(`[${timestamp}]   ... and ${filteredItems.length - 10} more rows`);
         }
       }
 
@@ -140,12 +168,15 @@ class SheetsAPI {
       await this.clearSQLiteInventory();
       await this.populateSQLiteInventory(inventoryData);
       
-      console.log('✅ Sync from Google Sheets completed');
+      console.log(`[${timestamp}] ✅ Sync from Google Sheets completed`);
       return inventoryData;
       
     } catch (error) {
-      console.error('❌ Error syncing from Google Sheets:', error);
+      console.error(`[${timestamp}] ❌ Error syncing from Google Sheets:`, error);
       throw error;
+    } finally {
+      this.syncInProgress = false;
+      console.log(`[${timestamp}] 🔓 Sync lock released`);
     }
   }
 
@@ -244,20 +275,10 @@ class SheetsAPI {
     // Initialize SQLite if needed
     await sqliteAPI.initialize();
     
-    // Populate SQLite with fresh data
+    // Simple approach: since Google Sheets is source of truth, just INSERT all items
     let insertedCount = 0;
     for (const item of inventoryData) {
       await new Promise((resolve, reject) => {
-        // Use a simpler approach: always update, then insert if no rows were affected
-        const updateQuery = `
-          UPDATE items SET 
-            item_class = ?, item_desc = ?, item_num = ?, description = ?, is_tagged = ?,
-            condition = ?, status = ?, purchase_date = ?, cost = ?, checked_out_to = ?, 
-            checked_out_by = ?, check_out_date = ?, outing_name = ?, notes = ?, in_app = ?,
-            updated_at = CURRENT_TIMESTAMP
-          WHERE item_id = ?
-        `;
-        
         const insertQuery = `
           INSERT INTO items (
             item_class, item_desc, item_num, item_id, description, is_tagged,
@@ -266,39 +287,28 @@ class SheetsAPI {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         
-        sqliteAPI.db.run(updateQuery, [
-          item.itemClass, item.itemDesc, item.itemNum, item.description,
+        sqliteAPI.db.run(insertQuery, [
+          item.itemClass, item.itemDesc, item.itemNum, item.itemId, item.description,
           item.isTagged, item.condition, item.status, item.purchaseDate, item.cost,
-          item.checkedOutTo, item.checkedOutBy, item.checkOutDate, item.outingName, item.notes, item.inApp,
-          item.itemId
+          item.checkedOutTo, item.checkedOutBy, item.checkOutDate, item.outingName, item.notes, item.inApp
         ], function(err) {
           if (err) {
-            reject(err);
-            return;
-          }
-          
-          // If no rows were updated (item doesn't exist), insert it
-          if (this.changes === 0) {
-            sqliteAPI.db.run(insertQuery, [
-              item.itemClass, item.itemDesc, item.itemNum, item.itemId, item.description,
-              item.isTagged, item.condition, item.status, item.purchaseDate, item.cost,
-              item.checkedOutTo, item.checkedOutBy, item.checkOutDate, item.outingName, item.notes, item.inApp
-            ], function(insertErr) {
-              if (insertErr) {
-                console.error(`Insert error for ${item.itemId}:`, insertErr.message);
-                reject(insertErr);
-              } else {
-                insertedCount++;
-                resolve();
-              }
+            console.error(`❌ Insert error for ${item.itemId}:`, err.message);
+            console.error(`   Error code: ${err.code}, Error number: ${err.errno}`);
+            console.error(`   Item data:`, {
+              itemClass: item.itemClass,
+              itemId: item.itemId,
+              description: item.description
             });
+            reject(err);
           } else {
+            insertedCount++;
             resolve();
           }
         });
       });
     }
-    console.log(`📝 Inserted/updated ${insertedCount} items in SQLite`);
+    console.log(`📝 Inserted ${insertedCount} items in SQLite`);
   }
 
   async getLastSyncTime() {

@@ -21,12 +21,14 @@ router.get('/categories', async (req, res) => {
     
     // Only sync from Google Sheets if explicitly requested (new session)
     if (sync === 'true') {
-      console.log('🔄 Syncing from Google Sheets before fetching categories...');
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] 🔄 Syncing from Google Sheets before fetching categories...`);
+      console.log(`[${timestamp}] 📍 Called from: /api/inventory/categories endpoint`);
       try {
         await sheetsAPI.syncFromGoogleSheets();
-        console.log('✅ Fresh data loaded from Google Sheets');
+        console.log(`[${timestamp}] ✅ Fresh data loaded from Google Sheets`);
       } catch (syncError) {
-        console.warn('⚠️ Failed to sync from Google Sheets, using cached data:', syncError.message);
+        console.warn(`[${timestamp}] ⚠️ Failed to sync from Google Sheets, using cached data:`, syncError.message);
         // Continue with cached data if sync fails
       }
     }
@@ -61,12 +63,14 @@ router.get('/outings', async (req, res) => {
     
     // Only sync from Google Sheets if explicitly requested (new session)
     if (sync === 'true') {
-      console.log('🔄 Syncing from Google Sheets before fetching outings...');
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] 🔄 Syncing from Google Sheets before fetching outings...`);
+      console.log(`[${timestamp}] 📍 Called from: /api/inventory/outings endpoint`);
       try {
         await sheetsAPI.syncFromGoogleSheets();
-        console.log('✅ Fresh data loaded from Google Sheets');
+        console.log(`[${timestamp}] ✅ Fresh data loaded from Google Sheets`);
       } catch (syncError) {
-        console.warn('⚠️ Failed to sync from Google Sheets, using cached data:', syncError.message);
+        console.warn(`[${timestamp}] ⚠️ Failed to sync from Google Sheets, using cached data:`, syncError.message);
         // Continue with cached data if sync fails
       }
     }
