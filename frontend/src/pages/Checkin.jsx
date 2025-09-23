@@ -20,7 +20,6 @@ const Checkin = () => {
   // Get outing from URL params and fetch data
   useEffect(() => {
     const outing = searchParams.get('outing');
-    console.log('🎯 FRONTEND: URL outing parameter changed to:', outing);
     // Clear cache when outing changes to prevent stale data
     clearCache();
     setSelectedOuting(outing);
@@ -39,25 +38,14 @@ const Checkin = () => {
         setAllCheckedOutItems([]);
         
         if (selectedOuting) {
-          console.log(`🎯 FRONTEND v2.1: Fetching items for outing: "${selectedOuting}"`);
-          const endpoint = `/inventory/checked-out/${encodeURIComponent(selectedOuting)}`;
-          console.log(`🎯 FRONTEND v2.1: API endpoint: ${endpoint}`);
-          
           // Fetch items for specific outing with force refresh to prevent cache issues
+          const endpoint = `/inventory/checked-out/${encodeURIComponent(selectedOuting)}`;
           const data = await getData(endpoint, true);
-          console.log(`🎯 FRONTEND v2.1: Received ${data.length} items from API:`, data.map(item => ({
-            itemId: item.itemId,
-            outingName: item.outingName,
-            checkedOutTo: item.checkedOutTo
-          })));
-          
           setAllCheckedOutItems(data);
         } else {
-          console.log(`🎯 FRONTEND v2.1: No selectedOuting, fetching all checked out items`);
           // Fetch all checked out items (for general checkin)
           const inventory = await getData('/inventory', true);
           const checkedOutItems = inventory.filter(item => item.status === 'Checked out');
-          console.log(`🎯 FRONTEND v2.1: Filtered ${checkedOutItems.length} checked out items from ${inventory.length} total items`);
           setAllCheckedOutItems(checkedOutItems);
         }
       } catch (err) {
@@ -70,10 +58,7 @@ const Checkin = () => {
 
     // Only fetch if we have a selectedOuting (prevent the null case from running)
     if (selectedOuting) {
-      console.log(`🎯 FRONTEND v2.1: selectedOuting is "${selectedOuting}", fetching data`);
       fetchCheckedOutItems();
-    } else {
-      console.log(`🎯 FRONTEND v2.1: selectedOuting is null, skipping fetch`);
     }
   }, [selectedOuting]); // Remove getData dependency to prevent infinite re-renders
 
@@ -82,22 +67,6 @@ const Checkin = () => {
     ? allCheckedOutItems // Already filtered by API for specific outing
     : allCheckedOutItems;
 
-  // DEBUG: Log what we're about to display
-  console.log(`🎯 FRONTEND DISPLAY DEBUG:`, {
-    selectedOuting,
-    allCheckedOutItemsCount: allCheckedOutItems.length,
-    allCheckedOutItems: allCheckedOutItems.map(item => ({
-      itemId: item.itemId,
-      outingName: item.outingName,
-      checkedOutTo: item.checkedOutTo
-    })),
-    searchTerm,
-    filteredItemsCount: checkedOutItems.filter(item =>
-      item.itemId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.checkedOutTo && item.checkedOutTo.toLowerCase().includes(searchTerm.toLowerCase()))
-    ).length
-  });
 
   const filteredItems = checkedOutItems.filter(item =>
     item.itemId.toLowerCase().includes(searchTerm.toLowerCase()) ||

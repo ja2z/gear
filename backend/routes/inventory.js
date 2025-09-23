@@ -134,48 +134,6 @@ router.get('/validate-sheets', async (req, res) => {
   }
 });
 
-// GET /api/inventory/debug/checkin/:outing - Temporary debug endpoint for checkin troubleshooting
-router.get('/debug/checkin/:outing', async (req, res) => {
-  const timestamp = new Date().toISOString();
-  const { outing } = req.params;
-  
-  try {
-    console.log(`[${timestamp}] 🔍 DEBUG: Checkin troubleshooting for outing: "${outing}"`);
-    
-    // Get items for the specific outing
-    const items = await sqliteAPI.getCheckedOutItemsByOuting(outing);
-    
-    // Get all checked out items for comparison
-    const allInventory = await sqliteAPI.getInventory();
-    const allCheckedOut = allInventory.filter(item => item.status === 'Checked out');
-    
-    res.json({
-      success: true,
-      timestamp,
-      requestedOuting: outing,
-      itemsForOuting: items,
-      allCheckedOutItems: allCheckedOut.map(item => ({
-        itemId: item.itemId,
-        outingName: item.outingName,
-        checkedOutTo: item.checkedOutTo,
-        status: item.status
-      })),
-      debug: {
-        requestedOuting: outing,
-        itemsReturned: items.length,
-        allCheckedOutCount: allCheckedOut.length,
-        itemsMatchRequested: items.every(item => item.outingName === outing)
-      }
-    });
-  } catch (error) {
-    console.error(`[${timestamp}] ❌ DEBUG ERROR:`, error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Debug checkin failed',
-      details: error.message
-    });
-  }
-});
 
 
 module.exports = router;
