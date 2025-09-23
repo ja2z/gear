@@ -109,7 +109,11 @@ const Categories = () => {
                 <span className="font-semibold text-base">
                   {category.description}
                 </span>
-                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs no-underline">
+                <span className={`px-3 py-1 rounded-full text-xs no-underline ${
+                  category.available_count === 0 
+                    ? 'bg-red-100 text-red-800' 
+                    : 'bg-green-100 text-green-800'
+                }`}>
                   {category.available_count} available
                 </span>
               </div>

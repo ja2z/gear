@@ -32,15 +32,14 @@ router.post('/', async (req, res) => {
     const successful = results.filter(r => r.success);
     const failed = results.filter(r => !r.success);
     
-    // Step 2: Sync successful transactions to Google Sheets
+    // Step 2: Sync successful transactions to Google Sheets in batch
     if (successful.length > 0) {
       console.log('🔄 Syncing successful transactions to Google Sheets...');
       try {
-        for (let i = 0; i < successful.length; i++) {
-          const result = successful[i];
-          const condition = finalConditions[i] || 'Usable';
-          
-          const transactionData = {
+        // Prepare all transaction data for batch sync
+        const transactionsData = successful.map((result, index) => {
+          const condition = finalConditions[index] || 'Usable';
+          return {
             transactionId: result.transactionId,
             timestamp: new Date().toISOString(),
             action: 'Check in',
@@ -50,8 +49,10 @@ router.post('/', async (req, res) => {
             processedBy: processedBy,
             notes: notes
           };
-          await sheetsAPI.syncToGoogleSheets(transactionData);
-        }
+        });
+        
+        // Use batch sync instead of individual calls
+        await sheetsAPI.batchSyncToGoogleSheets(transactionsData);
         console.log('✅ Successfully synced transactions to Google Sheets');
       } catch (syncError) {
         console.error('❌ Failed to sync to Google Sheets:', syncError.message);

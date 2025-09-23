@@ -224,6 +224,86 @@ class SheetsAPI {
     }
   }
 
+  async batchSyncToGoogleSheets(transactionsData) {
+    await this.initialize();
+    
+    try {
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] 🔄 Batch syncing ${transactionsData.length} transactions to Google Sheets...`);
+      
+      // Get both sheets
+      const transactionSheet = this.doc.sheetsByTitle['Transaction Log'];
+      const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
+      
+      if (!transactionSheet) {
+        throw new Error('Transaction Log sheet not found');
+      }
+      if (!inventorySheet) {
+        throw new Error('Master Inventory sheet not found');
+      }
+
+      // Prepare batch data for transaction log
+      const transactionRows = transactionsData.map(transaction => ({
+        'Transaction ID': transaction.transactionId,
+        'Timestamp': transaction.timestamp,
+        'Action': transaction.action,
+        'Item ID': transaction.itemId,
+        'Outing Name': transaction.outingName,
+        'Condition': transaction.condition,
+        'Processed By': transaction.processedBy,
+        'Notes': transaction.notes
+      }));
+
+      // Add all transactions to Google Sheets in one batch
+      await transactionSheet.addRows(transactionRows);
+
+      // Get all inventory rows once for batch updates
+      const inventoryRows = await inventorySheet.getRows();
+      
+      // Prepare batch updates for inventory
+      const inventoryUpdates = [];
+      
+      for (const transaction of transactionsData) {
+        const targetRow = inventoryRows.find(row => row.get('Item ID') === transaction.itemId);
+        
+        if (!targetRow) {
+          console.warn(`⚠️ Item ${transaction.itemId} not found in Master Inventory sheet`);
+          continue;
+        }
+        
+        // Update the row based on transaction action
+        if (transaction.action === 'Check out') {
+          targetRow.set('Status', 'Checked out');
+          targetRow.set('Checked Out To', transaction.outingName);
+          targetRow.set('Checked Out By', transaction.processedBy);
+          targetRow.set('Check Out Date', new Date().toISOString().split('T')[0]);
+          targetRow.set('Outing Name', transaction.outingName);
+        } else if (transaction.action === 'Check in') {
+          targetRow.set('Status', 'In shed');
+          targetRow.set('Checked Out To', '');
+          targetRow.set('Checked Out By', '');
+          targetRow.set('Check Out Date', '');
+          targetRow.set('Outing Name', '');
+          targetRow.set('Condition', transaction.condition);
+        }
+        
+        inventoryUpdates.push(targetRow);
+      }
+
+      // Save all inventory updates in batch
+      if (inventoryUpdates.length > 0) {
+        await Promise.all(inventoryUpdates.map(row => row.save()));
+        console.log(`✅ Updated inventory for ${inventoryUpdates.length} items in Google Sheets`);
+      }
+      
+      console.log(`[${timestamp}] ✅ Batch sync to Google Sheets completed`);
+      
+    } catch (error) {
+      console.error('❌ Error batch syncing to Google Sheets:', error);
+      throw error;
+    }
+  }
+
   async updateInventoryInSheets(transactionData) {
     try {
       const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
