@@ -178,3 +178,6 @@ const transactionSheet = doc.sheetsByTitle['Transaction Log'];
 - Advanced reporting and analytics
 - User authentication with Google OAuth
 - SQLite caching for improved performance
+
+## Deployment
+- App is deployed on Render (nodejs hosting site)
