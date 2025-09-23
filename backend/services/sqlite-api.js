@@ -410,9 +410,6 @@ class SQLiteAPI {
     await this.initialize();
     
     return new Promise((resolve, reject) => {
-      const timestamp = new Date().toISOString();
-      console.log(`[${timestamp}] 🗄️ SQLITE DEBUG: Fetching all outings with items`);
-      
       const query = `
         SELECT 
           outing_name,
@@ -429,16 +426,9 @@ class SQLiteAPI {
       
       this.db.all(query, [], (err, rows) => {
         if (err) {
-          console.error(`[${timestamp}] ❌ SQLITE ERROR: Failed to fetch outings:`, err);
+          console.error('Error fetching outings:', err);
           reject(err);
         } else {
-          console.log(`[${timestamp}] 🗄️ SQLITE DEBUG: Found ${rows.length} outings with checked out items`);
-          console.log(`[${timestamp}] 🗄️ SQLITE DEBUG: Outings:`, rows.map(row => ({
-            outing_name: row.outing_name,
-            item_count: row.item_count,
-            checked_out_date: row.checked_out_date
-          })));
-          
           resolve(rows.map(row => ({
             outingName: row.outing_name,
             itemCount: row.item_count,
@@ -453,49 +443,28 @@ class SQLiteAPI {
     await this.initialize();
     
     return new Promise((resolve, reject) => {
-      const timestamp = new Date().toISOString();
-      console.log(`[${timestamp}] 🗄️ SQLITE DEBUG: Querying items for outing: "${outingName}"`);
-      
       const query = `
         SELECT 
           item_id, description, checked_out_to, outing_name, 
-          check_out_date, condition, item_class, item_num
+          check_out_date, condition
         FROM items 
         WHERE status = 'Checked out' AND outing_name = ? AND in_app = 1
         ORDER BY item_class, item_num
       `;
       
-      console.log(`[${timestamp}] 🗄️ SQLITE DEBUG: Executing query:`, query);
-      console.log(`[${timestamp}] 🗄️ SQLITE DEBUG: With parameter:`, JSON.stringify(outingName));
-      
       this.db.all(query, [outingName], (err, rows) => {
         if (err) {
-          console.error(`[${timestamp}] ❌ SQLITE ERROR: Failed to fetch checked out items:`, err);
+          console.error('Error fetching checked out items:', err);
           reject(err);
         } else {
-          console.log(`[${timestamp}] 🗄️ SQLITE DEBUG: Raw query returned ${rows.length} rows`);
-          console.log(`[${timestamp}] 🗄️ SQLITE DEBUG: Raw rows:`, rows.map(row => ({
-            item_id: row.item_id,
-            outing_name: row.outing_name,
-            checked_out_to: row.checked_out_to
-          })));
-          
-          const result = rows.map(row => ({
+          resolve(rows.map(row => ({
             itemId: row.item_id,
             description: row.description,
             checkedOutTo: row.checked_out_to,
             outingName: row.outing_name,
             checkOutDate: row.check_out_date,
             condition: row.condition
-          }));
-          
-          console.log(`[${timestamp}] 🗄️ SQLITE DEBUG: Processed result:`, result.map(item => ({
-            itemId: item.itemId,
-            outingName: item.outingName,
-            checkedOutTo: item.checkedOutTo
           })));
-          
-          resolve(result);
         }
       });
     });
