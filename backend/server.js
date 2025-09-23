@@ -112,7 +112,13 @@ app.use((err, req, res, next) => {
 });
 
 // Catch-all handler: send back React's index.html file for client-side routing
-app.get('/*', (req, res) => {
+// Use middleware approach that's compatible with Express 5
+app.use((req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  // For all other routes, serve the React app
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
