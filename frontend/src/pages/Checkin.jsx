@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
 import ConnectionError from '../components/ConnectionError';
@@ -15,16 +15,16 @@ const Checkin = () => {
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState(null);
   const [connectionError, setConnectionError] = useState(false);
+  const hasInitialized = useRef(false);
 
   // Get outing from URL params and fetch data
   useEffect(() => {
     const outing = searchParams.get('outing');
-    if (outing) {
-      console.log('🎯 FRONTEND: URL outing parameter changed to:', outing);
-      // Clear cache when outing changes to prevent stale data
-      clearCache();
-      setSelectedOuting(outing);
-    }
+    console.log('🎯 FRONTEND: URL outing parameter changed to:', outing);
+    // Clear cache when outing changes to prevent stale data
+    clearCache();
+    setSelectedOuting(outing);
+    hasInitialized.current = true;
   }, [searchParams, clearCache]);
 
   // Fetch checked out items data
@@ -53,9 +53,11 @@ const Checkin = () => {
           
           setAllCheckedOutItems(data);
         } else {
+          console.log(`🎯 FRONTEND: No selectedOuting, fetching all checked out items`);
           // Fetch all checked out items (for general checkin)
-          const inventory = await getData('/inventory');
+          const inventory = await getData('/inventory', true);
           const checkedOutItems = inventory.filter(item => item.status === 'Checked out');
+          console.log(`🎯 FRONTEND: Filtered ${checkedOutItems.length} checked out items from ${inventory.length} total items`);
           setAllCheckedOutItems(checkedOutItems);
         }
       } catch (err) {
@@ -66,7 +68,10 @@ const Checkin = () => {
       }
     };
 
-    fetchCheckedOutItems();
+    // Only fetch if we have initialized (to prevent the initial null selectedOuting from triggering a fetch)
+    if (hasInitialized.current) {
+      fetchCheckedOutItems();
+    }
   }, [selectedOuting]); // Remove getData dependency to prevent infinite re-renders
 
   // Filter items by selected outing (if not already filtered by API)
