@@ -222,7 +222,7 @@ class SQLiteAPI {
           continue;
         }
         
-        if (item.status !== 'In shed' || item.condition !== 'Usable') {
+        if (item.status !== 'In shed' || (item.condition !== 'Usable' && item.condition !== 'Unknown')) {
           results.push({ itemId, success: false, error: 'Item not available' });
           continue;
         }
@@ -249,7 +249,7 @@ class SQLiteAPI {
           notes
         });
         
-        results.push({ itemId, success: true, transactionId });
+        results.push({ itemId, success: true, transactionId, condition: item.condition });
         
       } catch (error) {
         console.error(`Error checking out item ${itemId}:`, error);

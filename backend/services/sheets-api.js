@@ -274,7 +274,7 @@ class SheetsAPI {
         // Update the row based on transaction action
         if (transaction.action === 'Check out') {
           targetRow.set('Status', 'Checked out');
-          targetRow.set('Checked Out To', transaction.outingName);
+          targetRow.set('Checked Out To', transaction.scoutName || transaction.outingName); // Use scout name if available
           targetRow.set('Checked Out By', transaction.processedBy);
           targetRow.set('Check Out Date', new Date().toISOString().split('T')[0]);
           targetRow.set('Outing Name', transaction.outingName);
@@ -325,7 +325,7 @@ class SheetsAPI {
       // Update the row based on transaction action
       if (transactionData.action === 'Check out') {
         targetRow.set('Status', 'Checked out');
-        targetRow.set('Checked Out To', transactionData.outingName); // Using outing name as placeholder
+        targetRow.set('Checked Out To', transactionData.scoutName || transactionData.outingName); // Use scout name if available
         targetRow.set('Checked Out By', transactionData.processedBy);
         targetRow.set('Check Out Date', new Date().toISOString().split('T')[0]);
         targetRow.set('Outing Name', transactionData.outingName);

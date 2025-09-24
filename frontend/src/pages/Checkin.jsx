@@ -214,7 +214,7 @@ const Checkin = () => {
                         </h3>
                         <p className="text-sm text-gray-600">{item.description}</p>
                         <p className="text-xs text-gray-500">
-                          Checked out to: {item.checkedOutTo} • {item.outingName}
+                          Checked out to: {item.checkedOutTo}
                         </p>
                       </div>
                     </div>

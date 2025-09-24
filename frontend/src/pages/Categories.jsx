@@ -79,6 +79,7 @@ const Categories = () => {
               to="/cart"
               className="cart-badge"
             >
+              <span className="cart-icon">🛒</span>
               {getTotalItems()}
             </Link>
           )}

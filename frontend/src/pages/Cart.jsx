@@ -85,7 +85,7 @@ const Cart = () => {
             to="/checkout"
             className="nav-btn btn-primary text-center"
           >
-            Next
+            Go to Checkout
           </Link>
         </div>
       </div>

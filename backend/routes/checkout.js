@@ -14,7 +14,7 @@ router.post('/', async (req, res) => {
     }
     
     if (!scoutName || !outingName || !processedBy) {
-      return res.status(400).json({ error: 'Scout name, outing name, and processed by are required' });
+      return res.status(400).json({ error: 'Outing leader name, outing name, and QM name are required' });
     }
     
     // Process checkout in SQLite (data should already be fresh from session start)
@@ -40,7 +40,8 @@ router.post('/', async (req, res) => {
           action: 'Check out',
           itemId: result.itemId,
           outingName: outingName,
-          condition: 'Usable', // Default condition for checkout
+          scoutName: scoutName, // Add scout name to transaction data
+          condition: result.condition || 'Usable', // Use original condition or default to Usable
           processedBy: processedBy,
           notes: notes
         }));

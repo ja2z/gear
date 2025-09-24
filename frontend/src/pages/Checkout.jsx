@@ -9,8 +9,9 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     scoutName: '',
+    qmName: '',
     outingName: '',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
     notes: ''
   });
   const [submitError, setSubmitError] = useState(null);
@@ -25,7 +26,7 @@ const Checkout = () => {
         itemIds,
         scoutName: formData.scoutName,
         outingName: formData.outingName,
-        processedBy: 'System User', // TODO: Get from auth context
+        processedBy: formData.qmName,
         notes: formData.notes
       };
 
@@ -81,24 +82,8 @@ const Checkout = () => {
 
       <div className="px-5 py-6 pb-20">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Scout Information */}
+          {/* Checkout Information */}
           <div className="space-y-5">
-            <div>
-              <label htmlFor="scoutName" className="block text-sm font-semibold text-gray-700 mb-2">
-                Scout Name *
-              </label>
-              <input
-                type="text"
-                id="scoutName"
-                name="scoutName"
-                value={formData.scoutName}
-                onChange={handleChange}
-                required
-                className="form-input"
-                placeholder="Enter scout name"
-              />
-            </div>
-
             <div>
               <label htmlFor="outingName" className="block text-sm font-semibold text-gray-700 mb-2">
                 Outing Name *
@@ -116,8 +101,40 @@ const Checkout = () => {
             </div>
 
             <div>
+              <label htmlFor="qmName" className="block text-sm font-semibold text-gray-700 mb-2">
+                Checked out by (QM name) *
+              </label>
+              <input
+                type="text"
+                id="qmName"
+                name="qmName"
+                value={formData.qmName}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter quartermaster name"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="scoutName" className="block text-sm font-semibold text-gray-700 mb-2">
+                Checked out to (Outing Leader Name) *
+              </label>
+              <input
+                type="text"
+                id="scoutName"
+                name="scoutName"
+                value={formData.scoutName}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter outing leader name"
+              />
+            </div>
+
+            <div>
               <label htmlFor="date" className="block text-sm font-semibold text-gray-700 mb-2">
-                Date *
+                Checkout Date *
               </label>
               <input
                 type="date"

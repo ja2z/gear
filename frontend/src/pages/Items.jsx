@@ -82,6 +82,7 @@ const Items = () => {
             to="/cart"
             className="absolute right-5 top-1/2 transform -translate-y-1/2 cart-badge"
           >
+            <span className="cart-icon">🛒</span>
             {getTotalItems()}
           </Link>
         )}
