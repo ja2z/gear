@@ -65,7 +65,7 @@ const Landing = () => {
     <div 
       className="min-h-screen bg-gray-100 relative"
       style={{
-        backgroundImage: 'url(/img/bwca_home.png)',
+        backgroundImage: 'url(/bwca_home.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'
@@ -78,13 +78,13 @@ const Landing = () => {
       <div className="header relative z-10">
         <div className="flex items-center justify-center">
           <img 
-            src="/img/BSA_Logo.webp" 
+            src="/BSA_Logo.webp" 
             alt="BSA Logo" 
             className="h-10 w-auto mr-4"
           />
           <h1>Troop 222 Gear Management</h1>
           <img 
-            src="/img/BSA_Logo.webp" 
+            src="/BSA_Logo.webp" 
             alt="BSA Logo" 
             className="h-10 w-auto ml-4"
           />
