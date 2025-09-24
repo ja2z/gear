@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 const Success = () => {
   const [searchParams] = useSearchParams();
   const action = searchParams.get('action') || 'checkout';
+  const count = parseInt(searchParams.get('count')) || 0;
   
   const isCheckin = action === 'checkin';
   
@@ -22,31 +23,24 @@ const Success = () => {
           <p className="text-gray-600 mb-6">
             {isCheckin 
               ? 'Your gear has been successfully checked in and is now available for others to use.'
-              : 'Your gear has been successfully checked out. You\'ll receive a confirmation email shortly.'
+              : `You checked out ${count} ${count === 1 ? 'item' : 'items'}.`
             }
           </p>
           
           <div className="space-y-3">
             <Link
               to="/"
-              className="block w-full btn-primary p-4 text-center touch-target"
+              className="block w-full btn-primary p-4 text-center touch-target no-underline"
             >
               🏠 Return to Home
             </Link>
             
-            {isCheckin ? (
+            {isCheckin && (
               <Link
                 to="/checkin/outings"
                 className="block w-full btn-secondary p-4 text-center touch-target"
               >
                 ✅ Check In More Gear
-              </Link>
-            ) : (
-              <Link
-                to="/categories"
-                className="block w-full btn-secondary p-4 text-center touch-target"
-              >
-                🛒 Check Out More Gear
               </Link>
             )}
           </div>

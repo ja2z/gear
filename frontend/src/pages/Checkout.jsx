@@ -33,8 +33,9 @@ const Checkout = () => {
       const result = await postData('/checkout', checkoutData);
       
       if (result.success) {
+        const itemCount = getTotalItems();
         clearCart();
-        navigate('/success');
+        navigate(`/success?action=checkout&count=${itemCount}`);
       } else {
         setSubmitError(result.message || 'Checkout failed');
       }
@@ -73,14 +74,16 @@ const Checkout = () => {
       <div className="header">
         <Link
           to="/cart"
-          className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg"
+          className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg z-10"
         >
           ←
         </Link>
-        <h1>Checkout Information</h1>
+        <div className="flex items-center justify-center px-16">
+          <h1 className="text-center text-truncate">Checkout Information</h1>
+        </div>
         <Link
           to="/cart"
-          className="absolute right-5 top-1/2 transform -translate-y-1/2 cart-badge"
+          className="absolute right-5 top-1/2 transform -translate-y-1/2 cart-badge z-10"
         >
           <span className="cart-icon">🛒</span>
           {getTotalItems()}

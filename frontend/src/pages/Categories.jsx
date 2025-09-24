@@ -68,12 +68,14 @@ const Categories = () => {
       <div className="header">
         <Link
           to="/"
-          className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg"
+          className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg z-10"
         >
           ←
         </Link>
-        <h1>Select Category</h1>
-        <div className="absolute right-5 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
+        <div className="flex items-center justify-center px-16">
+          <h1 className="text-center text-truncate">Select Category</h1>
+        </div>
+        <div className="absolute right-5 top-1/2 transform -translate-y-1/2 flex items-center space-x-2 z-10">
           <Link
             to="/cart"
             className="cart-badge"

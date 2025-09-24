@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
 import { useSync } from '../context/SyncContext';
 import ConnectionError from '../components/ConnectionError';
+import { getRandomHomeImage } from '../utils/imageRotation';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -65,7 +66,7 @@ const Landing = () => {
     <div 
       className="min-h-screen bg-gray-100 relative"
       style={{
-        backgroundImage: 'url(/bwca2_home.png)',
+        backgroundImage: `url(${getRandomHomeImage()})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'
