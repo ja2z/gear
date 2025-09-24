@@ -4,7 +4,6 @@ import { useInventory } from '../hooks/useInventory';
 import { useSync } from '../context/SyncContext';
 import ConnectionError from '../components/ConnectionError';
 import { getRandomHomeImage } from '../utils/imageRotation';
-import { APP_TITLE } from '../constants/app';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -84,7 +83,7 @@ const Landing = () => {
             alt="BSA Logo" 
             className="h-10 w-auto mr-4"
           />
-          <h1>{APP_TITLE}</h1>
+          <h1>Troop 222 Gear Management</h1>
           <img 
             src="/BSA_Logo.webp" 
             alt="BSA Logo" 

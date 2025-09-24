@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Categories from './pages/Categories';
@@ -10,14 +9,8 @@ import OutingSelection from './pages/OutingSelection';
 import Success from './pages/Success';
 import { CartProvider } from './context/CartContext';
 import { SyncProvider } from './context/SyncContext';
-import { APP_TITLE } from './constants/app';
 
 function App() {
-  // Set the document title when the app loads
-  useEffect(() => {
-    document.title = APP_TITLE;
-  }, []);
-
   return (
     <SyncProvider>
       <CartProvider>
