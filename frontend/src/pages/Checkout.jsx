@@ -78,6 +78,13 @@ const Checkout = () => {
           ←
         </Link>
         <h1>Checkout Information</h1>
+        <Link
+          to="/cart"
+          className="absolute right-5 top-1/2 transform -translate-y-1/2 cart-badge"
+        >
+          <span className="cart-icon">🛒</span>
+          {getTotalItems()}
+        </Link>
       </div>
 
       <div className="px-5 py-6 pb-20">
@@ -101,22 +108,6 @@ const Checkout = () => {
             </div>
 
             <div>
-              <label htmlFor="qmName" className="block text-sm font-semibold text-gray-700 mb-2">
-                Checked out by (QM name) *
-              </label>
-              <input
-                type="text"
-                id="qmName"
-                name="qmName"
-                value={formData.qmName}
-                onChange={handleChange}
-                required
-                className="form-input"
-                placeholder="Enter quartermaster name"
-              />
-            </div>
-
-            <div>
               <label htmlFor="scoutName" className="block text-sm font-semibold text-gray-700 mb-2">
                 Checked out to (Outing Leader Name) *
               </label>
@@ -129,6 +120,22 @@ const Checkout = () => {
                 required
                 className="form-input"
                 placeholder="Enter outing leader name"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="qmName" className="block text-sm font-semibold text-gray-700 mb-2">
+                Checked out by (QM name) *
+              </label>
+              <input
+                type="text"
+                id="qmName"
+                name="qmName"
+                value={formData.qmName}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter quartermaster name"
               />
             </div>
 
@@ -177,7 +184,7 @@ const Checkout = () => {
         <div className="flex gap-4">
           <Link
             to="/cart"
-            className="nav-btn btn-secondary text-center"
+            className="nav-btn btn-secondary text-center no-underline"
           >
             Back
           </Link>

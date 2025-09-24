@@ -77,15 +77,13 @@ const Items = () => {
           ←
         </Link>
         <h1>{items.length > 0 ? items[0].itemDesc : category}</h1>
-        {getTotalItems() > 0 && (
-          <Link
-            to="/cart"
-            className="absolute right-5 top-1/2 transform -translate-y-1/2 cart-badge"
-          >
-            <span className="cart-icon">🛒</span>
-            {getTotalItems()}
-          </Link>
-        )}
+        <Link
+          to="/cart"
+          className="absolute right-5 top-1/2 transform -translate-y-1/2 cart-badge"
+        >
+          <span className="cart-icon">🛒</span>
+          {getTotalItems()}
+        </Link>
       </div>
 
       {/* Multi-select notice */}

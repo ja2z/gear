@@ -74,15 +74,13 @@ const Categories = () => {
         </Link>
         <h1>Select Category</h1>
         <div className="absolute right-5 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-          {getTotalItems() > 0 && (
-            <Link
-              to="/cart"
-              className="cart-badge"
-            >
-              <span className="cart-icon">🛒</span>
-              {getTotalItems()}
-            </Link>
-          )}
+          <Link
+            to="/cart"
+            className="cart-badge"
+          >
+            <span className="cart-icon">🛒</span>
+            {getTotalItems()}
+          </Link>
         </div>
       </div>
 

@@ -77,13 +77,13 @@ const Cart = () => {
         <div className="flex gap-4">
           <Link
             to="/categories"
-            className="nav-btn btn-secondary text-center"
+            className="nav-btn btn-secondary text-center no-underline"
           >
             Back
           </Link>
           <Link
             to="/checkout"
-            className="nav-btn btn-primary text-center"
+            className="nav-btn btn-primary text-center no-underline"
           >
             Go to Checkout
           </Link>

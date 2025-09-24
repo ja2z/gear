@@ -65,7 +65,7 @@ const Landing = () => {
     <div 
       className="min-h-screen bg-gray-100 relative"
       style={{
-        backgroundImage: 'url(/bwca_home.png)',
+        backgroundImage: 'url(/bwca2_home.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'
