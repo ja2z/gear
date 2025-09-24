@@ -62,15 +62,38 @@ const Landing = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div 
+      className="min-h-screen bg-gray-100 relative"
+      style={{
+        backgroundImage: 'url(/img/bwca_home.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Overlay for better text readability */}
+      <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+      
       {/* Header */}
-      <div className="header">
-        <h1>Scout Gear Checkout</h1>
+      <div className="header relative z-10">
+        <div className="flex items-center justify-center">
+          <img 
+            src="/img/BSA_Logo.webp" 
+            alt="BSA Logo" 
+            className="h-10 w-auto mr-4"
+          />
+          <h1>Troop 222 Gear Management</h1>
+          <img 
+            src="/img/BSA_Logo.webp" 
+            alt="BSA Logo" 
+            className="h-10 w-auto ml-4"
+          />
+        </div>
       </div>
 
       {/* Content */}
-      <div className="px-5 py-8">
-        <div className="space-y-8">
+      <div className="px-5 py-8 relative z-10 flex flex-col justify-center min-h-[calc(100vh-120px)]">
+        <div className="space-y-6">
           <button
             onClick={handleCheckoutClick}
             disabled={loading}
