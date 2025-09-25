@@ -5,14 +5,14 @@ import { useSync } from '../context/SyncContext';
 import ConnectionError from '../components/ConnectionError';
 
 const OutingSelection = () => {
-  const { getData, loading } = useInventory();
+  const { getData } = useInventory();
   const { shouldSync, markSynced } = useSync();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [outingsWithItems, setOutingsWithItems] = useState([]);
   const [error, setError] = useState(null);
   const [connectionError, setConnectionError] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Fetch real outings data from API
   useEffect(() => {
@@ -20,7 +20,7 @@ const OutingSelection = () => {
       try {
         setError(null);
         setConnectionError(false);
-        setInitialLoading(true);
+        setIsLoading(true);
         // Use sync parameter based on context
         const endpoint = shouldSync('checkin') ? '/inventory/outings?sync=true' : '/inventory/outings';
         const data = await getData(endpoint);
@@ -34,7 +34,7 @@ const OutingSelection = () => {
         console.error('Error fetching outings:', err);
         setConnectionError(true);
       } finally {
-        setInitialLoading(false);
+        setIsLoading(false);
       }
     };
 
@@ -98,7 +98,7 @@ const OutingSelection = () => {
       )}
 
       {/* Loading State */}
-      {(loading || initialLoading) && (
+      {isLoading && (
         <div className="px-5 py-12">
           <div className="text-center">
             <p className="text-gray-500">Loading outings...</p>
@@ -107,7 +107,7 @@ const OutingSelection = () => {
       )}
 
       {/* Outings List */}
-      {!loading && !initialLoading && !error && (
+      {!isLoading && !error && (
         <div className="px-5 py-5">
           <div className="space-y-3">
             {filteredOutings.map((outing) => (
@@ -146,7 +146,7 @@ const OutingSelection = () => {
             </div>
           )}
 
-          {outingsWithItems.length === 0 && (
+          {outingsWithItems.length === 0 && !isLoading && (
             <div className="text-center py-12">
               <p className="text-gray-500">No items are currently checked out.</p>
               <Link
