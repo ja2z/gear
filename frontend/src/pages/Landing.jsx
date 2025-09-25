@@ -15,9 +15,9 @@ const Landing = () => {
   const [retryError, setRetryError] = useState(null);
   const [allImageData, setAllImageData] = useState([]);
   
-  // Get the random background image and load it with optimization
-  const randomImagePath = getRandomHomeImage();
-  const { currentImage, isLoading: imageLoading, error: imageError } = useOptimizedImage(randomImagePath);
+  // Get the random background image once and keep it stable
+  const [selectedImagePath] = useState(() => getRandomHomeImage());
+  const { currentImage, isLoading: imageLoading, error: imageError } = useOptimizedImage(selectedImagePath);
   
   // Load all image data for preloading
   useEffect(() => {
