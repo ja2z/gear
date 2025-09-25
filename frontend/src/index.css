@@ -418,8 +418,14 @@ body {
 
 .category-link {
   text-decoration: none !important;
+  color: #00244F !important;
 }
 
 .category-link:hover {
   text-decoration: none !important;
+  color: #00244F !important;
+}
+
+.category-link:visited {
+  color: #00244F !important;
 }
