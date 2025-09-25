@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
 import { useSync } from '../context/SyncContext';
 import ConnectionError from '../components/ConnectionError';
-import { getRandomHomeImage } from '../utils/imageRotation';
+import ImagePreloader from '../components/ImagePreloader';
+import { getRandomHomeImage, getAllOptimizedImageData } from '../utils/imageRotation';
+import { useOptimizedImage } from '../hooks/useOptimizedImage';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -11,6 +13,25 @@ const Landing = () => {
   const { resetSync, markSynced } = useSync();
   const [connectionError, setConnectionError] = useState(false);
   const [retryError, setRetryError] = useState(null);
+  const [allImageData, setAllImageData] = useState([]);
+  
+  // Get the random background image and load it with optimization
+  const randomImagePath = getRandomHomeImage();
+  const { currentImage, isLoading: imageLoading, error: imageError } = useOptimizedImage(randomImagePath);
+  
+  // Load all image data for preloading
+  useEffect(() => {
+    const loadImageData = async () => {
+      try {
+        const imageData = await getAllOptimizedImageData();
+        setAllImageData(imageData);
+      } catch (error) {
+        console.error('Failed to load image data:', error);
+      }
+    };
+    
+    loadImageData();
+  }, []);
 
   const handleCheckoutClick = async (e) => {
     e.preventDefault();
@@ -63,15 +84,21 @@ const Landing = () => {
   }
 
   return (
-    <div 
-      className="min-h-screen bg-gray-100 relative"
-      style={{
-        backgroundImage: `url(${getRandomHomeImage()})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
+    <>
+      {/* Preload LQIP images for instant feedback */}
+      <ImagePreloader images={allImageData} />
+      
+      <div 
+        className="min-h-screen bg-gray-100 relative"
+        style={{
+          backgroundImage: currentImage ? `url(${currentImage})` : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          // Show a subtle loading state while image loads
+          backgroundColor: imageLoading ? '#f3f4f6' : undefined
+        }}
+      >
       {/* Overlay for better text readability */}
       <div className="absolute inset-0 bg-black bg-opacity-30"></div>
       
@@ -126,7 +153,8 @@ const Landing = () => {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
