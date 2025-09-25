@@ -238,6 +238,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
 }
 
 .header h1 {
@@ -246,7 +247,7 @@ body {
   font-weight: 600;
   flex: 1;
   text-align: center;
-  margin: 0;
+  margin: 0 0.5rem;
 }
 
 /* Search input styles */
