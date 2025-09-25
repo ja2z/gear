@@ -12,6 +12,7 @@ const OutingSelection = () => {
   const [outingsWithItems, setOutingsWithItems] = useState([]);
   const [error, setError] = useState(null);
   const [connectionError, setConnectionError] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Fetch real outings data from API
   useEffect(() => {
@@ -19,6 +20,7 @@ const OutingSelection = () => {
       try {
         setError(null);
         setConnectionError(false);
+        setInitialLoading(true);
         // Use sync parameter based on context
         const endpoint = shouldSync('checkin') ? '/inventory/outings?sync=true' : '/inventory/outings';
         const data = await getData(endpoint);
@@ -31,6 +33,8 @@ const OutingSelection = () => {
       } catch (err) {
         console.error('Error fetching outings:', err);
         setConnectionError(true);
+      } finally {
+        setInitialLoading(false);
       }
     };
 
@@ -94,7 +98,7 @@ const OutingSelection = () => {
       )}
 
       {/* Loading State */}
-      {loading && (
+      {(loading || initialLoading) && (
         <div className="px-5 py-12">
           <div className="text-center">
             <p className="text-gray-500">Loading outings...</p>
@@ -103,7 +107,7 @@ const OutingSelection = () => {
       )}
 
       {/* Outings List */}
-      {!loading && !error && (
+      {!loading && !initialLoading && !error && (
         <div className="px-5 py-5">
           <div className="space-y-3">
             {filteredOutings.map((outing) => (
