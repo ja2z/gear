@@ -246,6 +246,7 @@ body {
   font-weight: 600;
   flex: 1;
   text-align: center;
+  margin: 0;
 }
 
 /* Search input styles */

@@ -78,16 +78,14 @@ const Items = () => {
       <div className="header">
         <Link
           to="/categories"
-          className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg z-10"
+          className="text-white text-lg"
         >
           ←
         </Link>
-        <div className="flex items-center justify-center px-16">
-          <h1 className="text-center text-truncate">{items.length > 0 ? items[0].itemDesc : category}</h1>
-        </div>
+        <h1 className="text-center text-truncate">{items.length > 0 ? items[0].itemDesc : category}</h1>
         <Link
           to="/cart"
-          className="absolute right-5 top-1/2 transform -translate-y-1/2 cart-badge z-10"
+          className="cart-badge"
         >
           <span className="cart-icon">🛒</span>
           {getTotalItems()}

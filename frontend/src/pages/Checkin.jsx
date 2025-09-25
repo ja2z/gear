@@ -145,13 +145,14 @@ const Checkin = () => {
       <div className="header">
         <Link
           to={selectedOuting ? "/checkin/outings" : "/"}
-          className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg"
+          className="text-white text-lg"
         >
           ←
         </Link>
         <h1>
           {selectedOuting ? `Check In: ${selectedOuting}` : 'Check In Gear'}
         </h1>
+        <div></div>
       </div>
 
       {/* Search */}

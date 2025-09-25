@@ -65,11 +65,12 @@ const OutingSelection = () => {
       <div className="header">
         <Link
           to="/"
-          className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg"
+          className="text-white text-lg"
         >
           ←
         </Link>
         <h1>Select Outing</h1>
+        <div></div>
       </div>
 
       {/* Search */}
