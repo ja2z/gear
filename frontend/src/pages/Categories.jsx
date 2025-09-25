@@ -29,6 +29,12 @@ const Categories = () => {
     }
   }, [categories, urlSync, markSynced]);
 
+  // Reset scroll position when component mounts
+  useEffect(() => {
+    // Scroll to top when navigating to categories page
+    window.scrollTo(0, 0);
+  }, []);
+
   const handleRetry = () => {
     setConnectionError(false);
     refreshCategories();

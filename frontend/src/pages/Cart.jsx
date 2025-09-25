@@ -1,8 +1,15 @@
 import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 
 const Cart = () => {
   const { items, removeItem, getTotalItems } = useCart();
+
+  // Reset scroll position when component mounts
+  useEffect(() => {
+    // Scroll to top when navigating to cart page
+    window.scrollTo(0, 0);
+  }, []);
 
   if (items.length === 0) {
     return (

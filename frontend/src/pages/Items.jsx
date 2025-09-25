@@ -19,6 +19,12 @@ const Items = () => {
     }
   }, [error, loading]);
 
+  // Reset scroll position when component mounts or category changes
+  useEffect(() => {
+    // Scroll to top when navigating to items page or when category changes
+    window.scrollTo(0, 0);
+  }, [category]);
+
   const toggleItem = (item) => {
     setSelectedItems(prev => {
       const isSelected = prev.find(selected => selected.itemId === item.itemId);
