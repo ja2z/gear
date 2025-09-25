@@ -103,14 +103,14 @@ const Landing = () => {
       <div className="absolute inset-0 bg-black bg-opacity-30"></div>
       
       {/* Header */}
-      <div className="header relative z-10">
+      <div className="relative z-10 bg-scout-blue text-white py-5 px-4">
         <div className="flex items-center justify-center">
           <img 
             src="/BSA_Logo.webp" 
             alt="BSA Logo" 
             className="h-10 w-auto mr-4"
           />
-          <h1>Troop 222 Gear Management</h1>
+          <h1 className="text-xl font-semibold text-center">Troop 222 Gear Tracker</h1>
           <img 
             src="/BSA_Logo.webp" 
             alt="BSA Logo" 
