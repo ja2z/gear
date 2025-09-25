@@ -65,7 +65,7 @@ const Items = () => {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-scout-blue mx-auto mb-4"></div>
           <p className="text-gray-600">Loading items...</p>
         </div>
       </div>
@@ -96,7 +96,7 @@ const Items = () => {
 
       {/* Multi-select notice */}
       <div className="bg-blue-50 border border-blue-200 px-5 py-3 mx-5 mt-5 rounded-lg">
-        <p className="text-blue-800 text-sm text-center">
+        <p className="text-scout-blue text-sm text-center">
           Tap items to select multiple. Items already in your cart cannot be selected again.
         </p>
       </div>

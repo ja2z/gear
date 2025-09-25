@@ -59,7 +59,7 @@ const Checkout = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">No items in cart</h2>
           <Link
             to="/categories"
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors touch-target"
+            className="inline-block bg-scout-blue text-white px-6 py-3 rounded-lg hover:bg-scout-blue transition-colors touch-target"
           >
             Browse Categories
           </Link>

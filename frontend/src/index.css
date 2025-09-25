@@ -22,18 +22,18 @@ body {
 .min-h-screen { min-height: 100vh; }
 .bg-gray-100 { background-color: #f5f5f5; }
 .bg-white { background-color: white; }
-.bg-scout-blue { background-color: #2c5aa0; }
+.bg-scout-blue { background-color: #00244F; }
 .bg-scout-green { background-color: #28a745; }
 .bg-scout-orange { background-color: #ff6b35; }
 .text-white { color: white; }
 .text-gray-900 { color: #111827; }
 .text-gray-600 { color: #4b5563; }
 .text-gray-500 { color: #6b7280; }
-.text-scout-blue { color: #2c5aa0; }
+.text-scout-blue { color: #00244F; }
 .text-red-800 { color: #991b1b; }
 .text-red-500 { color: #ef4444; }
 .text-green-800 { color: #155724; }
-.text-blue-800 { color: #1e40af; }
+.text-blue-800 { color: #00244F; }
 .shadow-card { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
 .shadow-card-hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); }
 .rounded-xl { border-radius: 0.75rem; }
@@ -121,13 +121,13 @@ body {
 .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
 .duration-200 { transition-duration: 150ms; }
 .hover\:bg-gray-50:hover { background-color: #f9fafb; }
-.hover\:bg-blue-800:hover { background-color: #1e40af; }
+.hover\:bg-blue-800:hover { background-color: #00244F; }
 .hover\:bg-gray-600:hover { background-color: #4b5563; }
 .hover\:bg-green-700:hover { background-color: #15803d; }
 .hover\:bg-red-600:hover { background-color: #dc2626; }
 .hover\:bg-gray-300:hover { background-color: #d1d5db; }
-.hover\:border-scout-blue:hover { border-color: #2c5aa0; }
-.focus\:border-scout-blue:focus { border-color: #2c5aa0; }
+.hover\:border-scout-blue:hover { border-color: #00244F; }
+.focus\:border-scout-blue:focus { border-color: #00244F; }
 .focus\:outline-none:focus { outline: 2px solid transparent; outline-offset: 2px; }
 .relative { position: relative; }
 .absolute { position: absolute; }
@@ -172,7 +172,7 @@ body {
 
 .card:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  border-color: #2c5aa0;
+  border-color: #00244F;
 }
 
 .card-selected {
@@ -182,7 +182,7 @@ body {
 
 /* Button styles */
 .btn-primary {
-  background-color: #2c5aa0;
+  background-color: #00244F;
   color: white;
   transition: all 0.2s;
   border-radius: 0.75rem;
@@ -190,7 +190,7 @@ body {
 }
 
 .btn-primary:hover {
-  background-color: #1e40af;
+  background-color: #00244F;
 }
 
 .btn-secondary {
@@ -231,7 +231,7 @@ body {
 
 /* Header styles */
 .header {
-  background-color: #2c5aa0;
+  background-color: #00244F;
   color: white;
   padding: 1.25rem;
   position: relative;
@@ -256,7 +256,7 @@ body {
 }
 
 .search-input:focus {
-  border-color: #2c5aa0;
+  border-color: #00244F;
 }
 
 /* Form input styles */
@@ -273,7 +273,7 @@ body {
 }
 
 .form-input:focus {
-  border-color: #2c5aa0;
+  border-color: #00244F;
 }
 
 /* Status badges */
@@ -342,7 +342,7 @@ body {
 
 .outing-badge {
   background-color: #eff6ff;
-  color: #2c5aa0;
+  color: #00244F;
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   line-height: 1rem;
@@ -354,7 +354,7 @@ body {
 /* Cart badge */
 .cart-badge {
   background-color: white;
-  color: #2c5aa0;
+  color: #00244F;
   border-radius: 9999px;
   min-width: 3rem;
   height: 2.5rem;
@@ -368,12 +368,12 @@ body {
   padding: 0 0.75rem;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  border: 2px solid rgba(44, 90, 160, 0.2);
+  border: 2px solid rgba(0, 36, 79, 0.2);
 }
 
 .cart-badge:hover {
   background-color: #f8fafc;
-  color: #1e40af;
+  color: #00244F;
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   text-decoration: none !important;
