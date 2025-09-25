@@ -32,7 +32,12 @@ const Categories = () => {
   // Reset scroll position when component mounts
   useEffect(() => {
     // Scroll to top when navigating to categories page
-    window.scrollTo(0, 0);
+    // Use requestAnimationFrame to ensure this happens after the DOM is fully updated
+    const scrollToTop = () => {
+      window.scrollTo(0, 0);
+    };
+    
+    requestAnimationFrame(scrollToTop);
   }, []);
 
   const handleRetry = () => {

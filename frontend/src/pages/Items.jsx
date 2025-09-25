@@ -22,7 +22,12 @@ const Items = () => {
   // Reset scroll position when component mounts or category changes
   useEffect(() => {
     // Scroll to top when navigating to items page or when category changes
-    window.scrollTo(0, 0);
+    // Use requestAnimationFrame to ensure this happens after the DOM is fully updated
+    const scrollToTop = () => {
+      window.scrollTo(0, 0);
+    };
+    
+    requestAnimationFrame(scrollToTop);
   }, [category]);
 
   const toggleItem = (item) => {
