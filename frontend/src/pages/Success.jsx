@@ -23,7 +23,7 @@ const Success = () => {
           <p className="text-gray-600 mb-6">
             {isCheckin 
               ? 'Your gear has been successfully checked in and is now available for others to use.'
-              : `You checked out ${count} ${count === 1 ? 'item' : 'items'}.`
+              : `You checked out ${count} ${count === 1 ? 'item' : 'items'}`
             }
           </p>
           
