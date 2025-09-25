@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 
 const SyncContext = createContext();
 
@@ -14,20 +14,20 @@ export const SyncProvider = ({ children }) => {
   const [hasSyncedInSession, setHasSyncedInSession] = useState(false);
   const [sessionType, setSessionType] = useState(null); // 'checkout' or 'checkin'
 
-  const markSynced = (type) => {
+  const markSynced = useCallback((type) => {
     setHasSyncedInSession(true);
     setSessionType(type);
-  };
+  }, []);
 
-  const resetSync = () => {
+  const resetSync = useCallback(() => {
     setHasSyncedInSession(false);
     setSessionType(null);
-  };
+  }, []);
 
-  const shouldSync = (type) => {
+  const shouldSync = useCallback((type) => {
     // Only sync if we haven't synced yet, or if it's a different session type
     return !hasSyncedInSession || sessionType !== type;
-  };
+  }, [hasSyncedInSession, sessionType]);
 
   return (
     <SyncContext.Provider

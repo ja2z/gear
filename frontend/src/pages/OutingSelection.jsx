@@ -39,7 +39,7 @@ const OutingSelection = () => {
     };
 
     fetchOutings();
-  }, [shouldSync, markSynced]); // Remove getData dependency to prevent infinite re-renders
+  }, []); // Empty dependency array - only run once on mount
 
   const filteredOutings = outingsWithItems.filter(outing =>
     outing.outingName.toLowerCase().includes(searchTerm.toLowerCase())
