@@ -18,11 +18,11 @@ const Success = () => {
         <div className="text-center">
           <div className="text-6xl mb-4">✅</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {isCheckin ? 'Gear Successfully Checked In' : 'Success!'}
+            {isCheckin ? 'Success!' : 'Success!'}
           </h2>
           <p className="text-gray-600 mb-6">
             {isCheckin 
-              ? 'Your gear has been successfully checked in and is now available for others to use.'
+              ? `You checked in ${count} ${count === 1 ? 'item' : 'items'}`
               : `You checked out ${count} ${count === 1 ? 'item' : 'items'}`
             }
           </p>
@@ -34,15 +34,6 @@ const Success = () => {
             >
               🏠 Return to Home
             </Link>
-            
-            {isCheckin && (
-              <Link
-                to="/checkin/outings"
-                className="block w-full btn-secondary p-4 text-center touch-target"
-              >
-                ✅ Check In More Gear
-              </Link>
-            )}
           </div>
         </div>
         

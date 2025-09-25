@@ -115,7 +115,7 @@ const Checkin = () => {
       const result = await postData('/checkin', checkinData);
       
       if (result.success) {
-        navigate('/success?action=checkin');
+        navigate(`/success?action=checkin&count=${selectedItems.length}`);
       } else {
         setSubmitError(result.message || 'Checkin failed');
       }
