@@ -45,6 +45,15 @@ const Success = () => {
             )}
           </div>
         </div>
+        
+        {/* Troop 222 Logo - 50px below Return to Home button */}
+        <div className="mt-16 flex justify-center">
+          <img 
+            src="/Troop%20222%20Logo.webp" 
+            alt="Troop 222 Logo" 
+            className="max-w-xs w-full h-auto"
+          />
+        </div>
       </div>
     </div>
   );
