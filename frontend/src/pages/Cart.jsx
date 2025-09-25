@@ -17,11 +17,12 @@ const Cart = () => {
         <div className="header">
           <Link
             to="/categories"
-            className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg"
+            className="text-white text-lg"
           >
             ←
           </Link>
           <h1>Your Cart</h1>
+          <div></div>
         </div>
 
         <div className="px-5 py-12">
@@ -47,11 +48,12 @@ const Cart = () => {
       <div className="header">
         <Link
           to="/categories"
-          className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg"
+          className="text-white text-lg"
         >
           ←
         </Link>
         <h1>Your Cart</h1>
+        <div></div>
       </div>
 
       {/* Cart Items */}
