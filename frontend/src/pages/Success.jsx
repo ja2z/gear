@@ -18,7 +18,7 @@ const Success = () => {
         <div className="text-center">
           <div className="text-6xl mb-4">✅</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {isCheckin ? 'Gear Successfully Checked In' : 'Gear Successfully Checked Out'}
+            {isCheckin ? 'Gear Successfully Checked In' : 'Success!'}
           </h2>
           <p className="text-gray-600 mb-6">
             {isCheckin 
