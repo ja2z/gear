@@ -1,9 +1,21 @@
 import { Link, useSearchParams } from 'react-router-dom';
+import { useEffect } from 'react';
 
 const Success = () => {
   const [searchParams] = useSearchParams();
   const action = searchParams.get('action') || 'checkout';
   const count = parseInt(searchParams.get('count')) || 0;
+  
+  // Reset scroll position when component mounts
+  useEffect(() => {
+    // Scroll to top when navigating to success page
+    // Use requestAnimationFrame to ensure this happens after the DOM is fully updated
+    const scrollToTop = () => {
+      window.scrollTo(0, 0);
+    };
+    
+    requestAnimationFrame(scrollToTop);
+  }, []);
   
   const isCheckin = action === 'checkin';
   
