@@ -8,17 +8,17 @@ const Cart = () => {
 
   // Reset scroll position when component mounts
   useEffect(() => {
-    // SANITY CHECK: Make offset super large to test if scroll is working at all
-    const stickyOffset = 500; // Super large offset to test
-    window.scrollTo(0, stickyOffset);
+    // Scroll to position first item right below toggle control with small margin
+    const toggleOffset = 130; // Just enough to position content below toggle + small margin
+    window.scrollTo(0, toggleOffset);
   }, []);
 
   // Reset scroll position when switching view modes
   useEffect(() => {
-    // SANITY CHECK: Make offset super large to test if scroll is working at all
+    // Scroll to position first item right below toggle control with small margin
     const scrollToTop = () => {
-      const stickyOffset = 500; // Super large offset to test
-      window.scrollTo(0, stickyOffset);
+      const toggleOffset = 130; // Just enough to position content below toggle + small margin
+      window.scrollTo(0, toggleOffset);
     };
     
     requestAnimationFrame(scrollToTop);
