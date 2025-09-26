@@ -31,21 +31,6 @@ const Cart = () => {
     setTimeout(scrollToFirstCategory, 100);
   }, []);
 
-  // Reset all remove button states when items change (e.g., after deletion)
-  useEffect(() => {
-    const resetAllRemoveButtons = () => {
-      const removeButtons = document.querySelectorAll('.remove-item-btn');
-      removeButtons.forEach(button => {
-        button.style.backgroundColor = '';
-        button.style.color = '';
-        button.style.borderColor = '';
-        button.blur();
-      });
-    };
-    
-    // Reset button states after a short delay to ensure DOM has updated
-    setTimeout(resetAllRemoveButtons, 50);
-  }, [items]);
 
   // Reset scroll position when switching view modes
   useEffect(() => {
@@ -229,17 +214,10 @@ const Cart = () => {
                         </div>
                         
                         <button
+                          key={`remove-${item.itemId}-${items.length}`}
                           onClick={() => removeItem(item.itemId)}
                           className="remove-item-btn ml-3 touch-target"
                           title="Remove item"
-                          onMouseLeave={(e) => {
-                            // Force remove any lingering hover states
-                            e.target.blur();
-                            // Force reset all button states
-                            e.target.style.backgroundColor = '';
-                            e.target.style.color = '';
-                            e.target.style.borderColor = '';
-                          }}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M3 6h18"></path>
