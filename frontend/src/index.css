@@ -287,6 +287,19 @@ body {
   border-color: #e5e7eb;
 }
 
+/* Force clean state - override all hover states */
+.remove-item-btn.force-clean-state {
+  background-color: #f3f4f6 !important;
+  color: #6b7280 !important;
+  border-color: #e5e7eb !important;
+}
+
+.remove-item-btn.force-clean-state:hover {
+  background-color: #f3f4f6 !important;
+  color: #6b7280 !important;
+  border-color: #e5e7eb !important;
+}
+
 /* Header styles */
 .header {
   background-color: #1E398A;

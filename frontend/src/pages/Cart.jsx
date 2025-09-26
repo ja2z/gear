@@ -5,6 +5,15 @@ import { useCart } from '../context/CartContext';
 const Cart = () => {
   const { items, removeItem, getTotalItems } = useCart();
   const [viewMode, setViewMode] = useState('items'); // 'items' or 'categories'
+  const [lastRemovedItem, setLastRemovedItem] = useState(null);
+
+  // Custom remove handler that tracks the last removed item
+  const handleRemoveItem = (itemId) => {
+    setLastRemovedItem(itemId);
+    removeItem(itemId);
+    // Clear the tracking after a short delay
+    setTimeout(() => setLastRemovedItem(null), 100);
+  };
 
   // Reset scroll position when component mounts
   useEffect(() => {
@@ -214,16 +223,10 @@ const Cart = () => {
                         </div>
                         
                         <button
-                          key={`remove-${item.itemId}-${items.length}`}
-                          onClick={() => removeItem(item.itemId)}
-                          className="remove-item-btn ml-3 touch-target"
+                          key={`remove-${item.itemId}-${items.length}-${lastRemovedItem === item.itemId ? 'removed' : 'normal'}`}
+                          onClick={() => handleRemoveItem(item.itemId)}
+                          className={`remove-item-btn ml-3 touch-target ${lastRemovedItem === item.itemId ? 'force-clean-state' : ''}`}
                           title="Remove item"
-                          onFocus={(e) => {
-                            // Remove any lingering hover states when button gets focus
-                            e.target.style.backgroundColor = '';
-                            e.target.style.color = '';
-                            e.target.style.borderColor = '';
-                          }}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M3 6h18"></path>
