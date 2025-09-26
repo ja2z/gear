@@ -11,8 +11,26 @@ const Cart = () => {
   const handleRemoveItem = (itemId) => {
     setLastRemovedItem(itemId);
     removeItem(itemId);
-    // Clear the tracking after a short delay
-    setTimeout(() => setLastRemovedItem(null), 100);
+    
+    // Aggressively disable all hover states temporarily
+    const allRemoveButtons = document.querySelectorAll('.remove-item-btn');
+    allRemoveButtons.forEach(button => {
+      button.style.pointerEvents = 'none';
+      button.style.backgroundColor = '#f3f4f6';
+      button.style.color = '#6b7280';
+      button.style.borderColor = '#e5e7eb';
+    });
+    
+    // Re-enable after a short delay
+    setTimeout(() => {
+      allRemoveButtons.forEach(button => {
+        button.style.pointerEvents = '';
+        button.style.backgroundColor = '';
+        button.style.color = '';
+        button.style.borderColor = '';
+      });
+      setLastRemovedItem(null);
+    }, 200);
   };
 
   // Reset scroll position when component mounts
