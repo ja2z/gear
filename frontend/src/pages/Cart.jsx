@@ -12,6 +12,19 @@ const Cart = () => {
     window.scrollTo(0, 0);
   }, []);
 
+  // Reset scroll position when switching to categories view
+  useEffect(() => {
+    if (viewMode === 'categories') {
+      // Scroll to top when switching to categories view
+      // Use requestAnimationFrame to ensure this happens after the DOM is fully updated
+      const scrollToTop = () => {
+        window.scrollTo(0, 0);
+      };
+      
+      requestAnimationFrame(scrollToTop);
+    }
+  }, [viewMode]);
+
   // Group items by category for categories view
   const getItemsByCategory = () => {
     const grouped = {};
