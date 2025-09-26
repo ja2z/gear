@@ -52,8 +52,9 @@ const Cart = () => {
           }
         }
       } else {
-        // For categories view, just scroll to top
-        window.scrollTo(0, 0);
+        // For categories view, scroll to top with proper offset
+        // Use same offset as other scroll functions to account for sticky headers
+        window.scrollTo(0, 140);
       }
     };
     
