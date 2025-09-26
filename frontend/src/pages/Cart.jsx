@@ -5,32 +5,13 @@ import { useCart } from '../context/CartContext';
 const Cart = () => {
   const { items, removeItem, getTotalItems } = useCart();
   const [viewMode, setViewMode] = useState('items'); // 'items' or 'categories'
-  const [lastRemovedItem, setLastRemovedItem] = useState(null);
+  const [buttonRenderKey, setButtonRenderKey] = useState(0);
 
-  // Custom remove handler that tracks the last removed item
+  // Custom remove handler that forces complete button re-render
   const handleRemoveItem = (itemId) => {
-    setLastRemovedItem(itemId);
     removeItem(itemId);
-    
-    // Aggressively disable all hover states temporarily
-    const allRemoveButtons = document.querySelectorAll('.remove-item-btn');
-    allRemoveButtons.forEach(button => {
-      button.style.pointerEvents = 'none';
-      button.style.backgroundColor = '#f3f4f6';
-      button.style.color = '#6b7280';
-      button.style.borderColor = '#e5e7eb';
-    });
-    
-    // Re-enable after a short delay
-    setTimeout(() => {
-      allRemoveButtons.forEach(button => {
-        button.style.pointerEvents = '';
-        button.style.backgroundColor = '';
-        button.style.color = '';
-        button.style.borderColor = '';
-      });
-      setLastRemovedItem(null);
-    }, 200);
+    // Force complete re-render of all buttons by changing the render key
+    setButtonRenderKey(prev => prev + 1);
   };
 
   // Reset scroll position when component mounts
@@ -241,9 +222,9 @@ const Cart = () => {
                         </div>
                         
                         <button
-                          key={`remove-${item.itemId}-${items.length}-${lastRemovedItem === item.itemId ? 'removed' : 'normal'}`}
+                          key={`remove-${item.itemId}-${buttonRenderKey}`}
                           onClick={() => handleRemoveItem(item.itemId)}
-                          className={`remove-item-btn ml-3 touch-target ${lastRemovedItem === item.itemId ? 'force-clean-state' : ''}`}
+                          className="remove-item-btn-clean ml-3 touch-target"
                           title="Remove item"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

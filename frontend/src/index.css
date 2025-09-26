@@ -300,6 +300,23 @@ body {
   border-color: #e5e7eb !important;
 }
 
+/* Alternative remove button with no hover states */
+.remove-item-btn-clean {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: none;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  outline: none;
+}
+
 /* Header styles */
 .header {
   background-color: #1E398A;
