@@ -52,9 +52,21 @@ const Cart = () => {
           }
         }
       } else {
-        // For categories view, scroll to top with proper offset
-        // Use same offset as other scroll functions to account for sticky headers
-        window.scrollTo(0, 140);
+        // For categories view, scroll to top of categories list
+        // Find the first category button and scroll to it
+        const firstCategoryButton = document.querySelector('.card.touch-target.block');
+        if (firstCategoryButton) {
+          const elementRect = firstCategoryButton.getBoundingClientRect();
+          const absoluteElementTop = elementRect.top + window.pageYOffset;
+          const targetPosition = absoluteElementTop - 140;
+          window.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
+          });
+        } else {
+          // Fallback to pixel-based scroll
+          window.scrollTo(0, 140);
+        }
       }
     };
     
