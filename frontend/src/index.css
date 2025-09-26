@@ -485,10 +485,10 @@ body {
 .rounded-md { border-radius: var(--radius); }
 
 /* Advanced Tailwind classes for button styling */
-[&_svg]:pointer-events-none { pointer-events: none; }
-[&_svg:not([class*='size-'])]:size-4 { width: 1rem; height: 1rem; }
+svg { pointer-events: none; }
+svg:not([class*='size-']) { width: 1rem; height: 1rem; }
 .shrink-0 { flex-shrink: 0; }
-[&_svg]:shrink-0 { flex-shrink: 0; }
+svg { flex-shrink: 0; }
 
 /* Focus and accessibility classes */
 .focus-visible\:border-ring:focus-visible { border-color: var(--ring); }
