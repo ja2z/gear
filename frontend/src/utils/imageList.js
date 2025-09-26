@@ -3,15 +3,19 @@
 // Do not edit manually - add images to public/images/ directory instead
 
 export const HOME_IMAGES = [
+  "/images/IMG_0406.png",
+  "/images/IMG_0424.png",
   "/images/IMG_0489.png",
   "/images/IMG_3195.png",
+  "/images/IMG_5872.png",
   "/images/IMG_6429.png",
   "/images/IMG_6479.png",
   "/images/IMG_7671.png",
   "/images/IMG_8083.png",
+  "/images/IMG_8618.png",
+  "/images/IMG_8699.png",
+  "/images/IMG_9212.png",
   "/images/IMG_9395.png",
   "/images/IMG_9450.png",
-  "/images/IMG_9519.png",
-  "/images/bwca2_home.png",
-  "/images/bwca_home.png"
+  "/images/IMG_9519.png"
 ];

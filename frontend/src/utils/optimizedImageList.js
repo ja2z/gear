@@ -14,6 +14,11 @@ export const OPTIMIZED_IMAGES = [
     "lqip": "/images/IMG_3195.lqip.webp"
   },
   {
+    "original": "/images/IMG_5872.png",
+    "webp": "/images/IMG_5872.webp",
+    "lqip": "/images/IMG_5872.lqip.webp"
+  },
+  {
     "original": "/images/IMG_6429.png",
     "webp": "/images/IMG_6429.webp",
     "lqip": "/images/IMG_6429.lqip.webp"
@@ -34,6 +39,21 @@ export const OPTIMIZED_IMAGES = [
     "lqip": "/images/IMG_8083.lqip.webp"
   },
   {
+    "original": "/images/IMG_8618.png",
+    "webp": "/images/IMG_8618.webp",
+    "lqip": "/images/IMG_8618.lqip.webp"
+  },
+  {
+    "original": "/images/IMG_8699.png",
+    "webp": "/images/IMG_8699.webp",
+    "lqip": "/images/IMG_8699.lqip.webp"
+  },
+  {
+    "original": "/images/IMG_9212.png",
+    "webp": "/images/IMG_9212.webp",
+    "lqip": "/images/IMG_9212.lqip.webp"
+  },
+  {
     "original": "/images/IMG_9395.png",
     "webp": "/images/IMG_9395.webp",
     "lqip": "/images/IMG_9395.lqip.webp"
@@ -47,16 +67,6 @@ export const OPTIMIZED_IMAGES = [
     "original": "/images/IMG_9519.png",
     "webp": "/images/IMG_9519.webp",
     "lqip": "/images/IMG_9519.lqip.webp"
-  },
-  {
-    "original": "/images/bwca2_home.png",
-    "webp": "/images/bwca2_home.webp",
-    "lqip": "/images/bwca2_home.lqip.webp"
-  },
-  {
-    "original": "/images/bwca_home.png",
-    "webp": "/images/bwca_home.webp",
-    "lqip": "/images/bwca_home.lqip.webp"
   }
 ];
 
