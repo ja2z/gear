@@ -258,6 +258,8 @@ body {
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
+  /* Ensure proper state reset */
+  outline: none;
 }
 
 .remove-item-btn:hover {
@@ -269,6 +271,18 @@ body {
 .remove-item-btn:active {
   background-color: #fef2f2;
   transform: scale(0.95);
+}
+
+.remove-item-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+/* Force reset hover state when not hovering */
+.remove-item-btn:not(:hover):not(:active) {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border-color: #e5e7eb;
 }
 
 /* Header styles */

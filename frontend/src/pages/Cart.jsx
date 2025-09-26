@@ -65,8 +65,8 @@ const Cart = () => {
       {/* Cart Items */}
       <div className="px-5 py-5 pb-20">
         <div className="space-y-3">
-          {items.map((item) => (
-            <div key={item.itemId} className="card">
+          {items.map((item, index) => (
+            <div key={`${item.itemId}-${index}`} className="card">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 mb-1">
@@ -79,6 +79,10 @@ const Cart = () => {
                   onClick={() => removeItem(item.itemId)}
                   className="remove-item-btn ml-3 touch-target"
                   title="Remove item"
+                  onMouseLeave={(e) => {
+                    // Force remove any lingering hover states
+                    e.target.blur();
+                  }}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 6h18"></path>
