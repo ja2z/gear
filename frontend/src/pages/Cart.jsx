@@ -218,6 +218,12 @@ const Cart = () => {
                           onClick={() => removeItem(item.itemId)}
                           className="remove-item-btn ml-3 touch-target"
                           title="Remove item"
+                          onFocus={(e) => {
+                            // Remove any lingering hover states when button gets focus
+                            e.target.style.backgroundColor = '';
+                            e.target.style.color = '';
+                            e.target.style.borderColor = '';
+                          }}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M3 6h18"></path>
