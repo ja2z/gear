@@ -8,22 +8,56 @@ const Cart = () => {
 
   // Reset scroll position when component mounts
   useEffect(() => {
-    // Scroll to position content right below toggle control
-    // Blue header (~64px) + toggle control (~60px) + small margin (~8px) = ~132px
-    const toggleOffset = 132; // Account for both sticky elements + margin
-    window.scrollTo(0, toggleOffset);
+    // Scroll to first category using the same logic as scrollToCategory
+    const scrollToFirstCategory = () => {
+      const categories = Object.keys(getItemsByCategory());
+      if (categories.length > 0) {
+        const firstCategory = categories[0];
+        const element = document.getElementById(`category-${firstCategory}`);
+        if (element) {
+          const elementRect = element.getBoundingClientRect();
+          const absoluteElementTop = elementRect.top + window.pageYOffset;
+          // Use same offset as scrollToCategory function
+          const targetPosition = absoluteElementTop - 140;
+          window.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }
+    };
+    
+    // Use setTimeout to ensure DOM is ready
+    setTimeout(scrollToFirstCategory, 100);
   }, []);
 
   // Reset scroll position when switching view modes
   useEffect(() => {
-    // Scroll to position content right below toggle control
-    const scrollToTop = () => {
-      // Blue header (~64px) + toggle control (~60px) + small margin (~8px) = ~132px
-      const toggleOffset = 132; // Account for both sticky elements + margin
-      window.scrollTo(0, toggleOffset);
+    // Scroll to first category when switching to items view
+    const scrollToFirstCategory = () => {
+      if (viewMode === 'items') {
+        const categories = Object.keys(getItemsByCategory());
+        if (categories.length > 0) {
+          const firstCategory = categories[0];
+          const element = document.getElementById(`category-${firstCategory}`);
+          if (element) {
+            const elementRect = element.getBoundingClientRect();
+            const absoluteElementTop = elementRect.top + window.pageYOffset;
+            // Use same offset as scrollToCategory function
+            const targetPosition = absoluteElementTop - 140;
+            window.scrollTo({
+              top: targetPosition,
+              behavior: 'smooth'
+            });
+          }
+        }
+      } else {
+        // For categories view, just scroll to top
+        window.scrollTo(0, 0);
+      }
     };
     
-    requestAnimationFrame(scrollToTop);
+    requestAnimationFrame(scrollToFirstCategory);
   }, [viewMode]);
 
   // Group items by category for categories view
