@@ -264,11 +264,40 @@ const Checkin = () => {
 
           {/* Submit Button */}
           {selectedItems.length > 0 && (
-            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
+            <div 
+              style={{
+                position: 'fixed',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                backgroundColor: 'white',
+                borderTop: '1px solid #e5e7eb',
+                padding: '1rem',
+                zIndex: 50,
+                width: '100%',
+                boxSizing: 'border-box'
+              }}
+            >
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full h-12 text-base font-medium px-6 has-[>svg]:px-4 bg-scout-blue text-white shadow-xs hover:bg-scout-blue no-underline"
+                style={{
+                  width: '100%',
+                  height: '3rem',
+                  backgroundColor: '#1E398A',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.75rem',
+                  fontSize: '1rem',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.5 : 1,
+                  transition: 'all 0.2s',
+                  boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
+                }}
               >
                 {loading ? 'Processing...' : `Check In ${selectedItems.length} Item${selectedItems.length > 1 ? 's' : ''}`}
               </button>
