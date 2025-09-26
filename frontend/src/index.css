@@ -244,6 +244,32 @@ body {
   background-color: #c22d3f;
 }
 
+/* Subtle remove item button for cart */
+.remove-item-btn {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.remove-item-btn:hover {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.remove-item-btn:active {
+  background-color: #fef2f2;
+  transform: scale(0.95);
+}
+
 /* Header styles */
 .header {
   background-color: #1E398A;
