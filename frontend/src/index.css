@@ -137,6 +137,7 @@ body {
 .duration-200 { transition-duration: 150ms; }
 .hover\:bg-gray-50:hover { background-color: #f9fafb; }
 .hover\:bg-blue-800:hover { background-color: #1E398A; }
+.hover\:bg-blue-900:hover { background-color: #1e40af; }
 .hover\:bg-gray-600:hover { background-color: #4b5563; }
 .hover\:bg-green-700:hover { background-color: #15803d; }
 .hover\:bg-red-600:hover { background-color: #dc2626; }
