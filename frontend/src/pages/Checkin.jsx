@@ -86,11 +86,23 @@ const Checkin = () => {
   };
 
   const handleConditionChange = (itemId, condition) => {
-    setSelectedItems(prev =>
-      prev.map(item =>
-        item.itemId === itemId ? { ...item, condition } : item
-      )
-    );
+    setSelectedItems(prev => {
+      const existingItem = prev.find(item => item.itemId === itemId);
+      
+      if (existingItem) {
+        // Item is already selected, just update the condition
+        return prev.map(item =>
+          item.itemId === itemId ? { ...item, condition } : item
+        );
+      } else {
+        // Item is not selected, find the item and add it with the selected condition
+        const itemToAdd = allCheckedOutItems.find(item => item.itemId === itemId);
+        if (itemToAdd) {
+          return [...prev, { ...itemToAdd, condition }];
+        }
+        return prev;
+      }
+    });
   };
 
   const handleSubmit = async () => {
@@ -169,7 +181,7 @@ const Checkin = () => {
       {/* Multi-select notice */}
       <div className="bg-blue-50 border border-blue-100 px-5 py-3 mx-5 mt-5 rounded-lg">
         <p className="text-scout-blue text-sm text-center">
-          Tap items to select
+          Tap items or click condition to select
         </p>
       </div>
 
@@ -231,13 +243,12 @@ const Checkin = () => {
                           e.stopPropagation();
                           handleConditionChange(item.itemId, condition);
                         }}
-                        disabled={!isSelected}
                         className={`px-4 py-2 text-sm rounded-full border border-gray-300 touch-target transition-all duration-200 ${
                           isSelected && isSelected.condition === condition
                             ? 'bg-scout-blue text-white'
                             : isSelected
                             ? 'bg-white text-gray-700 hover:bg-gray-50'
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-400'
                         }`}
                         style={{
                           boxShadow: 'none !important',
