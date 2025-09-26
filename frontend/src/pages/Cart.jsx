@@ -1,15 +1,54 @@
 import { Link } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useCart } from '../context/CartContext';
 
 const Cart = () => {
   const { items, removeItem, getTotalItems } = useCart();
+  const [viewMode, setViewMode] = useState('items'); // 'items' or 'categories'
 
   // Reset scroll position when component mounts
   useEffect(() => {
     // Scroll to top when navigating to cart page
     window.scrollTo(0, 0);
   }, []);
+
+  // Group items by category for categories view
+  const getItemsByCategory = () => {
+    const grouped = {};
+    items.forEach(item => {
+      const category = item.itemClass || 'Other';
+      const categoryDesc = item.itemDesc || 'Other';
+      if (!grouped[category]) {
+        grouped[category] = {
+          items: [],
+          description: categoryDesc
+        };
+      }
+      grouped[category].items.push(item);
+    });
+    return grouped;
+  };
+
+  // Scroll to category anchor
+  const scrollToCategory = (category) => {
+    setViewMode('items');
+    // Use setTimeout to ensure the view mode change has rendered
+    setTimeout(() => {
+      const element = document.getElementById(`category-${category}`);
+      if (element) {
+        // Get the current scroll position and the element position
+        const elementRect = element.getBoundingClientRect();
+        const absoluteElementTop = elementRect.top + window.pageYOffset;
+        // Scroll to position the element just below the sticky toggle control
+        // Header height (~64px) + toggle control height (~60px) + some padding
+        const targetPosition = absoluteElementTop - 140; // Increased from 120 to 140
+        window.scrollTo({
+          top: targetPosition,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
+  };
 
   if (items.length === 0) {
     return (
@@ -62,40 +101,101 @@ const Cart = () => {
         <div className="w-10 h-10"></div>
       </div>
 
-      {/* Cart Items */}
+      {/* Toggle Control */}
+      <div className="bg-white px-5 py-3 border-b border-gray-200 sticky top-16 z-40">
+        <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+          <button
+            onClick={() => setViewMode('items')}
+            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all touch-target ${
+              viewMode === 'items'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Items
+          </button>
+          <button
+            onClick={() => setViewMode('categories')}
+            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all touch-target ${
+              viewMode === 'categories'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Categories
+          </button>
+        </div>
+      </div>
+
+      {/* Cart Content */}
       <div className="px-5 py-5 pb-20">
-        <div className="space-y-3">
-          {items.map((item, index) => (
-            <div key={`${item.itemId}-${index}`} className="card">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">
-                    {item.itemId}
-                  </h3>
-                  <p className="text-sm text-gray-600">{item.description}</p>
+        {viewMode === 'items' ? (
+          // Items View
+          <div className="space-y-3">
+            {Object.entries(getItemsByCategory()).map(([category, categoryData]) => (
+              <div key={category}>
+                {/* Category Header with Anchor */}
+                <div id={`category-${category}`} className="mb-3">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-2">{categoryData.description}</h2>
                 </div>
                 
-                <button
-                  onClick={() => removeItem(item.itemId)}
-                  className="remove-item-btn ml-3 touch-target"
-                  title="Remove item"
-                  onMouseLeave={(e) => {
-                    // Force remove any lingering hover states
-                    e.target.blur();
-                  }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 6h18"></path>
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                  </svg>
-                </button>
+                {/* Items in this category */}
+                <div className="space-y-3 mb-6">
+                  {categoryData.items.map((item, index) => (
+                    <div key={`${item.itemId}-${index}`} className="card">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 mb-1">
+                            {item.itemId}
+                          </h3>
+                          <p className="text-sm text-gray-600">{item.description}</p>
+                        </div>
+                        
+                        <button
+                          onClick={() => removeItem(item.itemId)}
+                          className="remove-item-btn ml-3 touch-target"
+                          title="Remove item"
+                          onMouseLeave={(e) => {
+                            // Force remove any lingering hover states
+                            e.target.blur();
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          // Categories View
+          <div className="space-y-3">
+            {Object.entries(getItemsByCategory()).map(([category, categoryData]) => (
+              <button
+                key={category}
+                onClick={() => scrollToCategory(category)}
+                className="card touch-target block w-full text-left no-underline"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-base text-gray-900">
+                    {categoryData.description}
+                  </span>
+                  <span className="status-in-shed">
+                    {categoryData.items.length} {categoryData.items.length === 1 ? 'item' : 'items'}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Bottom Navigation */}
