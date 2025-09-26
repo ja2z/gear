@@ -8,16 +8,16 @@ const Cart = () => {
 
   // Reset scroll position when component mounts
   useEffect(() => {
-    // Scroll to position first item right below toggle control with small margin
-    const toggleOffset = 120; // Reduced to show first item fully below toggle
+    // Scroll to position category header right below toggle control with small margin
+    const toggleOffset = 110; // Reduced further to show category header below toggle
     window.scrollTo(0, toggleOffset);
   }, []);
 
   // Reset scroll position when switching view modes
   useEffect(() => {
-    // Scroll to position first item right below toggle control with small margin
+    // Scroll to position category header right below toggle control with small margin
     const scrollToTop = () => {
-      const toggleOffset = 120; // Reduced to show first item fully below toggle
+      const toggleOffset = 110; // Reduced further to show category header below toggle
       window.scrollTo(0, toggleOffset);
     };
     
