@@ -79,14 +79,14 @@ const Categories = () => {
       <div className="header">
         <Link
           to="/"
-          className="back-button"
+          className="back-button no-underline"
         >
           ←
         </Link>
         <h1 className="text-center text-truncate">Select Category</h1>
         <Link
           to="/cart"
-          className="cart-badge"
+          className="cart-badge no-underline"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="cart-icon">
             <circle cx="8" cy="21" r="1"></circle>
@@ -115,7 +115,7 @@ const Categories = () => {
             <Link
               key={category.name}
               to={`/items/${category.name}`}
-              className="card touch-target block category-link"
+              className="card touch-target block category-link no-underline"
             >
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-base">

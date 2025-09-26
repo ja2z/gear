@@ -59,7 +59,7 @@ const Checkout = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">No items in cart</h2>
           <Link
             to="/categories"
-            className="inline-block bg-scout-blue text-white px-6 py-3 rounded-lg hover:bg-scout-blue transition-colors touch-target"
+            className="inline-block bg-scout-blue text-white px-6 py-3 rounded-lg hover:bg-scout-blue transition-colors touch-target no-underline"
           >
             Browse Categories
           </Link>
@@ -74,14 +74,14 @@ const Checkout = () => {
       <div className="header">
         <Link
           to="/cart"
-          className="back-button"
+          className="back-button no-underline"
         >
           ←
         </Link>
         <h1 className="text-center text-truncate">Checkout Information</h1>
         <Link
           to="/cart"
-          className="cart-badge"
+          className="cart-badge no-underline"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="cart-icon">
             <circle cx="8" cy="21" r="1"></circle>

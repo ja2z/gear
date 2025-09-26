@@ -67,14 +67,14 @@ const ConnectionError = ({ onRetry, onGoHome }) => {
           <button
             onClick={handleRetry}
             disabled={loading}
-            className="w-full bg-scout-blue text-white px-6 py-3 rounded-lg hover:bg-scout-blue transition-colors touch-target disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-scout-blue text-white px-6 py-3 rounded-lg hover:bg-scout-blue transition-colors touch-target disabled:opacity-50 disabled:cursor-not-allowed no-underline"
           >
             {loading ? 'Testing Connection...' : 'Retry Connection'}
           </button>
           
           <button
             onClick={onGoHome}
-            className="w-full bg-gray-200 text-gray-800 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors touch-target"
+            className="w-full bg-gray-200 text-gray-800 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors touch-target no-underline"
           >
             Go Home
           </button>

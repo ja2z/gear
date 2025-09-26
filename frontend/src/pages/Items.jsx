@@ -83,14 +83,14 @@ const Items = () => {
       <div className="header">
         <Link
           to="/categories"
-          className="back-button"
+          className="back-button no-underline"
         >
           ←
         </Link>
         <h1 className="text-center text-truncate">{items.length > 0 ? items[0].itemDesc : category}</h1>
         <Link
           to="/cart"
-          className="cart-badge"
+          className="cart-badge no-underline"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="cart-icon">
             <circle cx="8" cy="21" r="1"></circle>
@@ -177,7 +177,7 @@ const Items = () => {
         <button
           onClick={handleAddSelectedToCart}
           disabled={selectedItems.length === 0}
-          className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full h-12 text-base font-medium px-6 has-[>svg]:px-4 ${
+          className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full h-12 text-base font-medium px-6 has-[>svg]:px-4 no-underline ${
             selectedItems.length === 0 
               ? 'bg-gray-200 text-gray-500 shadow-xs hover:bg-gray-300' 
               : 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90'

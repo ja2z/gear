@@ -17,7 +17,7 @@ const Cart = () => {
         <div className="header">
           <Link
             to="/categories"
-            className="back-button"
+            className="back-button no-underline"
           >
             ←
           </Link>
@@ -28,7 +28,7 @@ const Cart = () => {
         <div className="px-5 py-12">
           <div className="text-center">
             <div className="mb-4 flex justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 size-40" style={{width: '96px', height: '96px'}} key="large-cart-icon">
                 <circle cx="8" cy="21" r="1"></circle>
                 <circle cx="19" cy="21" r="1"></circle>
                 <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
@@ -38,7 +38,7 @@ const Cart = () => {
             <p className="text-gray-600 mb-6">Add some gear to get started!</p>
             <Link
               to="/categories"
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive px-6 py-3 bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 touch-target"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive px-6 py-3 bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 touch-target no-underline"
             >
               Browse Categories
             </Link>
@@ -54,7 +54,7 @@ const Cart = () => {
       <div className="header">
         <Link
           to="/categories"
-          className="back-button"
+          className="back-button no-underline"
         >
           ←
         </Link>
