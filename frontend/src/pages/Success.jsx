@@ -5,7 +5,7 @@ const Success = () => {
   const [searchParams] = useSearchParams();
   const action = searchParams.get('action') || 'checkout';
   const count = parseInt(searchParams.get('count')) || 0;
-  const [logoSize, setLogoSize] = useState('max-w-xs');
+  // Removed complex logo sizing - using fixed 150px height
   
   // Reset scroll position when component mounts
   useEffect(() => {
@@ -18,33 +18,7 @@ const Success = () => {
     requestAnimationFrame(scrollToTop);
   }, []);
 
-  // Calculate logo size based on available vertical space
-  useEffect(() => {
-    const calculateLogoSize = () => {
-      const viewportHeight = window.innerHeight;
-      const headerHeight = 60; // Approximate header height
-      const contentHeight = 200; // Approximate content height (emoji, text, button)
-      const padding = 96; // py-12 (48px top + 48px bottom)
-      const availableSpace = viewportHeight - headerHeight - contentHeight - padding;
-      
-      // Adjust logo size based on available space
-      if (availableSpace < 100) {
-        setLogoSize('max-w-24'); // 96px - very small
-      } else if (availableSpace < 150) {
-        setLogoSize('max-w-32'); // 128px - small
-      } else if (availableSpace < 200) {
-        setLogoSize('max-w-40'); // 160px - medium
-      } else {
-        setLogoSize('max-w-xs'); // 320px - original size
-      }
-    };
-
-    // Calculate on mount and resize
-    calculateLogoSize();
-    window.addEventListener('resize', calculateLogoSize);
-    
-    return () => window.removeEventListener('resize', calculateLogoSize);
-  }, []);
+  // Removed complex logo sizing calculations - using fixed 150px height
   
   const isCheckin = action === 'checkin';
   
@@ -78,12 +52,13 @@ const Success = () => {
           </div>
         </div>
         
-        {/* Troop 222 Logo - 50px below Return to Home button */}
-        <div className="mt-16 flex justify-center">
+        {/* Troop 222 Logo - Fixed 150px height */}
+        <div className="mt-8 sm:mt-12 lg:mt-16 flex justify-center">
           <img 
             src="/Troop%20222%20Logo.webp" 
             alt="Troop 222 Logo" 
-            className={`${logoSize} w-full h-auto`}
+            className="h-36 w-auto object-contain"
+            style={{ height: '150px' }}
           />
         </div>
       </div>
