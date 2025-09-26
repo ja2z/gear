@@ -1,10 +1,11 @@
 import { Link, useSearchParams } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const Success = () => {
   const [searchParams] = useSearchParams();
   const action = searchParams.get('action') || 'checkout';
   const count = parseInt(searchParams.get('count')) || 0;
+  const [logoSize, setLogoSize] = useState('max-w-xs');
   
   // Reset scroll position when component mounts
   useEffect(() => {
@@ -15,6 +16,34 @@ const Success = () => {
     };
     
     requestAnimationFrame(scrollToTop);
+  }, []);
+
+  // Calculate logo size based on available vertical space
+  useEffect(() => {
+    const calculateLogoSize = () => {
+      const viewportHeight = window.innerHeight;
+      const headerHeight = 60; // Approximate header height
+      const contentHeight = 200; // Approximate content height (emoji, text, button)
+      const padding = 96; // py-12 (48px top + 48px bottom)
+      const availableSpace = viewportHeight - headerHeight - contentHeight - padding;
+      
+      // Adjust logo size based on available space
+      if (availableSpace < 100) {
+        setLogoSize('max-w-24'); // 96px - very small
+      } else if (availableSpace < 150) {
+        setLogoSize('max-w-32'); // 128px - small
+      } else if (availableSpace < 200) {
+        setLogoSize('max-w-40'); // 160px - medium
+      } else {
+        setLogoSize('max-w-xs'); // 320px - original size
+      }
+    };
+
+    // Calculate on mount and resize
+    calculateLogoSize();
+    window.addEventListener('resize', calculateLogoSize);
+    
+    return () => window.removeEventListener('resize', calculateLogoSize);
   }, []);
   
   const isCheckin = action === 'checkin';
@@ -42,7 +71,7 @@ const Success = () => {
           <div className="space-y-3">
             <Link
               to="/"
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full p-4 text-center touch-target bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 no-underline"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full p-4 text-center touch-target bg-scout-blue text-white shadow-xs hover:bg-scout-blue no-underline"
             >
               🏠 Return to Home
             </Link>
@@ -54,7 +83,7 @@ const Success = () => {
           <img 
             src="/Troop%20222%20Logo.webp" 
             alt="Troop 222 Logo" 
-            className="max-w-xs w-full h-auto"
+            className={`${logoSize} w-full h-auto`}
           />
         </div>
       </div>
