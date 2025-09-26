@@ -8,22 +8,16 @@ const Cart = () => {
 
   // Reset scroll position when component mounts
   useEffect(() => {
-    // Scroll to proper position when navigating to cart page
-    // Account for both sticky elements: blue header + toggle control + margin
-    const stickyOffset = 150; // Blue header (~64px) + toggle control (~70px) + margin (16px)
+    // SANITY CHECK: Make offset super large to test if scroll is working at all
+    const stickyOffset = 500; // Super large offset to test
     window.scrollTo(0, stickyOffset);
   }, []);
 
   // Reset scroll position when switching view modes
   useEffect(() => {
-    // Scroll to proper position when switching view modes
-    // Use requestAnimationFrame to ensure this happens after the DOM is fully updated
+    // SANITY CHECK: Make offset super large to test if scroll is working at all
     const scrollToTop = () => {
-      // Account for both sticky elements: blue header + toggle control + margin
-      const stickyOffset = 150; // Blue header (~64px) + toggle control (~70px) + margin (16px)
-      
-      // Use immediate scroll (no smooth behavior) to avoid visual artifacts
-      // when scrolling from far down
+      const stickyOffset = 500; // Super large offset to test
       window.scrollTo(0, stickyOffset);
     };
     
