@@ -12,17 +12,20 @@ const Cart = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Reset scroll position when switching to categories view
+  // Reset scroll position when switching view modes
   useEffect(() => {
-    if (viewMode === 'categories') {
-      // Scroll to top when switching to categories view
-      // Use requestAnimationFrame to ensure this happens after the DOM is fully updated
-      const scrollToTop = () => {
-        window.scrollTo(0, 0);
-      };
-      
-      requestAnimationFrame(scrollToTop);
-    }
+    // Scroll to top when switching view modes, accounting for sticky header
+    // Use requestAnimationFrame to ensure this happens after the DOM is fully updated
+    const scrollToTop = () => {
+      // Account for sticky header height (~64px) + toggle control height (~60px) + some padding
+      const headerOffset = 140;
+      window.scrollTo({
+        top: headerOffset,
+        behavior: 'smooth'
+      });
+    };
+    
+    requestAnimationFrame(scrollToTop);
   }, [viewMode]);
 
   // Group items by category for categories view
