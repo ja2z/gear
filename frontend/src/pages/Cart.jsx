@@ -8,21 +8,23 @@ const Cart = () => {
 
   // Reset scroll position when component mounts
   useEffect(() => {
-    // Scroll to top when navigating to cart page
-    window.scrollTo(0, 0);
+    // Scroll to proper position when navigating to cart page
+    // Account for sticky header height (~64px) + toggle control height (~60px) + some padding
+    const headerOffset = 140;
+    window.scrollTo(0, headerOffset);
   }, []);
 
   // Reset scroll position when switching view modes
   useEffect(() => {
-    // Scroll to top when switching view modes, accounting for sticky header
+    // Scroll to proper position when switching view modes, accounting for sticky header
     // Use requestAnimationFrame to ensure this happens after the DOM is fully updated
     const scrollToTop = () => {
       // Account for sticky header height (~64px) + toggle control height (~60px) + some padding
       const headerOffset = 140;
-      window.scrollTo({
-        top: headerOffset,
-        behavior: 'smooth'
-      });
+      
+      // Use immediate scroll (no smooth behavior) to avoid visual artifacts
+      // when scrolling from far down
+      window.scrollTo(0, headerOffset);
     };
     
     requestAnimationFrame(scrollToTop);
