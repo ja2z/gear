@@ -69,7 +69,7 @@ const OutingSelection = () => {
       <div className="header">
         <Link
           to="/"
-          className="text-white text-lg"
+          className="back-button"
         >
           ←
         </Link>
@@ -78,7 +78,7 @@ const OutingSelection = () => {
       </div>
 
       {/* Search */}
-      <div className="bg-white px-5 py-4 border-b border-gray-200 sticky top-0 z-10">
+      <div className="bg-white px-5 py-4 border-b border-gray-200">
         <input
           type="text"
           placeholder="Search outings..."
@@ -151,7 +151,7 @@ const OutingSelection = () => {
               <p className="text-gray-500">No items are currently checked out.</p>
               <Link
                 to="/"
-                className="inline-block mt-4 btn-primary px-6 py-3 rounded-lg"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive mt-4 px-6 py-3 bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 rounded-lg"
               >
                 Back to Home
               </Link>

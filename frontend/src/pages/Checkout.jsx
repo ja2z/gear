@@ -74,19 +74,21 @@ const Checkout = () => {
       <div className="header">
         <Link
           to="/cart"
-          className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white text-lg z-10"
+          className="back-button"
         >
           ←
         </Link>
-        <div className="flex items-center justify-center px-16">
-          <h1 className="text-center text-truncate">Checkout Information</h1>
-        </div>
+        <h1 className="text-center text-truncate">Checkout Information</h1>
         <Link
           to="/cart"
-          className="absolute right-5 top-1/2 transform -translate-y-1/2 cart-badge z-10"
+          className="cart-badge"
         >
-          <span className="cart-icon">🛒</span>
-          {getTotalItems()}
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="cart-icon">
+            <circle cx="8" cy="21" r="1"></circle>
+            <circle cx="19" cy="21" r="1"></circle>
+            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
+          </svg>
+          <span className="cart-count">{getTotalItems()}</span>
         </Link>
       </div>
 
@@ -183,24 +185,16 @@ const Checkout = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="bottom-nav">
-        <div className="flex gap-4">
-          <Link
-            to="/cart"
-            className="nav-btn btn-secondary text-center no-underline"
-          >
-            Back
-          </Link>
-          <button
-            type="submit"
-            form="checkout-form"
-            disabled={loading}
-            onClick={handleSubmit}
-            className="nav-btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Processing...' : 'Complete Checkout'}
-          </button>
-        </div>
+      <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
+        <button
+          type="submit"
+          form="checkout-form"
+          disabled={loading}
+          onClick={handleSubmit}
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full h-12 text-base font-medium px-6 has-[>svg]:px-4 bg-primary text-primary-foreground shadow-xs hover:bg-primary/90"
+        >
+          {loading ? 'Processing...' : 'Complete Checkout'}
+        </button>
       </div>
     </div>
   );

@@ -125,7 +125,7 @@ const Landing = () => {
           <button
             onClick={handleCheckoutClick}
             disabled={loading}
-            className="block w-full btn-primary p-6 text-center text-lg touch-target disabled:opacity-50 disabled:cursor-not-allowed relative"
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full p-6 text-center text-lg touch-target bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 relative"
           >
             <span className="flex items-center justify-center">
               📦 Check Out Gear
@@ -140,7 +140,7 @@ const Landing = () => {
           <button
             onClick={handleCheckinClick}
             disabled={loading}
-            className="block w-full btn-success p-6 text-center text-lg touch-target disabled:opacity-50 disabled:cursor-not-allowed relative"
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] w-full p-6 text-center text-lg touch-target bg-green-600 text-white shadow-xs hover:bg-green-700 relative"
           >
             <span className="flex items-center justify-center">
               ✅ Check In Gear

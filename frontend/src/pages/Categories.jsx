@@ -79,7 +79,7 @@ const Categories = () => {
       <div className="header">
         <Link
           to="/"
-          className="text-white text-lg"
+          className="back-button"
         >
           ←
         </Link>
@@ -88,13 +88,17 @@ const Categories = () => {
           to="/cart"
           className="cart-badge"
         >
-          <span className="cart-icon">🛒</span>
-          {getTotalItems()}
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="cart-icon">
+            <circle cx="8" cy="21" r="1"></circle>
+            <circle cx="19" cy="21" r="1"></circle>
+            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
+          </svg>
+          <span className="cart-count">{getTotalItems()}</span>
         </Link>
       </div>
 
       {/* Search */}
-      <div className="bg-white px-5 py-4 border-b border-gray-200 sticky top-0 z-10">
+      <div className="bg-white px-5 py-4 border-b border-gray-200">
         <input
           type="text"
           placeholder="Search for gear..."
@@ -117,10 +121,10 @@ const Categories = () => {
                 <span className="font-semibold text-base">
                   {category.description}
                 </span>
-                <span className={`px-3 py-1 rounded-full text-xs no-underline ${
+                <span className={`no-underline ${
                   category.available_count === 0 
-                    ? 'bg-red-100 text-red-800' 
-                    : 'bg-green-100 text-green-800'
+                    ? 'status-checked-out' 
+                    : 'status-in-shed'
                 }`}>
                   {category.available_count} available
                 </span>
