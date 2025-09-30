@@ -68,7 +68,7 @@ const Categories = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100" style={{paddingTop: '64px'}}>
+    <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <div className="header">
         <Link
