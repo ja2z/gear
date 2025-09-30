@@ -31,13 +31,7 @@ const Categories = () => {
 
   // Reset scroll position when component mounts
   useEffect(() => {
-    // Scroll to top when navigating to categories page
-    // Use setTimeout to ensure DOM is ready (same approach as Cart page)
-    const scrollToTop = () => {
-      window.scrollTo(0, 0);
-    };
-    
-    setTimeout(scrollToTop, 100);
+    window.scrollTo(0, 0);
   }, []);
 
   const handleRetry = () => {

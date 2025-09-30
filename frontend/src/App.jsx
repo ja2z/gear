@@ -8,6 +8,7 @@ import Checkin from './pages/Checkin';
 import CheckinForm from './pages/CheckinForm';
 import OutingSelection from './pages/OutingSelection';
 import Success from './pages/Success';
+import ScrollToTop from './components/ScrollToTop';
 import { CartProvider } from './context/CartContext';
 import { SyncProvider } from './context/SyncContext';
 
@@ -16,6 +17,7 @@ function App() {
     <SyncProvider>
       <CartProvider>
         <Router>
+          <ScrollToTop />
           <div className="min-h-screen bg-gray-50">
             <Routes>
               <Route path="/" element={<Landing />} />
