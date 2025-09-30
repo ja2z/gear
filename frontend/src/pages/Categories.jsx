@@ -1,17 +1,17 @@
-import { useState, useEffect } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { useCart } from "../context/CartContext";
-import { useSync } from "../context/SyncContext";
-import { useCategories } from "../hooks/useInventory";
-import ConnectionError from "../components/ConnectionError";
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
+import { useSync } from '../context/SyncContext';
+import { useCategories } from '../hooks/useInventory';
+import ConnectionError from '../components/ConnectionError';
 
 const Categories = () => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { getTotalItems, getItemsInCartByCategory } = useCart();
   const { shouldSync, markSynced } = useSync();
-  const urlSync = searchParams.get("sync") === "true";
+  const urlSync = searchParams.get('sync') === 'true';
   const { categories, loading, error, refreshCategories } = useCategories(urlSync);
   const [connectionError, setConnectionError] = useState(false);
 
@@ -25,33 +25,13 @@ const Categories = () => {
   // Mark as synced after successful load
   useEffect(() => {
     if (categories.length > 0 && urlSync) {
-      markSynced("checkout");
+      markSynced('checkout');
     }
   }, [categories, urlSync, markSynced]);
 
   // Reset scroll position when component mounts
   useEffect(() => {
-    // Force immediate scroll to top, accounting for any browser restoration
-    const scrollToTop = () => {
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    };
-
-    // Immediate scroll
-    scrollToTop();
-
-    // iOS needs the double RAF
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        scrollToTop();
-      });
-    });
-
-    // One final attempt after a brief delay for iOS
-    const timeoutId = setTimeout(scrollToTop, 50);
-
-    return () => clearTimeout(timeoutId);
+    window.scrollTo(0, 0);
   }, []);
 
   const handleRetry = () => {
@@ -60,10 +40,10 @@ const Categories = () => {
   };
 
   const handleGoHome = () => {
-    navigate("/");
+    navigate('/');
   };
 
-  const filteredCategories = categories.filter((category) => {
+  const filteredCategories = categories.filter(category => {
     const searchLower = searchTerm.toLowerCase();
     return (
       category.name.toLowerCase().includes(searchLower) ||
@@ -88,26 +68,21 @@ const Categories = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100" style={{paddingTop: '64px'}}>
       {/* Header */}
       <div className="header">
-        <Link to="/" className="back-button no-underline">
+        <Link
+          to="/"
+          className="back-button no-underline"
+        >
           ←
         </Link>
-        <h1 className="text-center text-truncate">Select _Category</h1>
-        <Link to="/cart" className="cart-badge no-underline">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="cart-icon"
-          >
+        <h1 className="text-center text-truncate">Select Category</h1>
+        <Link
+          to="/cart"
+          className="cart-badge no-underline"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="cart-icon">
             <circle cx="8" cy="21" r="1"></circle>
             <circle cx="19" cy="21" r="1"></circle>
             <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
@@ -137,20 +112,26 @@ const Categories = () => {
               className="card touch-target block category-link no-underline"
             >
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-base">{category.description}</span>
+                <span className="font-semibold text-base">
+                  {category.description}
+                </span>
                 <div className="flex items-center space-x-2">
                   {(() => {
                     const itemsInCart = getItemsInCartByCategory(category.name);
                     const adjustedAvailable = category.available_count - itemsInCart;
-
+                    
                     return (
                       <>
-                        {itemsInCart > 0 && <span className="status-in-cart">{itemsInCart} in cart</span>}
-                        <span
-                          className={`no-underline ${
-                            adjustedAvailable === 0 ? "status-checked-out" : "status-in-shed"
-                          }`}
-                        >
+                        {itemsInCart > 0 && (
+                          <span className="status-in-cart">
+                            {itemsInCart} in cart
+                          </span>
+                        )}
+                        <span className={`no-underline ${
+                          adjustedAvailable === 0 
+                            ? 'status-checked-out' 
+                            : 'status-in-shed'
+                        }`}>
                           {adjustedAvailable} available
                         </span>
                       </>
