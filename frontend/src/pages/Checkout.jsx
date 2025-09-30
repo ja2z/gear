@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useInventory } from '../hooks/useInventory';
 
@@ -7,6 +7,7 @@ const Checkout = () => {
   const { items, clearCart, getTotalItems } = useCart();
   const { postData, getData, loading } = useInventory();
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     scoutName: '',
     qmName: '',
@@ -21,7 +22,7 @@ const Checkout = () => {
   const [selectedOuting, setSelectedOuting] = useState(null);
   const [outingsLoading, setOutingsLoading] = useState(false);
 
-  // Reset scroll position when component mounts
+  // Reset scroll position when component mounts or when navigating to checkout page
   useEffect(() => {
     // Use requestAnimationFrame to ensure this happens after the DOM is fully updated
     const scrollToTop = () => {
@@ -29,7 +30,7 @@ const Checkout = () => {
     };
     
     requestAnimationFrame(scrollToTop);
-  }, []);
+  }, [location.pathname]);
 
   // Fetch outings when mode changes to 'existing'
   useEffect(() => {
