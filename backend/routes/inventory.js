@@ -95,6 +95,22 @@ router.get('/checked-out/:outing', async (req, res) => {
   }
 });
 
+// GET /api/inventory/outing-details/:outing - Get outing details (scout name, QM name, date, notes)
+router.get('/outing-details/:outing', async (req, res) => {
+  try {
+    const { outing } = req.params;
+    const details = await sqliteAPI.getOutingDetails(outing);
+    if (details) {
+      res.json(details);
+    } else {
+      res.status(404).json({ error: 'Outing not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching outing details:', error);
+    res.status(500).json({ error: 'Failed to fetch outing details' });
+  }
+});
+
 // POST /api/inventory/sync-from-sheets - Sync inventory from Google Sheets to SQLite
 router.post('/sync-from-sheets', async (req, res) => {
   try {

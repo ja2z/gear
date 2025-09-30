@@ -5,6 +5,7 @@ import Items from './pages/Items';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Checkin from './pages/Checkin';
+import CheckinForm from './pages/CheckinForm';
 import OutingSelection from './pages/OutingSelection';
 import Success from './pages/Success';
 import { CartProvider } from './context/CartContext';
@@ -24,6 +25,7 @@ function App() {
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/checkin/outings" element={<OutingSelection />} />
               <Route path="/checkin/items" element={<Checkin />} />
+              <Route path="/checkin/form" element={<CheckinForm />} />
               <Route path="/checkin" element={<Checkin />} />
               <Route path="/success" element={<Success />} />
             </Routes>

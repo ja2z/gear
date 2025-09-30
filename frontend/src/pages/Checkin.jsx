@@ -113,28 +113,13 @@ const Checkin = () => {
 
     setSubmitError(null);
 
-    try {
-      const itemIds = selectedItems.map(item => item.itemId);
-      const conditions = selectedItems.map(item => item.condition);
-      
-      const checkinData = {
-        itemIds,
-        conditions,
-        processedBy: 'System User', // TODO: Get from auth context
-        notes: 'Checked in via mobile app'
-      };
-
-      const result = await postData('/checkin', checkinData);
-      
-      if (result.success) {
-        navigate(`/success?action=checkin&count=${selectedItems.length}`);
-      } else {
-        setSubmitError(result.message || 'Checkin failed');
+    // Navigate to checkin form with selected items and outing data
+    navigate('/checkin/form', {
+      state: {
+        selectedItems,
+        selectedOuting
       }
-    } catch (error) {
-      console.error('Checkin error:', error);
-      setSubmitError('Failed to process checkin. Please try again.');
-    }
+    });
   };
 
   const handleRetry = () => {

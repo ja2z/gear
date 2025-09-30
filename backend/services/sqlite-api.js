@@ -470,6 +470,41 @@ class SQLiteAPI {
     });
   }
 
+  async getOutingDetails(outingName) {
+    await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const query = `
+        SELECT 
+          outing_name,
+          checked_out_to,
+          checked_out_by,
+          check_out_date,
+          notes
+        FROM items 
+        WHERE status = 'Checked out' AND outing_name = ? AND in_app = 1
+        LIMIT 1
+      `;
+      
+      this.db.get(query, [outingName], (err, row) => {
+        if (err) {
+          console.error('Error fetching outing details:', err);
+          reject(err);
+        } else if (row) {
+          resolve({
+            outingName: row.outing_name,
+            scoutName: row.checked_out_to,
+            qmName: row.checked_out_by,
+            date: row.check_out_date,
+            notes: row.notes || ''
+          });
+        } else {
+          resolve(null);
+        }
+      });
+    });
+  }
+
   async close() {
     if (this.db) {
       this.db.close();
