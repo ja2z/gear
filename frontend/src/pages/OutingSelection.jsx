@@ -74,7 +74,7 @@ const OutingSelection = () => {
           ←
         </Link>
         <h1>Select Outing</h1>
-        <div></div>
+        <div className="w-10 h-10"></div>
       </div>
 
       {/* Search */}

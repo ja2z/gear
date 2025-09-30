@@ -183,7 +183,10 @@ const Items = () => {
               : 'bg-scout-blue text-white shadow-xs hover:bg-scout-blue'
           }`}
         >
-          Add to Cart
+          {selectedItems.length === 0 
+            ? 'Add to Cart' 
+            : `Add to Cart ${selectedItems.length} ${selectedItems.length === 1 ? 'item' : 'items'}`
+          }
         </button>
       </div>
     </div>

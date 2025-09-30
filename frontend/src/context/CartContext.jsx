@@ -158,6 +158,10 @@ export const CartProvider = ({ children }) => {
     return state.items.some(item => item.itemId === itemId);
   };
 
+  const getItemsInCartByCategory = (categoryName) => {
+    return state.items.filter(item => item.itemClass === categoryName).length;
+  };
+
   // Helper function to get cart age in hours (for debugging/display)
   const getCartAge = () => {
     if (!state.createdAt) return null;
@@ -178,6 +182,7 @@ export const CartProvider = ({ children }) => {
     clearCart,
     getTotalItems,
     isItemInCart,
+    getItemsInCartByCategory,
     getCartAge,
     isCartExpired
   };

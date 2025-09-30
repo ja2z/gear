@@ -9,7 +9,7 @@ const Categories = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { getTotalItems } = useCart();
+  const { getTotalItems, getItemsInCartByCategory } = useCart();
   const { shouldSync, markSynced } = useSync();
   const urlSync = searchParams.get('sync') === 'true';
   const { categories, loading, error, refreshCategories } = useCategories(urlSync);
@@ -121,13 +121,29 @@ const Categories = () => {
                 <span className="font-semibold text-base">
                   {category.description}
                 </span>
-                <span className={`no-underline ${
-                  category.available_count === 0 
-                    ? 'status-checked-out' 
-                    : 'status-in-shed'
-                }`}>
-                  {category.available_count} available
-                </span>
+                <div className="flex items-center space-x-2">
+                  {(() => {
+                    const itemsInCart = getItemsInCartByCategory(category.name);
+                    const adjustedAvailable = category.available_count - itemsInCart;
+                    
+                    return (
+                      <>
+                        {itemsInCart > 0 && (
+                          <span className="status-in-cart">
+                            {itemsInCart} in cart
+                          </span>
+                        )}
+                        <span className={`no-underline ${
+                          adjustedAvailable === 0 
+                            ? 'status-checked-out' 
+                            : 'status-in-shed'
+                        }`}>
+                          {adjustedAvailable} available
+                        </span>
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
             </Link>
           ))}

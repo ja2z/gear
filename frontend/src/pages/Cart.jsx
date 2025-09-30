@@ -130,7 +130,7 @@ const Cart = () => {
           >
             ←
           </Link>
-          <h1>Your Cart</h1>
+          <h1>Your Cart ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'items'})</h1>
           <div className="w-10 h-10"></div>
         </div>
 
@@ -167,7 +167,7 @@ const Cart = () => {
         >
           ←
         </Link>
-        <h1>Your Cart</h1>
+        <h1>Your Cart ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'items'})</h1>
         <div className="w-10 h-10"></div>
       </div>
 
