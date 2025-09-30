@@ -29,10 +29,6 @@ const Categories = () => {
     }
   }, [categories, urlSync, markSynced]);
 
-  // Reset scroll position when component mounts
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
 
   const handleRetry = () => {
     setConnectionError(false);

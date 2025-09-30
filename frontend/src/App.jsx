@@ -1,3 +1,8 @@
+// Disable browser's automatic scroll restoration
+if ('scrollRestoration' in window.history) {
+  window.history.scrollRestoration = 'manual';
+}
+
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Categories from './pages/Categories';

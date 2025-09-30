@@ -22,10 +22,6 @@ const Checkout = () => {
   const [selectedOuting, setSelectedOuting] = useState(null);
   const [outingsLoading, setOutingsLoading] = useState(false);
 
-  // Reset scroll position when component mounts
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
 
   // Fetch outings when mode changes to 'existing'
   useEffect(() => {
