@@ -24,12 +24,12 @@ const Checkout = () => {
 
   // Reset scroll position when component mounts or when navigating to checkout page
   useEffect(() => {
-    // Use requestAnimationFrame to ensure this happens after the DOM is fully updated
+    // Use setTimeout to ensure DOM is ready (same approach as Cart page)
     const scrollToTop = () => {
       window.scrollTo(0, 0);
     };
     
-    requestAnimationFrame(scrollToTop);
+    setTimeout(scrollToTop, 100);
   }, [location.pathname]);
 
   // Fetch outings when mode changes to 'existing'
