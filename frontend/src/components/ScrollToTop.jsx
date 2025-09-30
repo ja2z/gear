@@ -10,10 +10,10 @@ function ScrollToTop() {
       window.history.scrollRestoration = 'manual';
     }
 
-    // Reset scroll on navigation
-    window.scrollTo(0, 0);
-
-    // iOS double RAF for reliability
+    // Force scroll past sticky header position and back to trigger proper positioning
+    window.scrollTo(0, 1);
+    
+    // iOS double RAF to scroll back to actual top
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         window.scrollTo(0, 0);
