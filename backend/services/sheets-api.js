@@ -241,7 +241,7 @@ class SheetsAPI {
       if (!inventorySheet) {
         throw new Error('Master Inventory sheet not found');
       }
-
+  
       // Prepare batch data for transaction log
       const transactionRows = transactionsData.map(transaction => ({
         'Transaction ID': transaction.transactionId,
@@ -253,58 +253,134 @@ class SheetsAPI {
         'Processed By': transaction.processedBy,
         'Notes': transaction.notes
       }));
-
+  
       // Add all transactions to Google Sheets in one batch
+      console.log(`[${timestamp}] 📝 Adding ${transactionRows.length} rows to Transaction Log...`);
       await transactionSheet.addRows(transactionRows);
-
-      // Get all inventory rows once for batch updates
-      const inventoryRows = await inventorySheet.getRows();
+      console.log(`[${timestamp}] ✅ Transaction Log updated (1 API call)`);
+  
+      // ✅ CELL-BASED API APPROACH - Single API call for all inventory updates
+      console.log(`[${timestamp}] 🔄 Starting cell-based inventory updates...`);
       
-      // Prepare batch updates for inventory
-      const inventoryUpdates = [];
+      // First, get all inventory rows to build an itemId-to-rowIndex map
+      console.log(`[${timestamp}] 📖 Loading inventory rows...`);
+      const inventoryRows = await inventorySheet.getRows();
+      const itemIdToRowIndex = new Map();
+      
+      inventoryRows.forEach((row, index) => {
+        const itemId = row.get('Item ID');
+        if (itemId) {
+          itemIdToRowIndex.set(itemId.trim(), index + 2); // +2 for header row and 0-indexing
+        }
+      });
+      console.log(`[${timestamp}] 📊 Built itemId map with ${itemIdToRowIndex.size} items`);
+      
+      // Get column indices
+      await inventorySheet.loadHeaderRow();
+      const headers = inventorySheet.headerValues;
+      
+      const getColIndex = (headerName) => {
+        const index = headers.indexOf(headerName);
+        if (index === -1) {
+          throw new Error(`Column "${headerName}" not found in sheet headers`);
+        }
+        return index;
+      };
+      
+      // Define the columns we need to update
+      const columnsToUpdate = {
+        'Status': getColIndex('Status'),
+        'Checked Out To': getColIndex('Checked Out To'),
+        'Checked Out By': getColIndex('Checked Out By'),
+        'Check Out Date': getColIndex('Check Out Date'),
+        'Outing Name': getColIndex('Outing Name'),
+        'Condition': getColIndex('Condition')
+      };
+      
+      console.log(`[${timestamp}] 📋 Columns to update:`, columnsToUpdate);
+      
+      // Helper function to convert column index to letter (0=A, 1=B, etc.)
+      const colIndexToLetter = (index) => {
+        let letter = '';
+        let temp = index;
+        while (temp >= 0) {
+          letter = String.fromCharCode((temp % 26) + 65) + letter;
+          temp = Math.floor(temp / 26) - 1;
+        }
+        return letter;
+      };
+      
+      // Get min and max column indices we need
+      const colIndices = Object.values(columnsToUpdate);
+      const minCol = Math.min(...colIndices);
+      const maxCol = Math.max(...colIndices);
+      const minColLetter = colIndexToLetter(minCol);
+      const maxColLetter = colIndexToLetter(maxCol);
+      
+      // Load only the rows and columns we need
+      const maxRow = Math.max(...Array.from(itemIdToRowIndex.values()));
+      const cellRange = `${minColLetter}1:${maxColLetter}${maxRow}`;
+      console.log(`[${timestamp}] 📥 Loading cells in optimized range: ${cellRange} (only ${colIndices.length} columns)`);
+      await inventorySheet.loadCells(cellRange);
+      console.log(`[${timestamp}] ✅ Cells loaded (1 API call)`);
+      
+      // Update cells in memory
+      let updatedCount = 0;
+      let notFoundCount = 0;
       
       for (const transaction of transactionsData) {
-        const targetRow = inventoryRows.find(row => row.get('Item ID') === transaction.itemId);
+        const rowIndex = itemIdToRowIndex.get(transaction.itemId);
         
-        if (!targetRow) {
-          console.warn(`⚠️ Item ${transaction.itemId} not found in Master Inventory sheet`);
+        if (!rowIndex) {
+          console.warn(`[${timestamp}] ⚠️  Item ${transaction.itemId} not found in Master Inventory sheet`);
+          notFoundCount++;
           continue;
         }
         
-        // Update the row based on transaction action
+        // Get cells (rowIndex is 1-based from sheets, but getCell uses 0-based)
+        const row0Based = rowIndex - 1;
+        
         if (transaction.action === 'Check out') {
-          targetRow.set('Status', 'Checked out');
-          targetRow.set('Checked Out To', transaction.scoutName || transaction.outingName); // Use scout name if available
-          targetRow.set('Checked Out By', transaction.processedBy);
-          targetRow.set('Check Out Date', new Date().toISOString().split('T')[0]);
-          targetRow.set('Outing Name', transaction.outingName);
+          inventorySheet.getCell(row0Based, columnsToUpdate['Status']).value = 'Checked out';
+          inventorySheet.getCell(row0Based, columnsToUpdate['Checked Out To']).value = transaction.scoutName || transaction.outingName;
+          inventorySheet.getCell(row0Based, columnsToUpdate['Checked Out By']).value = transaction.processedBy;
+          inventorySheet.getCell(row0Based, columnsToUpdate['Check Out Date']).value = new Date().toISOString().split('T')[0];
+          inventorySheet.getCell(row0Based, columnsToUpdate['Outing Name']).value = transaction.outingName;
         } else if (transaction.action === 'Check in') {
-          // Special handling for Missing items
           const itemStatus = transaction.condition === 'Missing' ? 'Missing' : 'In shed';
           const itemCondition = transaction.condition === 'Missing' ? 'Unknown' : transaction.condition;
           
-          
-          targetRow.set('Status', itemStatus);
-          targetRow.set('Checked Out To', '');
-          targetRow.set('Checked Out By', '');
-          targetRow.set('Check Out Date', '');
-          targetRow.set('Outing Name', '');
-          targetRow.set('Condition', itemCondition);
+          inventorySheet.getCell(row0Based, columnsToUpdate['Status']).value = itemStatus;
+          inventorySheet.getCell(row0Based, columnsToUpdate['Checked Out To']).value = '';
+          inventorySheet.getCell(row0Based, columnsToUpdate['Checked Out By']).value = '';
+          inventorySheet.getCell(row0Based, columnsToUpdate['Check Out Date']).value = '';
+          inventorySheet.getCell(row0Based, columnsToUpdate['Outing Name']).value = '';
+          inventorySheet.getCell(row0Based, columnsToUpdate['Condition']).value = itemCondition;
         }
         
-        inventoryUpdates.push(targetRow);
+        updatedCount++;
       }
-
-      // Save all inventory updates in batch
-      if (inventoryUpdates.length > 0) {
-        await Promise.all(inventoryUpdates.map(row => row.save()));
-        console.log(`✅ Updated inventory for ${inventoryUpdates.length} items in Google Sheets`);
+  
+      console.log(`[${timestamp}] 📝 Updated ${updatedCount} items in memory`);
+      if (notFoundCount > 0) {
+        console.log(`[${timestamp}] ⚠️  ${notFoundCount} items not found in inventory`);
+      }
+  
+      // ✅ Save all updates in ONE API call!
+      if (updatedCount > 0) {
+        console.log(`[${timestamp}] 💾 Saving all cell updates with saveUpdatedCells()...`);
+        await inventorySheet.saveUpdatedCells();
+        console.log(`[${timestamp}] ✅ Updated inventory for ${updatedCount} items in Google Sheets (1 API call)`);
+      } else {
+        console.log(`[${timestamp}] ℹ️  No inventory updates needed`);
       }
       
       console.log(`[${timestamp}] ✅ Batch sync to Google Sheets completed`);
+      console.log(`[${timestamp}] 📊 Total API calls: 3 (addRows + getRows + saveUpdatedCells)`);
       
     } catch (error) {
-      console.error('❌ Error batch syncing to Google Sheets:', error);
+      const timestamp = new Date().toISOString();
+      console.error(`[${timestamp}] ❌ Error batch syncing to Google Sheets:`, error);
       throw error;
     }
   }
