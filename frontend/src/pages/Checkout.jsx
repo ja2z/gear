@@ -21,6 +21,16 @@ const Checkout = () => {
   const [selectedOuting, setSelectedOuting] = useState(null);
   const [outingsLoading, setOutingsLoading] = useState(false);
 
+  // Reset scroll position when component mounts
+  useEffect(() => {
+    // Use requestAnimationFrame to ensure this happens after the DOM is fully updated
+    const scrollToTop = () => {
+      window.scrollTo(0, 0);
+    };
+    
+    requestAnimationFrame(scrollToTop);
+  }, []);
+
   // Fetch outings when mode changes to 'existing'
   useEffect(() => {
     const fetchOutings = async () => {
