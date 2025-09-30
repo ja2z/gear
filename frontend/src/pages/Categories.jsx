@@ -94,7 +94,7 @@ const Categories = () => {
         <Link to="/" className="back-button no-underline">
           ←
         </Link>
-        <h1 className="text-center text-truncate">Select Category</h1>
+        <h1 className="text-center text-truncate">Select _Category</h1>
         <Link to="/cart" className="cart-badge no-underline">
           <svg
             xmlns="http://www.w3.org/2000/svg"
