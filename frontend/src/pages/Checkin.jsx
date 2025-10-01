@@ -198,14 +198,14 @@ const Checkin = () => {
               <div
                 key={item.itemId}
                 onClick={() => handleItemSelect(item)}
-                className={`card cursor-pointer transition-all duration-200 ${
+                className={`card card-compact cursor-pointer transition-all duration-200 ${
                   isSelected ? 'card-selected' : ''
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 leading-none">
+                      <h3 className="text-lg font-semibold text-gray-900 leading-none m-0">
                         {item.itemId}
                       </h3>
                       <p className="text-sm text-gray-600 leading-none -mt-0.5">{item.description}</p>

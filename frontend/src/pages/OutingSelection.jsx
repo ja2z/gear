@@ -113,12 +113,12 @@ const OutingSelection = () => {
             {filteredOutings.map((outing) => (
               <div
                 key={outing.outingName}
-                className="card cursor-pointer hover:shadow-card-hover transition-all"
+                className="card card-compact cursor-pointer hover:shadow-card-hover transition-all"
                 onClick={() => handleOutingSelect(outing.outingName)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1 m-0">
                       {outing.outingName}
                     </h3>
                     <div className="flex items-center space-x-4 text-sm text-gray-600">
