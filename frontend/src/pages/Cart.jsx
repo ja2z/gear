@@ -14,73 +14,21 @@ const Cart = () => {
     setButtonRenderKey(prev => prev + 1);
   };
 
-  // Reset scroll position when component mounts
-  useEffect(() => {
-    // Scroll to first category using the same logic as scrollToCategory
-    const scrollToFirstCategory = () => {
-      const categories = Object.keys(getItemsByCategory());
-      if (categories.length > 0) {
-        const firstCategory = categories[0];
-        const element = document.getElementById(`category-${firstCategory}`);
-        if (element) {
-          const elementRect = element.getBoundingClientRect();
-          const absoluteElementTop = elementRect.top + window.pageYOffset;
-          // Use same offset as scrollToCategory function
-          const targetPosition = absoluteElementTop - 140;
-          window.scrollTo({
-            top: targetPosition,
-            behavior: 'smooth'
-          });
-        }
-      }
-    };
-    
-    // Use setTimeout to ensure DOM is ready
-    setTimeout(scrollToFirstCategory, 100);
-  }, []);
+// Reset scroll position when component mounts - remove this entire useEffect
+// Let ScrollToTop component handle initial page load
 
-
-  // Reset scroll position when switching view modes
-  useEffect(() => {
-    // Scroll to first category when switching to items view
-    const scrollToFirstCategory = () => {
-      if (viewMode === 'items') {
-        const categories = Object.keys(getItemsByCategory());
-        if (categories.length > 0) {
-          const firstCategory = categories[0];
-          const element = document.getElementById(`category-${firstCategory}`);
-          if (element) {
-            const elementRect = element.getBoundingClientRect();
-            const absoluteElementTop = elementRect.top + window.pageYOffset;
-            // Use same offset as scrollToCategory function
-            const targetPosition = absoluteElementTop - 140;
-            window.scrollTo({
-              top: targetPosition,
-              behavior: 'smooth'
-            });
-          }
-        }
-      } else {
-        // For categories view, scroll to top of categories list
-        // Find the first category button and scroll to it
-        const firstCategoryButton = document.querySelector('.card.touch-target.block');
-        if (firstCategoryButton) {
-          const elementRect = firstCategoryButton.getBoundingClientRect();
-          const absoluteElementTop = elementRect.top + window.pageYOffset;
-          const targetPosition = absoluteElementTop - 140;
-          window.scrollTo({
-            top: targetPosition,
-            behavior: 'smooth'
-          });
-        } else {
-          // Fallback to pixel-based scroll
-          window.scrollTo(0, 140);
-        }
-      }
-    };
-    
-    requestAnimationFrame(scrollToFirstCategory);
-  }, [viewMode]);
+// Reset scroll position when switching view modes
+useEffect(() => {
+  // Always scroll to top when toggling between views
+  window.scrollTo(0, 0);
+  
+  // iOS double RAF for reliability
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+    });
+  });
+}, [viewMode]);
 
   // Group items by category for categories view
   const getItemsByCategory = () => {
