@@ -19,10 +19,13 @@ const Cart = () => {
 
 // Reset scroll position when switching view modes
 useEffect(() => {
-  // Always scroll to top when toggling between views
-  window.scrollTo(0, 0);
+  // Scroll to just past 0 to trigger sticky header repositioning
+  window.scrollTo(0, 1);
   
-  // iOS double RAF for reliability
+  // Force a reflow to ensure sticky header recalculates
+  void document.body.offsetHeight;
+  
+  // Then scroll to actual top
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       window.scrollTo(0, 0);
