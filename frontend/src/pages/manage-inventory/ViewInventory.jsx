@@ -16,14 +16,25 @@ const ViewInventory = () => {
   const [filteredCategory, setFilteredCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pendingScrollToCategory, setPendingScrollToCategory] = useState(null);
 
-  // Check if navigated from category view with filter
+  // Check if navigated from edit/delete with category filter
   useEffect(() => {
     if (location.state?.category) {
       setViewMode('item');
       setFilteredCategory(location.state.category);
+      // Clear the location state so it doesn't interfere with subsequent clicks
+      window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  // Scroll to top when switching to category view
+  useEffect(() => {
+    if (viewMode === 'category') {
+      window.scrollTo(0, 0);
+      setPendingScrollToCategory(null); // Clear any pending scroll
+    }
+  }, [viewMode]);
 
   // Fetch category stats
   const fetchCategoryStats = async () => {
@@ -60,6 +71,28 @@ const ViewInventory = () => {
       fetchItems();
     }
   }, [viewMode]);
+
+  // Perform pending scroll after items are loaded
+  useEffect(() => {
+    if (!loading && items.length > 0 && pendingScrollToCategory) {
+      // Use requestAnimationFrame to ensure DOM is fully updated
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const element = document.getElementById(`category-${pendingScrollToCategory}`);
+          if (element) {
+            const elementRect = element.getBoundingClientRect();
+            const absoluteElementTop = elementRect.top + window.pageYOffset;
+            const targetPosition = absoluteElementTop - 200;
+            window.scrollTo({
+              top: targetPosition,
+              behavior: 'smooth'
+            });
+          }
+          setPendingScrollToCategory(null);
+        });
+      });
+    }
+  }, [loading, items, pendingScrollToCategory]);
 
   // Filter categories by search (include item descriptions like Categories.jsx)
   const filteredCategories = categoryStats.filter(cat => {
@@ -103,10 +136,11 @@ const ViewInventory = () => {
     return result;
   }, {});
 
-  const handleCategoryClick = (classCode) => {
+  const scrollToCategory = (classCode) => {
     setViewMode('item');
-    setFilteredCategory(classCode);
+    setFilteredCategory(null); // Clear any category filter
     setSearchQuery('');
+    setPendingScrollToCategory(classCode); // Set pending scroll - will execute after items load
   };
 
   const handleDeleteClick = (itemId) => {
@@ -150,7 +184,7 @@ const ViewInventory = () => {
           className="cart-badge no-underline"
           aria-label="Add item"
         >
-          <svg class="add-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="add-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
@@ -165,6 +199,7 @@ const ViewInventory = () => {
               setViewMode('category');
               setFilteredCategory(null);
               setSearchQuery('');
+              setPendingScrollToCategory(null);
             }}
             className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all touch-target ${
               viewMode === 'category'
@@ -179,6 +214,7 @@ const ViewInventory = () => {
               setViewMode('item');
               setFilteredCategory(null);
               setSearchQuery('');
+              setPendingScrollToCategory(null);
             }}
             className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all touch-target ${
               viewMode === 'item'
@@ -214,7 +250,7 @@ const ViewInventory = () => {
             {filteredCategories.map((cat) => (
               <div
                 key={cat.class}
-                onClick={() => handleCategoryClick(cat.class)}
+                onClick={() => scrollToCategory(cat.class)}
                 className="card touch-target block cursor-pointer"
               >
                 <div className="flex justify-between items-center">
@@ -236,8 +272,8 @@ const ViewInventory = () => {
               const group = filteredItems[classCode];
               return (
                 <div key={classCode}>
-                  {/* Category Header */}
-                  <div className="mb-3">
+                  {/* Category Header with Anchor */}
+                  <div id={`category-${classCode}`} className="mb-3">
                     <h2 className="text-lg font-semibold text-gray-900 mb-2">{group.classDesc}</h2>
                   </div>
                   
