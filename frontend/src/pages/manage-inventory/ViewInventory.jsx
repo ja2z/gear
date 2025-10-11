@@ -4,9 +4,9 @@ import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 
 // Configure API base URL based on environment
-const API_URL = import.meta.env.PROD 
-  ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com')
-  : 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.PROD 
+  ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api')
+  : '/api';
 
 const ViewInventory = () => {
   const navigate = useNavigate();
@@ -32,7 +32,7 @@ const ViewInventory = () => {
   const fetchCategoryStats = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/manage-inventory/category-stats`);
+      const response = await fetch(`${API_BASE_URL}/manage-inventory/category-stats`);
       if (!response.ok) throw new Error('Failed to fetch category stats');
       const data = await response.json();
       setCategoryStats(data);
@@ -48,7 +48,7 @@ const ViewInventory = () => {
   const fetchItems = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/manage-inventory/items`);
+      const response = await fetch(`${API_BASE_URL}/manage-inventory/items`);
       if (!response.ok) throw new Error('Failed to fetch items');
       const data = await response.json();
       setItems(data);
