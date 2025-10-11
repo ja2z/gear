@@ -1,30 +1,47 @@
 import { useEffect } from 'react';
+import { getImageLoadingStrategy } from '../utils/mobileDetection';
 
 /**
- * Component for preloading LQIP images in the document head
- * This provides instant visual feedback while the full image loads
+ * Component for preloading hero images in the document head
+ * This provides instant visual feedback by preloading both LQIP and full images
  */
 const ImagePreloader = ({ images }) => {
   useEffect(() => {
     if (!images || images.length === 0) return;
 
-    // Add preload links for LQIP images
+    const strategy = getImageLoadingStrategy();
+    const preloadLinks = [];
+
     images.forEach(imageData => {
-      if (imageData.lqip) {
-        const link = document.createElement('link');
-        link.rel = 'preload';
-        link.as = 'image';
-        link.href = imageData.lqip;
-        link.setAttribute('fetchpriority', 'high');
-        document.head.appendChild(link);
+      // Preload LQIP with highest priority for instant display
+      if (strategy.useLQIP && imageData.lqip) {
+        const lqipLink = document.createElement('link');
+        lqipLink.rel = 'preload';
+        lqipLink.as = 'image';
+        lqipLink.href = imageData.lqip;
+        lqipLink.setAttribute('fetchpriority', 'high');
+        document.head.appendChild(lqipLink);
+        preloadLinks.push(lqipLink);
+      }
+
+      // Also preload the full-quality image (WebP if supported, otherwise original)
+      const fullImagePath = strategy.useWebP && imageData.webp ? imageData.webp : imageData.original;
+      if (fullImagePath) {
+        const fullLink = document.createElement('link');
+        fullLink.rel = 'preload';
+        fullLink.as = 'image';
+        fullLink.href = fullImagePath;
+        // Lower priority than LQIP so LQIP loads first
+        fullLink.setAttribute('fetchpriority', 'auto');
+        document.head.appendChild(fullLink);
+        preloadLinks.push(fullLink);
       }
     });
 
     // Cleanup function to remove preload links when component unmounts
     return () => {
-      const preloadLinks = document.querySelectorAll('link[rel="preload"][as="image"]');
       preloadLinks.forEach(link => {
-        if (images.some(img => img.lqip === link.href)) {
+        if (link.parentNode === document.head) {
           document.head.removeChild(link);
         }
       });

@@ -4,7 +4,7 @@ import { useInventory } from '../hooks/useInventory';
 import { useSync } from '../context/SyncContext';
 import ConnectionError from '../components/ConnectionError';
 import ImagePreloader from '../components/ImagePreloader';
-import { getRandomHomeImage, getAllOptimizedImageData } from '../utils/imageRotation';
+import { getRandomHomeImage } from '../utils/imageRotation';
 import { useOptimizedImage } from '../hooks/useOptimizedImage';
 
 const Landing = () => {
@@ -13,25 +13,10 @@ const Landing = () => {
   const { resetSync, markSynced } = useSync();
   const [connectionError, setConnectionError] = useState(false);
   const [retryError, setRetryError] = useState(null);
-  const [allImageData, setAllImageData] = useState([]);
   
   // Get the random background image once and keep it stable
   const [selectedImagePath] = useState(() => getRandomHomeImage());
-  const { currentImage, isLoading: imageLoading, error: imageError } = useOptimizedImage(selectedImagePath);
-  
-  // Load all image data for preloading
-  useEffect(() => {
-    const loadImageData = async () => {
-      try {
-        const imageData = await getAllOptimizedImageData();
-        setAllImageData(imageData);
-      } catch (error) {
-        console.error('Failed to load image data:', error);
-      }
-    };
-    
-    loadImageData();
-  }, []);
+  const { currentImage, imageData, isLoading: imageLoading, error: imageError } = useOptimizedImage(selectedImagePath);
 
   const handleCheckoutClick = async (e) => {
     e.preventDefault();
@@ -85,8 +70,8 @@ const Landing = () => {
 
   return (
     <>
-      {/* Preload LQIP images for instant feedback */}
-      <ImagePreloader images={allImageData} />
+      {/* Preload only the selected hero image's LQIP for instant feedback */}
+      {imageData && <ImagePreloader images={[imageData]} />}
       
       <div 
         className="min-h-screen bg-gray-100 relative"

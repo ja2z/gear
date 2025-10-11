@@ -4,16 +4,6 @@
 
 export const OPTIMIZED_IMAGES = [
   {
-    "original": "/images/IMG_0406.png",
-    "webp": "/images/IMG_0406.webp",
-    "lqip": "/images/IMG_0406.lqip.webp"
-  },
-  {
-    "original": "/images/IMG_0415.png",
-    "webp": "/images/IMG_0415.webp",
-    "lqip": "/images/IMG_0415.lqip.webp"
-  },
-  {
     "original": "/images/IMG_0424.png",
     "webp": "/images/IMG_0424.webp",
     "lqip": "/images/IMG_0424.lqip.webp"
@@ -42,11 +32,6 @@ export const OPTIMIZED_IMAGES = [
     "original": "/images/IMG_3195.png",
     "webp": "/images/IMG_3195.webp",
     "lqip": "/images/IMG_3195.lqip.webp"
-  },
-  {
-    "original": "/images/IMG_5872.png",
-    "webp": "/images/IMG_5872.webp",
-    "lqip": "/images/IMG_5872.lqip.webp"
   },
   {
     "original": "/images/IMG_6429.png",

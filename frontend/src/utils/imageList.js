@@ -4,18 +4,27 @@
 
 export const HOME_IMAGES = [
   "/images/IMG_0406.png",
+  "/images/IMG_0415.png",
   "/images/IMG_0424.png",
+  "/images/IMG_0468.png",
+  "/images/IMG_0477.png",
   "/images/IMG_0489.png",
+  "/images/IMG_0507.png",
   "/images/IMG_3195.png",
-  "/images/IMG_5872.png",
   "/images/IMG_6429.png",
   "/images/IMG_6479.png",
   "/images/IMG_7671.png",
   "/images/IMG_8083.png",
+  "/images/IMG_8429.png",
   "/images/IMG_8618.png",
   "/images/IMG_8699.png",
+  "/images/IMG_8736.png",
   "/images/IMG_9212.png",
+  "/images/IMG_9330.png",
+  "/images/IMG_9348.png",
   "/images/IMG_9395.png",
   "/images/IMG_9450.png",
-  "/images/IMG_9519.png"
+  "/images/IMG_9479.png",
+  "/images/IMG_9519.png",
+  "/images/IMG_9882.png"
 ];
