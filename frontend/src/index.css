@@ -40,6 +40,7 @@ body {
 .bg-scout-blue { background-color: #1E398A; }
 .bg-scout-green { background-color: #28a745; }
 .bg-scout-orange { background-color: #ff6b35; }
+.bg-scout-red { background-color: #DB364C; }
 .text-white { color: white; }
 .text-gray-900 { color: #111827; }
 .text-gray-600 { color: #4b5563; }
@@ -155,6 +156,7 @@ body {
 .hover\:bg-gray-600:hover { background-color: #4b5563; }
 .hover\:bg-green-700:hover { background-color: #15803d; }
 .hover\:bg-red-600:hover { background-color: #dc2626; }
+.hover\:bg-red-700:hover { background-color: #b91c1c; }
 .hover\:bg-gray-300:hover { background-color: #d1d5db; }
 .hover\:border-scout-blue:hover { border-color: #1E398A; }
 .focus\:border-scout-blue:focus { border-color: #1E398A; }
@@ -477,6 +479,15 @@ body {
   border-radius: 9999px;
 }
 
+.status-not-in-app {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  border-radius: 9999px;
+}
+
 .outing-badge {
   background-color: #eff6ff;
   color: #1E398A;
@@ -529,6 +540,14 @@ body {
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1;
+}
+
+/* Add styling for the plus/add icon */
+.cart-badge .add-icon {
+  stroke: white;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
 }
 
 /* Support for new cart badge structure matching sample mock */

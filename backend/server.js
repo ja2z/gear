@@ -22,6 +22,8 @@ app.use(express.static(path.join(__dirname, '../frontend/dist')));
 app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/checkout', require('./routes/checkout'));
 app.use('/api/checkin', require('./routes/checkin'));
+app.use('/api/metadata', require('./routes/metadata'));
+app.use('/api/manage-inventory', require('./routes/manage-inventory'));
 
 // Lightweight ping endpoint for keep-alive
 app.get('/api/ping', (req, res) => {

@@ -1,0 +1,1776 @@
+---
+alwaysApply: false
+---
+# Manage Inventory Feature Specification
+
+## Overview
+This document specifies the design and implementation requirements for the new "Manage Inventory" feature in the Scout Troop Gear Management System. This feature allows quartermaster users to add, edit, view, and delete inventory items and manage gear categories.
+
+## Feature Access
+- **Entry Point**: New button on Landing page: "⚙️ Manage Inventory" (third option alongside Check Out and Check In)
+- **Security**: No authentication required for now (future enhancement)
+- **User Role**: Intended for quartermaster/admin users
+
+## Navigation Structure
+
+```
+Landing Page
+├── 📦 Check Out Gear
+├── ✅ Check In Gear
+└── ⚙️ Manage Inventory (NEW)
+    ├── Manage Inventory Dashboard (landing page)
+    │   ├── [📦 View Inventory] button
+    │   ├── [➕ Add Item] button
+    │   └── [📁 Manage Categories] button
+    ├── View Inventory
+    │   ├── Toggle: By Category / By Item
+    │   ├── Search functionality
+    │   └── Click item → Edit Item
+    ├── Add Item
+    ├── Edit Item
+    ├── Manage Categories
+    │   ├── [+ Add Category] button in header
+    │   ├── Search functionality
+    │   └── Click category → Edit Category
+    ├── Edit Category
+    └── Add Category
+```
+
+## Data Sources
+
+### Google Sheets Integration
+
+#### **Metadata Tab** (NEW - already exists in Google Sheets)
+- **Purpose**: Source of truth for categories
+- **Columns**:
+  - `Class` - Category code (e.g., "BRCAN", "TENT") - PRIMARY KEY
+  - `Class Desc` - Human-readable category name (e.g., "Bear Can", "Tent") - UNIQUE
+
+#### **Master Inventory Tab** (existing)
+- **Purpose**: Source of truth for items
+- **Soft Delete Implementation**: Items with `Status = "Removed from inventory"` are soft-deleted
+- **Filter Requirement**: All inventory queries must exclude items where `Status = "Removed from inventory"`
+
+### SQLite Cache Updates
+
+#### **New Table: metadata**
+```sql
+CREATE TABLE IF NOT EXISTS metadata (
+  class TEXT PRIMARY KEY,
+  class_desc TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### **Update Existing Queries**
+All queries that read from `items` table must filter out soft-deleted items:
+```sql
+WHERE status != 'Removed from inventory'
+```
+
+This includes:
+- `getInventory()`
+- `getItemsByCategory()`
+- `getCategoriesWithItemDescriptions()`
+- Any other inventory read operations
+
+## Sync Strategy
+
+### **Fail Fast Approach**
+Each add/edit/delete operation follows this pattern:
+
+1. User submits form
+2. Validate data client-side
+3. **Sync to Google Sheets FIRST**
+4. If Sheets sync **succeeds**:
+   - Update SQLite cache
+   - Show success toast (3 seconds, green, top of screen)
+   - Navigate back to previous screen
+5. If Sheets sync **fails**:
+   - Do NOT update SQLite
+   - Show error toast (3 seconds, red, top of screen)
+   - Keep user on form with data intact
+   - User can retry or cancel
+
+**No batch operations**: Each save is immediate and atomic.
+
+**Data Integrity**: SQLite and Google Sheets always stay in sync.
+
+## Feature Specifications
+
+---
+
+## 1. Manage Inventory Dashboard
+
+### **Purpose**
+Landing page for all inventory management functions.
+
+### **UI Layout**
+```
+┌─────────────────────────────────┐
+│ ← Manage Inventory              │
+├─────────────────────────────────┤
+│                                 │
+│   [📦 View Inventory]           │
+│                                 │
+│   [➕ Add Item]                 │
+│                                 │
+│   [📁 Manage Categories]        │
+│                                 │
+└─────────────────────────────────┘
+```
+
+### **Components**
+- **Header**: "Manage Inventory" with back arrow to Landing page
+- **Three large buttons** (full width, touch-optimized):
+  1. **View Inventory** → Navigate to View Inventory screen
+  2. **Add Item** → Navigate to Add Item screen
+  3. **Manage Categories** → Navigate to Manage Categories screen
+
+### **Styling**
+- Use existing card styles from the app
+- Touch targets: 44px+ minimum height
+- Spacing: Consistent with existing screens
+
+---
+
+## 2. View Inventory
+
+### **Purpose**
+View all inventory items with two display modes: by category (aggregate stats) or by item (detailed list).
+
+### **UI Layout**
+
+#### **Header**
+```
+┌─────────────────────────────────┐
+│ ← View Inventory                │
+├─────────────────────────────────┤
+```
+
+#### **Toggle Control** (sticky, below header)
+```
+┌─────────────────────────────────┐
+│ ┌─────────┬─────────┐           │
+│ │ By Cat  │ By Item │           │
+│ └─────────┴─────────┘           │
+└─────────────────────────────────┘
+```
+
+#### **Search** (below toggle)
+```
+┌─────────────────────────────────┐
+│ 🔍 Search...                    │
+└─────────────────────────────────┘
+```
+
+#### **Content Area**
+Displays either category view or item view based on toggle.
+
+### **Category View Mode**
+
+#### **Data Source**
+- Read categories from Metadata tab
+- Calculate aggregate stats from Master Inventory (excluding soft-deleted items)
+
+#### **Aggregate Stats per Category**
+```javascript
+{
+  class: "BRCAN",
+  classDesc: "Bear Can",
+  totalItems: 15,        // COUNT(*) WHERE class = "BRCAN" AND status != "Removed from inventory"
+  available: 10,         // status = "In shed" AND condition IN ("Usable", "Unknown")
+  checkedOut: 3,         // status = "Checked out"
+  unavailable: 2         // condition = "Not usable" OR status IN ("Missing", "Out for repair")
+}
+```
+
+#### **Display**
+```
+┌─────────────────────────────────┐
+│ Bear Can                     >  │
+│ 15 total • 10 avail • 3 out     │
+│ • 2 unavail                     │
+├─────────────────────────────────┤
+│ Tent                         >  │
+│ 8 total • 5 avail • 2 out       │
+│ • 1 unavail                     │
+└─────────────────────────────────┘
+```
+
+#### **Interaction**
+- Click category card → Navigate to View Inventory in "By Item" mode, filtered to that category
+- Search filters by `Class Desc`
+
+### **Item View Mode**
+
+#### **Data Source**
+- Read all items from Master Inventory WHERE `status != "Removed from inventory"`
+- Group by category with headers (similar to Cart.jsx)
+
+#### **Display**
+```
+┌─────────────────────────────────┐
+│ Bear Can                        │
+├─────────────────────────────────┤
+│ BRCAN-001              ✏️ 🗑️   │
+│ Blue Backpacker                 │
+│ In shed • Usable                │
+├─────────────────────────────────┤
+│ BRCAN-002              ✏️ 🗑️   │
+│ Black Garcia                    │
+│ Checked out • Usable            │
+│ On: Spring Campout              │
+├─────────────────────────────────┤
+│ Tent                            │
+├─────────────────────────────────┤
+│ TENT-001               ✏️ 🗑️   │
+│ Half Dome 2+                    │
+│ In shed • Usable                │
+└─────────────────────────────────┘
+```
+
+#### **Interaction**
+- **Click item card** → Navigate to Edit Item screen
+- **Click pencil icon** → Navigate to Edit Item screen (same as clicking card)
+- **Click trash icon** → Show Delete Item confirmation modal
+- Search filters by `Item ID` or `Description`
+- **Omit categories with 0 items** (don't show category header if no items)
+
+#### **Status Badges**
+Use existing status badge styles:
+- `status-in-shed` - Green
+- `status-checked-out` - Orange  
+- `status-missing` - Red
+- `status-out-for-repair` - Gray
+- `status-unusable` - Red (for condition)
+- `status-condition-unknown` - Yellow (for condition)
+
+---
+
+## 3. Add Item
+
+### **Purpose**
+Add a new item to inventory with auto-generated Item ID.
+
+### **UI Layout**
+
+```
+┌─────────────────────────────────┐
+│ ← Add New Item                  │
+├─────────────────────────────────┤
+│                                 │
+│ [Select Category] *             │
+│                                 │
+│ Item ID: [TENT-027]             │
+│          (grayed out)           │
+│                                 │
+│ Description: *                  │
+│ [____________________________]  │
+│ (max 50 chars)                  │
+│                                 │
+│ ☑ Include in app                │
+│                                 │
+│ Condition: *                    │
+│ ( ) Usable ( ) Not usable       │
+│ ( ) Unknown                     │
+│                                 │
+│ Status: *                       │
+│ ( ) In shed ( ) Missing         │
+│ ( ) Out for repair              │
+│                                 │
+│ Purchase Date: (optional)       │
+│ [date picker]                   │
+│                                 │
+│ Cost: (optional)                │
+│ [$_______.__]                   │
+│                                 │
+│ Notes: (optional)               │
+│ [____________________________]  │
+│ [____________________________]  │
+│                                 │
+└─────────────────────────────────┘
+┌─────────────────────────────────┐
+│ [Cancel]          [Save Item]   │
+└─────────────────────────────────┘
+```
+
+### **Field Specifications**
+
+#### **Select Category** (Required)
+- **Type**: Button that opens Category Selection screen
+- **Behavior**:
+  - Click button → Navigate to Category Selection screen (shows all categories from Metadata tab)
+  - User selects category → Navigate back to Add Item form
+  - Selected category populates and triggers Item ID generation
+  - Changing category regenerates Item ID
+- **Validation**: Required field
+
+#### **Item ID** (Auto-generated, Read-only)
+- **Format**: `{CLASS}-{NUM}` (e.g., "BRCAN-032", "TENT-027")
+- **Generation Logic**:
+  ```javascript
+  // Get max Item Num for selected category
+  const maxNum = await getMaxItemNumForCategory(selectedClass);
+  const nextNum = (maxNum + 1).toString().padStart(3, '0'); // e.g., "032"
+  const itemId = `${selectedClass}-${nextNum}`; // e.g., "BRCAN-032"
+  ```
+- **Display**: Grayed out text field, not editable
+- **Visibility**: Only shows after category is selected
+
+#### **Description** (Required)
+- **Type**: Single-line text input
+- **Max Length**: 50 characters
+- **Validation**: Required, trim whitespace
+- **Placeholder**: "Enter item description"
+
+#### **Include in App** (Checkbox)
+- **Type**: Checkbox
+- **Default**: Checked (true)
+- **Maps to**: `In App` column in Google Sheets (TRUE/FALSE)
+
+#### **Condition** (Required)
+- **Type**: Radio button group (single select)
+- **Options**: Usable, Not usable, Unknown
+- **Default**: None selected (forces user to choose)
+- **Validation**: Required
+- **Styling**: Use existing condition button styles
+
+#### **Status** (Required)
+- **Type**: Radio button group (single select)
+- **Options**: In shed, Missing, Out for repair
+- **Default**: None selected (forces user to choose)
+- **Validation**: Required
+- **Note**: "Checked out" is NOT an option (items are checked out via checkout flow)
+- **Note**: "Removed from inventory" is NOT an option (items are soft-deleted via delete flow)
+
+#### **Purchase Date** (Optional)
+- **Type**: Date picker
+- **Format**: YYYY-MM-DD
+- **Validation**: None (optional field)
+
+#### **Cost** (Optional)
+- **Type**: Currency input
+- **Format**: $XXX.XX (2 decimal places)
+- **Validation**: 
+  - If provided, must be > 0
+  - 2 decimal places maximum
+  - Numbers only
+- **Placeholder**: "$0.00"
+
+#### **Notes** (Optional)
+- **Type**: Multi-line text area (2 rows)
+- **Max Length**: 200 characters
+- **Validation**: None (optional field)
+
+### **Form Actions**
+
+#### **Cancel Button**
+- Navigate back to Manage Inventory Dashboard
+- No confirmation needed (no data saved yet)
+
+#### **Save Item Button**
+- **Validation**: Check all required fields
+- **Flow**:
+  1. Validate form data
+  2. If validation fails: Show error toast, stay on form
+  3. If validation passes:
+     - Show loading state on button
+     - Sync to Google Sheets Master Inventory tab:
+       ```javascript
+       {
+         "Item Class": selectedClass,
+         "Item Desc": selectedClassDesc,
+         "Item Num": generatedNum,
+         "Item ID": generatedItemId,
+         "Description": description,
+         "Is Tagged": false, // Default for new items
+         "Condition": selectedCondition,
+         "Status": selectedStatus,
+         "Purchase Date": purchaseDate || null,
+         "Cost": cost || null,
+         "Checked Out To": "",
+         "Checked Out By": "",
+         "Check Out Date": null,
+         "Outing Name": "",
+         "Notes": notes,
+         "In App": inApp
+       }
+       ```
+     - If Sheets sync **succeeds**:
+       - Update SQLite cache
+       - Show success toast: "Item added successfully"
+       - Navigate to Manage Inventory Dashboard
+     - If Sheets sync **fails**:
+       - Show error toast: "Failed to add item. Please try again."
+       - Stay on form with data intact
+       - User can retry
+
+### **Category Selection Screen**
+(Sub-screen opened from "Select Category" button)
+
+```
+┌─────────────────────────────────┐
+│ ← Select Category               │
+├─────────────────────────────────┤
+│ 🔍 Search categories...         │
+├─────────────────────────────────┤
+│ Bear Can                     >  │
+├─────────────────────────────────┤
+│ Tent                         >  │
+├─────────────────────────────────┤
+│ Sleeping Bag                 >  │
+└─────────────────────────────────┘
+```
+
+- **Data Source**: Metadata tab (all categories)
+- **Display**: List of Class Desc values
+- **Search**: Filter by Class Desc
+- **Interaction**: Click category → Return to Add Item form with category selected
+
+---
+
+## 4. Edit Item
+
+### **Purpose**
+Edit an existing item's details (except Item Class/ID).
+
+### **UI Layout**
+Identical to Add Item form, with these differences:
+
+```
+┌─────────────────────────────────┐
+│ ← Edit Item                     │
+├─────────────────────────────────┤
+│                                 │
+│ Category: Bear Can              │
+│ (not editable)                  │
+│                                 │
+│ Item ID: [BRCAN-032]            │
+│          (grayed out)           │
+│                                 │
+│ Description: *                  │
+│ [Blue Backpacker_____________]  │
+│                                 │
+│ ... (rest of form)              │
+│                                 │
+└─────────────────────────────────┘
+┌─────────────────────────────────┐
+│ [Cancel]      [Save Changes]    │
+└─────────────────────────────────┘
+```
+
+### **Key Differences from Add Item**
+
+1. **Category Field**
+   - **Display**: Read-only text showing Class Desc (e.g., "Bear Can")
+   - **No Select Button**: Category cannot be changed once item is created
+   - **Rationale**: Changing class would change Item ID, breaking transaction history
+
+2. **Item ID**
+   - Same as Add Item: Grayed out, not editable
+   - Pre-populated with existing Item ID
+
+3. **All Other Fields**
+   - Pre-populated with current values from Master Inventory
+   - All editable except Category and Item ID
+
+4. **Item Num**
+   - Not shown to user (internal field)
+
+### **Form Actions**
+
+#### **Cancel Button**
+- Navigate back to View Inventory
+- No confirmation needed if no changes made
+- If changes made: Show confirmation "Discard changes?"
+
+#### **Save Changes Button**
+- **Validation**: Same as Add Item
+- **Flow**:
+  1. Validate form data
+  2. If validation fails: Show error toast, stay on form
+  3. If validation passes:
+     - Show loading state on button
+     - Sync to Google Sheets Master Inventory tab (update row where Item ID matches)
+     - If Sheets sync **succeeds**:
+       - Update SQLite cache
+       - Show success toast: "Item updated successfully"
+       - Navigate to View Inventory
+     - If Sheets sync **fails**:
+       - Show error toast: "Failed to update item. Please try again."
+       - Stay on form with data intact
+       - User can retry
+
+---
+
+## 5. Delete Item (Soft Delete)
+
+### **Purpose**
+Soft-delete an item by setting Status to "Removed from inventory".
+
+### **Trigger**
+- Click trash icon (🗑️) on item card in View Inventory (By Item mode)
+
+### **Confirmation Modal**
+
+```
+┌─────────────────────────────────┐
+│ ⚠️ Delete Item?                 │
+├─────────────────────────────────┤
+│                                 │
+│ Item ID: BRCAN-032              │
+│ Description: Blue Backpacker    │
+│ Current Status: In shed         │
+│ Current Condition: Usable       │
+│                                 │
+│ This will mark the item as      │
+│ "Removed from inventory" and    │
+│ hide it from the app.           │
+│                                 │
+│ Type "delete item" to confirm:  │
+│ [____________________________]  │
+│                                 │
+└─────────────────────────────────┘
+┌─────────────────────────────────┐
+│ [Cancel]       [Delete Item]    │
+└─────────────────────────────────┘
+```
+
+### **Confirmation Logic**
+- User must type exactly "delete item" (case-insensitive)
+- Delete button disabled until correct text entered
+- Compare: `confirmText.toLowerCase() === "delete item"`
+
+### **Delete Flow**
+
+1. User clicks Delete Item button (after typing confirmation)
+2. Show loading state
+3. Sync to Google Sheets:
+   - Update Master Inventory row where Item ID matches
+   - Set `Status = "Removed from inventory"`
+   - Leave all other fields unchanged
+4. If Sheets sync **succeeds**:
+   - Update SQLite cache (set status)
+   - Show success toast: "Item removed successfully"
+   - Close modal
+   - Refresh View Inventory (item disappears from list)
+5. If Sheets sync **fails**:
+   - Show error toast: "Failed to remove item. Please try again."
+   - Keep modal open
+   - User can retry
+
+### **Cancel Button**
+- Close modal
+- No changes made
+
+### **Important Notes**
+- **Not a hard delete**: Item row remains in Google Sheets
+- **Transaction history preserved**: Any transactions referencing this item remain in Transaction Log
+- **Filter everywhere**: All inventory queries must filter `WHERE status != "Removed from inventory"`
+
+---
+
+## 6. Manage Categories
+
+### **Purpose**
+View and edit existing categories from Metadata tab.
+
+### **UI Layout**
+
+```
+┌─────────────────────────────────┐
+│ ← Manage Categories   [+ Add]   │
+├─────────────────────────────────┤
+│ 🔍 Search categories...         │
+├─────────────────────────────────┤
+│ Bear Can (BRCAN)             >  │
+├─────────────────────────────────┤
+│ Tent (TENT)                  >  │
+├─────────────────────────────────┤
+│ Sleeping Bag (SLEEP)         >  │
+└─────────────────────────────────┘
+```
+
+### **Components**
+
+#### **Header**
+- Back arrow: Navigate to Manage Inventory Dashboard
+- Title: "Manage Categories"
+- **[+ Add] Button** in header: Navigate to Add Category screen
+
+#### **Search**
+- Filter by Class Desc (category name)
+- Real-time filtering as user types
+
+#### **Category List**
+- **Data Source**: Metadata tab (all categories)
+- **Display**: "{Class Desc} ({Class})" (e.g., "Bear Can (BRCAN)")
+- **Sort**: Alphabetically by Class Desc
+- **Interaction**: Click category → Navigate to Edit Category screen
+
+---
+
+## 7. Edit Category
+
+### **Purpose**
+Edit category name (Class Desc) only. Class code cannot be changed.
+
+### **UI Layout**
+
+```
+┌─────────────────────────────────┐
+│ ← Edit Category                 │
+├─────────────────────────────────┤
+│                                 │
+│ Category Code:                  │
+│ [BRCAN]                         │
+│ (grayed out, not editable)      │
+│                                 │
+│ Display Name: *                 │
+│ [Bear Can_________________]     │
+│ (max 22 chars)                  │
+│                                 │
+└─────────────────────────────────┘
+┌─────────────────────────────────┐
+│ [Cancel]      [Save Changes]    │
+└─────────────────────────────────┘
+```
+
+### **Field Specifications**
+
+#### **Category Code** (Read-only)
+- **Display**: Grayed out text field showing current Class value
+- **Not Editable**: Class cannot be changed once created
+- **Rationale**: Changing Class would break all item references
+
+#### **Display Name** (Required)
+- **Type**: Single-line text input
+- **Max Length**: 22 characters
+- **Validation**: 
+  - Required
+  - Must be unique across all categories (check against Metadata tab)
+  - Trim whitespace
+- **Pre-populated**: Current Class Desc value
+
+### **Form Actions**
+
+#### **Cancel Button**
+- Navigate back to Manage Categories
+- No confirmation needed
+
+#### **Save Changes Button**
+- **Validation**:
+  1. Check Display Name is not empty
+  2. Check Display Name is unique (query Metadata tab)
+  3. If duplicate found: Show error toast "Category name already exists"
+- **Flow**:
+  1. Validate form data
+  2. If validation fails: Show error toast, stay on form
+  3. If validation passes:
+     - Show loading state on button
+     - Sync to Google Sheets Metadata tab (update row where Class matches)
+     - If Sheets sync **succeeds**:
+       - Update SQLite metadata cache
+       - Show success toast: "Category updated successfully"
+       - Navigate to Manage Categories
+     - If Sheets sync **fails**:
+       - Show error toast: "Failed to update category. Please try again."
+       - Stay on form with data intact
+       - User can retry
+
+---
+
+## 8. Add Category
+
+### **Purpose**
+Add a new category to Metadata tab.
+
+### **UI Layout**
+
+```
+┌─────────────────────────────────┐
+│ ← Add New Category              │
+├─────────────────────────────────┤
+│                                 │
+│ Category Code: *                │
+│ [_____]                         │
+│ (uppercase, max 5 chars)        │
+│                                 │
+│ Display Name: *                 │
+│ [______________________]        │
+│ (max 22 chars)                  │
+│                                 │
+└─────────────────────────────────┘
+┌─────────────────────────────────┐
+│ [Cancel]      [Create Category] │
+└─────────────────────────────────┘
+```
+
+### **Field Specifications**
+
+#### **Category Code** (Required)
+- **Type**: Single-line text input
+- **Max Length**: 5 characters
+- **Validation**:
+  - Required
+  - Uppercase only (auto-convert as user types)
+  - Must be unique across all categories
+  - No spaces or special characters (alphanumeric only)
+  - Trim whitespace
+- **Auto-uppercase**: Convert to uppercase on input
+  ```javascript
+  onChange={(e) => setClass(e.target.value.toUpperCase())}
+  ```
+- **Placeholder**: "BRCAN"
+
+#### **Display Name** (Required)
+- **Type**: Single-line text input
+- **Max Length**: 22 characters
+- **Validation**:
+  - Required
+  - Must be unique across all categories
+  - Trim whitespace
+- **Placeholder**: "Bear Can"
+
+### **Form Actions**
+
+#### **Cancel Button**
+- Navigate back to Manage Categories
+- No confirmation needed
+
+#### **Create Category Button**
+- **Validation**:
+  1. Check both fields are not empty
+  2. Check Category Code format (uppercase, alphanumeric, max 5 chars)
+  3. Query Metadata tab:
+     - Check Class is unique
+     - Check Class Desc is unique
+  4. If Class duplicate: Show error toast "Category code already exists"
+  5. If Class Desc duplicate: Show error toast "Category name already exists"
+- **Flow**:
+  1. Validate form data
+  2. If validation fails: Show error toast, stay on form
+  3. If validation passes:
+     - Show loading state on button
+     - Sync to Google Sheets Metadata tab (add new row):
+       ```javascript
+       {
+         "Class": categoryCode,
+         "Class Desc": displayName
+       }
+       ```
+     - If Sheets sync **succeeds**:
+       - Update SQLite metadata cache
+       - Show success toast: "Category created successfully"
+       - Navigate to Manage Categories
+     - If Sheets sync **fails**:
+       - Show error toast: "Failed to create category. Please try again."
+       - Stay on form with data intact
+       - User can retry
+
+---
+
+## API Endpoints
+
+### **Category Management (Metadata Tab)**
+
+```javascript
+// Get all categories from Metadata tab
+GET /api/metadata/categories
+Response: [
+  { class: "BRCAN", classDesc: "Bear Can" },
+  { class: "TENT", classDesc: "Tent" }
+]
+
+// Add new category to Metadata tab
+POST /api/metadata/categories
+Body: { class: "NEWCAT", classDesc: "New Category" }
+Response: { success: true, category: {...} }
+
+// Edit category (Class Desc only)
+PUT /api/metadata/categories/:class
+Body: { classDesc: "Updated Name" }
+Response: { success: true, category: {...} }
+
+// Check uniqueness (helper endpoint)
+GET /api/metadata/categories/check-unique?class=BRCAN&classDesc=Bear%20Can
+Response: { classUnique: false, classDescUnique: false }
+```
+
+### **Item Management (Master Inventory)**
+
+```javascript
+// Get all items (excluding soft-deleted)
+GET /api/inventory/manage
+Response: [
+  {
+    itemClass: "BRCAN",
+    itemDesc: "Bear Can",
+    itemNum: "001",
+    itemId: "BRCAN-001",
+    description: "Blue Backpacker",
+    isTagged: false,
+    condition: "Usable",
+    status: "In shed",
+    purchaseDate: "2024-01-15",
+    cost: 45.99,
+    notes: "Good condition",
+    inApp: true
+  }
+]
+
+// Get next Item Num for a category
+GET /api/inventory/next-item-num/:class
+Response: { nextNum: "032", nextItemId: "BRCAN-032" }
+
+// Add new item
+POST /api/inventory/items
+Body: {
+  itemClass: "BRCAN",
+  itemDesc: "Bear Can",
+  itemNum: "032",
+  itemId: "BRCAN-032",
+  description: "Blue Backpacker",
+  isTagged: false,
+  condition: "Usable",
+  status: "In shed",
+  purchaseDate: "2024-01-15",
+  cost: 45.99,
+  notes: "Good condition",
+  inApp: true
+}
+Response: { success: true, item: {...} }
+
+// Edit item (all fields except itemClass, itemNum, itemId)
+PUT /api/inventory/items/:itemId
+Body: {
+  description: "Updated description",
+  condition: "Not usable",
+  // ... other editable fields
+}
+Response: { success: true, item: {...} }
+
+// Soft delete item (set status to "Removed from inventory")
+DELETE /api/inventory/items/:itemId
+Response: { success: true, itemId: "BRCAN-032" }
+```
+
+### **Aggregate Stats (for Category View)**
+
+```javascript
+// Get category statistics
+GET /api/inventory/category-stats
+Response: [
+  {
+    class: "BRCAN",
+    classDesc: "Bear Can",
+    totalItems: 15,
+    available: 10,
+    checkedOut: 3,
+    unavailable: 2
+  }
+]
+```
+
+---
+
+## Backend Implementation Notes
+
+### **sheets-api.js Updates**
+
+#### **New Methods for Metadata Tab**
+
+```javascript
+// Get all categories from Metadata tab
+async getCategories() {
+  await this.initialize();
+  const metadataSheet = this.doc.sheetsByTitle['Metadata'];
+  const rows = await metadataSheet.getRows();
+  return rows.map(row => ({
+    class: row.get('Class'),
+    classDesc: row.get('Class Desc')
+  }));
+}
+
+// Add new category to Metadata tab
+async addCategory(categoryData) {
+  await this.initialize();
+  const metadataSheet = this.doc.sheetsByTitle['Metadata'];
+  await metadataSheet.addRow({
+    'Class': categoryData.class,
+    'Class Desc': categoryData.classDesc
+  });
+}
+
+// Update category (Class Desc only)
+async updateCategory(classCode, newClassDesc) {
+  await this.initialize();
+  const metadataSheet = this.doc.sheetsByTitle['Metadata'];
+  const rows = await metadataSheet.getRows();
+  const targetRow = rows.find(row => row.get('Class') === classCode);
+  if (!targetRow) throw new Error('Category not found');
+  targetRow.set('Class Desc', newClassDesc);
+  await targetRow.save();
+}
+
+// Check uniqueness of Class and Class Desc
+async checkCategoryUniqueness(classCode, classDesc, excludeClass = null) {
+  await this.initialize();
+  const categories = await this.getCategories();
+  const classUnique = !categories.some(c => 
+    c.class === classCode && c.class !== excludeClass
+  );
+  const classDescUnique = !categories.some(c => 
+    c.classDesc === classDesc && c.class !== excludeClass
+  );
+  return { classUnique, classDescUnique };
+}
+```
+
+#### **New Methods for Item Management**
+
+```javascript
+// Get next Item Num for category
+async getNextItemNum(classCode) {
+  await this.initialize();
+  const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
+  const rows = await inventorySheet.getRows();
+  
+  // Filter rows by class and exclude soft-deleted items
+  const classItems = rows.filter(row => 
+    row.get('Item Class') === classCode &&
+    row.get('Status') !== 'Removed from inventory'
+  );
+  
+  if (classItems.length === 0) {
+    return { nextNum: '001', nextItemId: `${classCode}-001` };
+  }
+  
+  // Find max Item Num
+  const maxNum = Math.max(...classItems.map(row => {
+    const itemNum = row.get('Item Num');
+    return parseInt(itemNum, 10) || 0;
+  }));
+  
+  const nextNum = (maxNum + 1).toString().padStart(3, '0');
+  return { nextNum, nextItemId: `${classCode}-${nextNum}` };
+}
+
+// Add new item to Master Inventory
+async addItem(itemData) {
+  await this.initialize();
+  const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
+  
+  await inventorySheet.addRow({
+    'Item Class': itemData.itemClass,
+    'Item Desc': itemData.itemDesc,
+    'Item Num': itemData.itemNum,
+    'Item ID': itemData.itemId,
+    'Description': itemData.description,
+    'Is Tagged': itemData.isTagged,
+    'Condition': itemData.condition,
+    'Status': itemData.status,
+    'Purchase Date': itemData.purchaseDate || '',
+    'Cost': itemData.cost || '',
+    'Checked Out To': '',
+    'Checked Out By': '',
+    'Check Out Date': '',
+    'Outing Name': '',
+    'Notes': itemData.notes || '',
+    'In App': itemData.inApp
+  });
+}
+
+// Update item in Master Inventory
+async updateItem(itemId, updates) {
+  await this.initialize();
+  const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
+  const rows = await inventorySheet.getRows();
+  
+  const targetRow = rows.find(row => row.get('Item ID') === itemId);
+  if (!targetRow) throw new Error('Item not found');
+  
+  // Update allowed fields (NOT itemClass, itemNum, itemId)
+  if (updates.description !== undefined) targetRow.set('Description', updates.description);
+  if (updates.isTagged !== undefined) targetRow.set('Is Tagged', updates.isTagged);
+  if (updates.condition !== undefined) targetRow.set('Condition', updates.condition);
+  if (updates.status !== undefined) targetRow.set('Status', updates.status);
+  if (updates.purchaseDate !== undefined) targetRow.set('Purchase Date', updates.purchaseDate || '');
+  if (updates.cost !== undefined) targetRow.set('Cost', updates.cost || '');
+  if (updates.notes !== undefined) targetRow.set('Notes', updates.notes || '');
+  if (updates.inApp !== undefined) targetRow.set('In App', updates.inApp);
+  
+  await targetRow.save();
+}
+
+// Soft delete item (set status to "Removed from inventory")
+async softDeleteItem(itemId) {
+  await this.initialize();
+  const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
+  const rows = await inventorySheet.getRows();
+  
+  const targetRow = rows.find(row => row.get('Item ID') === itemId);
+  if (!targetRow) throw new Error('Item not found');
+  
+  targetRow.set('Status', 'Removed from inventory');
+  await targetRow.save();
+}
+```
+
+### **sqlite-api.js Updates**
+
+#### **New Table Creation**
+
+```javascript
+// Add to createTables() method
+async createTables() {
+  const schema = `
+    -- Existing items table
+    CREATE TABLE IF NOT EXISTS items (
+      item_class TEXT NOT NULL,
+      item_desc TEXT,
+      item_num TEXT NOT NULL,
+      item_id TEXT PRIMARY KEY,
+      description TEXT,
+      is_tagged INTEGER DEFAULT 0,
+      condition TEXT,
+      status TEXT,
+      purchase_date TEXT,
+      cost REAL,
+      checked_out_to TEXT,
+      checked_out_by TEXT,
+      check_out_date TEXT,
+      outing_name TEXT,
+      notes TEXT,
+      in_app INTEGER DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- NEW: Metadata table for categories
+    CREATE TABLE IF NOT EXISTS metadata (
+      class TEXT PRIMARY KEY,
+      class_desc TEXT UNIQUE NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Existing transactions table
+    CREATE TABLE IF NOT EXISTS transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      transaction_id TEXT UNIQUE NOT NULL,
+      timestamp TEXT NOT NULL,
+      action TEXT NOT NULL,
+      item_id TEXT NOT NULL,
+      outing_name TEXT,
+      condition TEXT,
+      processed_by TEXT,
+      notes TEXT
+    );
+  `;
+  
+  return new Promise((resolve, reject) => {
+    this.db.exec(schema, (err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}
+```
+
+#### **Update All Queries to Exclude Soft-Deleted Items**
+
+```javascript
+// Update getInventory() to exclude soft-deleted items
+async getInventory() {
+  await this.initialize();
+  
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT 
+        item_class, item_desc, item_num, item_id, description, is_tagged,
+        condition, status, purchase_date, cost, checked_out_to, checked_out_by,
+        check_out_date, outing_name, notes, in_app
+      FROM items 
+      WHERE in_app = 1 AND status != 'Removed from inventory'
+      ORDER BY item_class, item_num
+    `;
+    
+    this.db.all(query, [], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows.map(this.mapRowToItem));
+    });
+  });
+}
+
+// Update getItemsByCategory() to exclude soft-deleted items
+async getItemsByCategory(category) {
+  await this.initialize();
+  
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT 
+        item_class, item_desc, item_num, item_id, description, is_tagged,
+        condition, status, purchase_date, cost, checked_out_to, checked_out_by,
+        check_out_date, outing_name, notes, in_app
+      FROM items 
+      WHERE item_class = ? AND in_app = 1 AND status != 'Removed from inventory'
+      ORDER BY item_num
+    `;
+    
+    this.db.all(query, [category], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows.map(this.mapRowToItem));
+    });
+  });
+}
+
+// Update getCategoriesWithItemDescriptions() to exclude soft-deleted items
+async getCategoriesWithItemDescriptions() {
+  await this.initialize();
+  
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT 
+        item_class as name,
+        item_desc as description,
+        COUNT(*) as total_count,
+        SUM(CASE WHEN status = 'In shed' AND (condition = 'Usable' OR condition = 'Unknown') THEN 1 ELSE 0 END) as available_count,
+        GROUP_CONCAT(COALESCE(description, ''), ' ') as item_descriptions
+      FROM items 
+      WHERE in_app = 1 AND status != 'Removed from inventory'
+      GROUP BY item_class, item_desc
+      ORDER BY item_class
+    `;
+    
+    this.db.all(query, [], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+```
+
+#### **New Methods for Metadata Management**
+
+```javascript
+// Get all categories from metadata table
+async getMetadataCategories() {
+  await this.initialize();
+  
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT class, class_desc
+      FROM metadata
+      ORDER BY class_desc
+    `;
+    
+    this.db.all(query, [], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
+// Add category to metadata table
+async addMetadataCategory(categoryData) {
+  await this.initialize();
+  
+  return new Promise((resolve, reject) => {
+    const query = `
+      INSERT INTO metadata (class, class_desc)
+      VALUES (?, ?)
+    `;
+    
+    this.db.run(query, [categoryData.class, categoryData.classDesc], function(err) {
+      if (err) reject(err);
+      else resolve(this.lastID);
+    });
+  });
+}
+
+// Update category in metadata table (class_desc only)
+async updateMetadataCategory(classCode, newClassDesc) {
+  await this.initialize();
+  
+  return new Promise((resolve, reject) => {
+    const query = `
+      UPDATE metadata
+      SET class_desc = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE class = ?
+    `;
+    
+    this.db.run(query, [newClassDesc, classCode], function(err) {
+      if (err) reject(err);
+      else resolve(this.changes);
+    });
+  });
+}
+
+// Check category uniqueness
+async checkCategoryUniqueness(classCode, classDesc, excludeClass = null) {
+  await this.initialize();
+  
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT 
+        (SELECT COUNT(*) FROM metadata WHERE class = ? AND class != ?) as class_count,
+        (SELECT COUNT(*) FROM metadata WHERE class_desc = ? AND class != ?) as class_desc_count
+    `;
+    
+    this.db.get(query, [classCode, excludeClass || '', classDesc, excludeClass || ''], (err, row) => {
+      if (err) reject(err);
+      else resolve({
+        classUnique: row.class_count === 0,
+        classDescUnique: row.class_desc_count === 0
+      });
+    });
+  });
+}
+```
+
+#### **New Methods for Item Management**
+
+```javascript
+// Get next item number for category
+async getNextItemNum(classCode) {
+  await this.initialize();
+  
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT MAX(CAST(item_num AS INTEGER)) as max_num
+      FROM items
+      WHERE item_class = ? AND status != 'Removed from inventory'
+    `;
+    
+    this.db.get(query, [classCode], (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        const maxNum = row.max_num || 0;
+        const nextNum = (maxNum + 1).toString().padStart(3, '0');
+        const nextItemId = `${classCode}-${nextNum}`;
+        resolve({ nextNum, nextItemId });
+      }
+    });
+  });
+}
+
+// Add new item
+async addItem(itemData) {
+  await this.initialize();
+  
+  return new Promise((resolve, reject) => {
+    const query = `
+      INSERT INTO items (
+        item_class, item_desc, item_num, item_id, description, is_tagged,
+        condition, status, purchase_date, cost, checked_out_to, checked_out_by,
+        check_out_date, outing_name, notes, in_app
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    this.db.run(query, [
+      itemData.itemClass, itemData.itemDesc, itemData.itemNum, itemData.itemId,
+      itemData.description, itemData.isTagged ? 1 : 0, itemData.condition,
+      itemData.status, itemData.purchaseDate || null, itemData.cost || null,
+      '', '', null, '', itemData.notes || '', itemData.inApp ? 1 : 0
+    ], function(err) {
+      if (err) reject(err);
+      else resolve(this.lastID);
+    });
+  });
+}
+
+// Update item (excluding itemClass, itemNum, itemId)
+async updateItem(itemId, updates) {
+  await this.initialize();
+  
+  return new Promise((resolve, reject) => {
+    const query = `
+      UPDATE items
+      SET description = ?, is_tagged = ?, condition = ?, status = ?,
+          purchase_date = ?, cost = ?, notes = ?, in_app = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE item_id = ?
+    `;
+    
+    this.db.run(query, [
+      updates.description,
+      updates.isTagged ? 1 : 0,
+      updates.condition,
+      updates.status,
+      updates.purchaseDate || null,
+      updates.cost || null,
+      updates.notes || '',
+      updates.inApp ? 1 : 0,
+      itemId
+    ], function(err) {
+      if (err) reject(err);
+      else resolve(this.changes);
+    });
+  });
+}
+
+// Soft delete item
+async softDeleteItem(itemId) {
+  await this.initialize();
+  
+  return new Promise((resolve, reject) => {
+    const query = `
+      UPDATE items
+      SET status = 'Removed from inventory', updated_at = CURRENT_TIMESTAMP
+      WHERE item_id = ?
+    `;
+    
+    this.db.run(query, [itemId], function(err) {
+      if (err) reject(err);
+      else resolve(this.changes);
+    });
+  });
+}
+
+// Get category statistics for aggregate view
+async getCategoryStats() {
+  await this.initialize();
+  
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT 
+        i.item_class as class,
+        i.item_desc as class_desc,
+        COUNT(*) as total_items,
+        SUM(CASE WHEN i.status = 'In shed' AND (i.condition = 'Usable' OR i.condition = 'Unknown') THEN 1 ELSE 0 END) as available,
+        SUM(CASE WHEN i.status = 'Checked out' THEN 1 ELSE 0 END) as checked_out,
+        SUM(CASE WHEN i.condition = 'Not usable' OR i.status IN ('Missing', 'Out for repair') THEN 1 ELSE 0 END) as unavailable
+      FROM items i
+      WHERE i.in_app = 1 AND i.status != 'Removed from inventory'
+      GROUP BY i.item_class, i.item_desc
+      ORDER BY i.item_desc
+    `;
+    
+    this.db.all(query, [], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
+// Helper method to map database row to item object
+mapRowToItem(row) {
+  return {
+    itemClass: row.item_class,
+    itemDesc: row.item_desc,
+    itemNum: row.item_num,
+    itemId: row.item_id,
+    description: row.description,
+    isTagged: Boolean(row.is_tagged),
+    condition: row.condition,
+    status: row.status,
+    purchaseDate: row.purchase_date,
+    cost: row.cost,
+    checkedOutTo: row.checked_out_to,
+    checkedOutBy: row.checked_out_by,
+    checkOutDate: row.check_out_date,
+    outingName: row.outing_name,
+    notes: row.notes,
+    inApp: Boolean(row.in_app)
+  };
+}
+```
+
+---
+
+## Frontend Implementation Notes
+
+### **New Route Structure**
+
+```javascript
+// App.jsx - Add new routes
+<Routes>
+  {/* Existing routes */}
+  <Route path="/" element={<Landing />} />
+  <Route path="/categories" element={<Categories />} />
+  <Route path="/items/:category" element={<Items />} />
+  <Route path="/cart" element={<Cart />} />
+  <Route path="/checkout" element={<Checkout />} />
+  <Route path="/checkin/outings" element={<OutingSelection />} />
+  <Route path="/checkin/items" element={<Checkin />} />
+  <Route path="/checkin/form" element={<CheckinForm />} />
+  <Route path="/success" element={<Success />} />
+  
+  {/* NEW: Manage Inventory routes */}
+  <Route path="/manage-inventory" element={<ManageInventoryDashboard />} />
+  <Route path="/manage-inventory/view" element={<ViewInventory />} />
+  <Route path="/manage-inventory/add-item" element={<AddItem />} />
+  <Route path="/manage-inventory/edit-item/:itemId" element={<EditItem />} />
+  <Route path="/manage-inventory/categories" element={<ManageCategories />} />
+  <Route path="/manage-inventory/add-category" element={<AddCategory />} />
+  <Route path="/manage-inventory/edit-category/:classCode" element={<EditCategory />} />
+  <Route path="/manage-inventory/select-category" element={<SelectCategory />} />
+</Routes>
+```
+
+### **New Components**
+
+```
+frontend/src/
+├── pages/
+│   ├── manage-inventory/
+│   │   ├── ManageInventoryDashboard.jsx
+│   │   ├── ViewInventory.jsx
+│   │   ├── AddItem.jsx
+│   │   ├── EditItem.jsx
+│   │   ├── ManageCategories.jsx
+│   │   ├── AddCategory.jsx
+│   │   ├── EditCategory.jsx
+│   │   └── SelectCategory.jsx
+├── components/
+│   ├── Toast.jsx (NEW - for success/error messages)
+│   ├── DeleteItemModal.jsx (NEW - confirmation modal)
+│   └── ... (existing components)
+```
+
+### **Toast Component**
+
+```javascript
+// components/Toast.jsx
+import { useEffect } from 'react';
+
+const Toast = ({ message, type = 'success', duration = 3000, onClose }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, duration);
+    
+    return () => clearTimeout(timer);
+  }, [duration, onClose]);
+  
+  return (
+    <div 
+      className={`fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+      } text-white`}
+    >
+      {message}
+    </div>
+  );
+};
+
+export default Toast;
+```
+
+### **Toast Hook**
+
+```javascript
+// hooks/useToast.js
+import { useState, useCallback } from 'react';
+
+export const useToast = () => {
+  const [toast, setToast] = useState(null);
+  
+  const showToast = useCallback((message, type = 'success') => {
+    setToast({ message, type });
+  }, []);
+  
+  const hideToast = useCallback(() => {
+    setToast(null);
+  }, []);
+  
+  return { toast, showToast, hideToast };
+};
+```
+
+### **Delete Item Modal Component**
+
+```javascript
+// components/DeleteItemModal.jsx
+import { useState } from 'react';
+
+const DeleteItemModal = ({ item, onConfirm, onCancel, loading }) => {
+  const [confirmText, setConfirmText] = useState('');
+  const isValid = confirmText.toLowerCase() === 'delete item';
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">⚠️ Delete Item?</h2>
+        
+        <div className="mb-4 space-y-1 text-sm">
+          <p><span className="font-semibold">Item ID:</span> {item.itemId}</p>
+          <p><span className="font-semibold">Description:</span> {item.description}</p>
+          <p><span className="font-semibold">Current Status:</span> {item.status}</p>
+          <p><span className="font-semibold">Current Condition:</span> {item.condition}</p>
+        </div>
+        
+        <p className="text-sm text-gray-600 mb-4">
+          This will mark the item as "Removed from inventory" and hide it from the app.
+        </p>
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Type "delete item" to confirm:
+          </label>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            className="form-input"
+            placeholder="delete item"
+          />
+        </div>
+        
+        <div className="flex space-x-3">
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 touch-target"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(item.itemId)}
+            disabled={!isValid || loading}
+            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed touch-target"
+          >
+            {loading ? 'Deleting...' : 'Delete Item'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DeleteItemModal;
+```
+
+---
+
+## Validation Summary
+
+### **Field Validation Rules**
+
+| Field | Type | Required | Max Length | Format | Unique | Notes |
+|-------|------|----------|------------|--------|--------|-------|
+| **Category Code (Class)** | Text | Yes | 5 | Uppercase, alphanumeric | Yes (across metadata) | Auto-uppercase on input |
+| **Category Name (Class Desc)** | Text | Yes | 22 | Any | Yes (across metadata) | - |
+| **Item Description** | Text | Yes | 50 | Any | No | - |
+| **Item Condition** | Radio | Yes | - | Usable / Not usable / Unknown | No | No default (force selection) |
+| **Item Status** | Radio | Yes | - | In shed / Missing / Out for repair | No | No default (force selection) |
+| **Purchase Date** | Date | No | - | YYYY-MM-DD | No | - |
+| **Cost** | Currency | No | - | 2 decimals, > 0 | No | If provided, must be valid |
+| **Notes** | Textarea | No | 200 | Any | No | - |
+| **In App** | Checkbox | No | - | Boolean | No | Default: true |
+
+### **Client-Side Validation Functions**
+
+```javascript
+// utils/validation.js
+
+export const validateCategoryCode = (code) => {
+  if (!code || code.trim() === '') {
+    return { valid: false, error: 'Category code is required' };
+  }
+  if (code.length > 5) {
+    return { valid: false, error: 'Category code must be 5 characters or less' };
+  }
+  if (!/^[A-Z0-9]+$/.test(code)) {
+    return { valid: false, error: 'Category code must be uppercase alphanumeric' };
+  }
+  return { valid: true };
+};
+
+export const validateCategoryName = (name) => {
+  if (!name || name.trim() === '') {
+    return { valid: false, error: 'Category name is required' };
+  }
+  if (name.length > 22) {
+    return { valid: false, error: 'Category name must be 22 characters or less' };
+  }
+  return { valid: true };
+};
+
+export const validateItemDescription = (description) => {
+  if (!description || description.trim() === '') {
+    return { valid: false, error: 'Description is required' };
+  }
+  if (description.length > 50) {
+    return { valid: false, error: 'Description must be 50 characters or less' };
+  }
+  return { valid: true };
+};
+
+export const validateCost = (cost) => {
+  if (!cost || cost === '') {
+    return { valid: true }; // Optional field
+  }
+  const numCost = parseFloat(cost);
+  if (isNaN(numCost) || numCost <= 0) {
+    return { valid: false, error: 'Cost must be greater than 0' };
+  }
+  // Check for max 2 decimal places
+  if (!/^\d+(\.\d{1,2})?$/.test(cost.toString())) {
+    return { valid: false, error: 'Cost must have at most 2 decimal places' };
+  }
+  return { valid: true };
+};
+
+export const validateCondition = (condition) => {
+  if (!condition) {
+    return { valid: false, error: 'Condition is required' };
+  }
+  if (!['Usable', 'Not usable', 'Unknown'].includes(condition)) {
+    return { valid: false, error: 'Invalid condition value' };
+  }
+  return { valid: true };
+};
+
+export const validateStatus = (status) => {
+  if (!status) {
+    return { valid: false, error: 'Status is required' };
+  }
+  if (!['In shed', 'Missing', 'Out for repair'].includes(status)) {
+    return { valid: false, error: 'Invalid status value' };
+  }
+  return { valid: true };
+};
+```
+
+---
+
+## Sync Strategy Summary
+
+### **Read Operations (Session Start)**
+
+When user enters "Manage Inventory" section:
+
+1. **Sync from Google Sheets to SQLite**:
+   - Read Metadata tab → Populate `metadata` table
+   - Read Master Inventory tab → Populate `items` table (excluding soft-deleted)
+   - This happens once per session (similar to checkout/checkin flow)
+
+2. **All subsequent reads from SQLite cache**:
+   - Fast, no API quota concerns
+   - Consistent data throughout session
+
+### **Write Operations (Immediate Sync)**
+
+For each add/edit/delete action:
+
+1. **User submits form**
+2. **Validate data client-side**
+3. **Sync to Google Sheets** (Metadata or Master Inventory)
+   - If success → Update SQLite cache → Show success toast → Navigate
+   - If failure → Show error toast → Stay on form → User can retry
+4. **No batch operations** - each action syncs immediately
+
+### **Metadata Tab Sync**
+
+```javascript
+// Example sync flow for Metadata tab
+async syncMetadataFromSheets() {
+  const categories = await sheetsAPI.getCategories();
+  await sqliteAPI.clearMetadataTable();
+  for (const category of categories) {
+    await sqliteAPI.addMetadataCategory(category);
+  }
+}
+```
+
+---
+
+## Testing Checklist
+
+### **Category Management**
+- [ ] Add new category with valid data
+- [ ] Add category with duplicate Class (should error)
+- [ ] Add category with duplicate Class Desc (should error)
+- [ ] Add category with Class > 5 chars (should error)
+- [ ] Add category with Class Desc > 22 chars (should error)
+- [ ] Edit category name successfully
+- [ ] Edit category to duplicate name (should error)
+- [ ] Category list shows all categories from Metadata tab
+- [ ] Search filters categories correctly
+- [ ] Category with no items shows in Manage Categories list
+
+### **Item Management - Add**
+- [ ] Select category populates Item ID correctly
+- [ ] Changing category updates Item ID
+- [ ] Next Item Num generates correctly (max + 1)
+- [ ] Add item with all required fields
+- [ ] Add item without condition (should error)
+- [ ] Add item without status (should error)
+- [ ] Add item with description > 50 chars (should error)
+- [ ] Add item with invalid cost (should error)
+- [ ] Add item with cost = 0 (should error)
+- [ ] Add item with optional fields empty (should succeed)
+- [ ] Item appears in View Inventory after add
+
+### **Item Management - Edit**
+- [ ] Edit item form pre-populates correctly
+- [ ] Cannot change category (field disabled)
+- [ ] Cannot change Item ID (field grayed out)
+- [ ] Can edit all other fields
+- [ ] Save updates Google Sheets and SQLite
+- [ ] Changes reflect in View Inventory
+
+### **Item Management - Delete**
+- [ ] Delete confirmation modal shows item details
+- [ ] Cannot delete without typing "delete item"
+- [ ] Typing correct text enables Delete button
+- [ ] Delete sets status to "Removed from inventory"
+- [ ] Deleted item disappears from View Inventory
+- [ ] Deleted item excluded from category stats
+- [ ] Deleted item excluded from checkout flow
+
+### **View Inventory**
+- [ ] Toggle switches between Category/Item view
+- [ ] Category view shows aggregate stats correctly
+- [ ] Category view calculates available/checked out/unavailable correctly
+- [ ] Item view groups by category with headers
+- [ ] Item view omits categories with 0 items
+- [ ] Search works in both views
+- [ ] Click category in Category view → filters Item view
+- [ ] Click item card → navigates to Edit Item
+- [ ] Click pencil icon → navigates to Edit Item
+- [ ] Click trash icon → shows Delete confirmation
+
+### **Error Handling**
+- [ ] Google Sheets sync failure shows error toast
+- [ ] Form stays intact after sync failure
+- [ ] User can retry after failure
+- [ ] Network errors handled gracefully
+- [ ] Duplicate category errors show correctly
+- [ ] Validation errors show for all required fields
+
+### **Integration with Existing Features**
+- [ ] Soft-deleted items don't appear in checkout category list
+- [ ] Soft-deleted items don't appear in checkout item list
+- [ ] Soft-deleted items don't appear in checkin list
+- [ ] Categories from Metadata tab work with existing checkout flow
+- [ ] Transaction Log still references deleted items (no orphans)
+
+---
+
+## Performance Considerations
+
+1. **Initial Sync**: Sync Metadata + full inventory on session start
+2. **Read Operations**: All reads from SQLite cache (fast)
+3. **Write Operations**: Single Google Sheets API call per action
+4. **No Batch Needed**: Each action is independent and immediate
+5. **Search**: Client-side filtering from cached data (instant)
+
+---
+
+## Future Enhancements (Out of Scope)
+
+- [ ] Bulk operations (add/edit/delete multiple items at once)
+- [ ] Import items from CSV
+- [ ] Export items to CSV
+- [ ] Undo delete (restore soft-deleted items)
+- [ ] Item history view (all transactions for an item)
+- [ ] Category reassignment (move items to different category)
+- [ ] Role-based access control
+- [ ] Audit log for inventory changes
+- [ ] QR code printing for new items

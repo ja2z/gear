@@ -16,6 +16,16 @@ import Success from './pages/Success';
 import ScrollToTop from './components/ScrollToTop';
 import { CartProvider } from './context/CartContext';
 import { SyncProvider } from './context/SyncContext';
+// Manage Inventory imports
+import ManageInventoryDashboard from './pages/manage-inventory/ManageInventoryDashboard';
+import ViewInventory from './pages/manage-inventory/ViewInventory';
+import AddItem from './pages/manage-inventory/AddItem';
+import EditItem from './pages/manage-inventory/EditItem';
+import DeleteItem from './pages/manage-inventory/DeleteItem';
+import SelectCategory from './pages/manage-inventory/SelectCategory';
+import ManageCategories from './pages/manage-inventory/ManageCategories';
+import AddCategory from './pages/manage-inventory/AddCategory';
+import EditCategory from './pages/manage-inventory/EditCategory';
 
 function App() {
   return (
@@ -35,6 +45,16 @@ function App() {
               <Route path="/checkin/form" element={<CheckinForm />} />
               <Route path="/checkin" element={<Checkin />} />
               <Route path="/success" element={<Success />} />
+              {/* Manage Inventory routes */}
+              <Route path="/manage-inventory" element={<ManageInventoryDashboard />} />
+              <Route path="/manage-inventory/view" element={<ViewInventory />} />
+              <Route path="/manage-inventory/add-item" element={<AddItem />} />
+              <Route path="/manage-inventory/edit-item/:itemId" element={<EditItem />} />
+              <Route path="/manage-inventory/delete-item/:itemId" element={<DeleteItem />} />
+              <Route path="/manage-inventory/select-category" element={<SelectCategory />} />
+              <Route path="/manage-inventory/categories" element={<ManageCategories />} />
+              <Route path="/manage-inventory/add-category" element={<AddCategory />} />
+              <Route path="/manage-inventory/edit-category/:classCode" element={<EditCategory />} />
             </Routes>
           </div>
         </Router>

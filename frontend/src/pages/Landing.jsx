@@ -151,6 +151,16 @@ const Landing = () => {
               )}
             </span>
           </button>
+
+          <button
+            onClick={() => navigate('/manage-inventory')}
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] w-full p-6 text-center text-lg touch-target bg-scout-red text-white shadow-xs hover:bg-red-700 relative no-underline"
+          >
+            <span className="flex items-center justify-center">
+              ⚙️ Manage Inventory
+            </span>
+          </button>
         </div>
       </div>
       </div>

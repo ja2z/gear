@@ -650,6 +650,330 @@ class SheetsAPI {
       throw error;
     }
   }
+
+  // ========== METADATA TAB OPERATIONS ==========
+
+  async getCategories() {
+    await this.initialize();
+    const timestamp = new Date().toISOString();
+    
+    try {
+      console.log(`[${timestamp}] 📖 Fetching categories from Metadata tab...`);
+      const metadataSheet = this.doc.sheetsByTitle['Metadata'];
+      
+      if (!metadataSheet) {
+        throw new Error('Metadata sheet not found');
+      }
+      
+      const rows = await metadataSheet.getRows();
+      const categories = rows.map(row => ({
+        class: row.get('Class'),
+        classDesc: row.get('Class Desc')
+      }));
+      
+      console.log(`[${timestamp}] ✅ Fetched ${categories.length} categories from Metadata tab`);
+      return categories;
+    } catch (error) {
+      console.error(`[${timestamp}] ❌ Error fetching categories:`, error);
+      throw error;
+    }
+  }
+
+  async addCategory(categoryData) {
+    await this.initialize();
+    const timestamp = new Date().toISOString();
+    
+    try {
+      console.log(`[${timestamp}] ➕ Adding category to Metadata tab:`, categoryData);
+      const metadataSheet = this.doc.sheetsByTitle['Metadata'];
+      
+      if (!metadataSheet) {
+        throw new Error('Metadata sheet not found');
+      }
+      
+      await metadataSheet.addRow({
+        'Class': categoryData.class,
+        'Class Desc': categoryData.classDesc
+      });
+      
+      console.log(`[${timestamp}] ✅ Category added to Metadata tab`);
+    } catch (error) {
+      console.error(`[${timestamp}] ❌ Error adding category:`, error);
+      throw error;
+    }
+  }
+
+  async updateCategory(classCode, newClassDesc) {
+    await this.initialize();
+    const timestamp = new Date().toISOString();
+    
+    try {
+      console.log(`[${timestamp}] 📝 Updating category in Metadata tab: ${classCode}`);
+      const metadataSheet = this.doc.sheetsByTitle['Metadata'];
+      
+      if (!metadataSheet) {
+        throw new Error('Metadata sheet not found');
+      }
+      
+      const rows = await metadataSheet.getRows();
+      const targetRow = rows.find(row => row.get('Class') === classCode);
+      
+      if (!targetRow) {
+        throw new Error(`Category ${classCode} not found in Metadata tab`);
+      }
+      
+      targetRow.set('Class Desc', newClassDesc);
+      await targetRow.save();
+      
+      console.log(`[${timestamp}] ✅ Category updated in Metadata tab`);
+      
+      // ========== BULK UPDATE ITEM DESC IN MASTER INVENTORY ==========
+      // Use cell-based API approach for efficient bulk updates (single API call)
+      console.log(`[${timestamp}] 📝 Bulk updating Item Desc in Master Inventory for all ${classCode} items`);
+      const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
+      
+      if (!inventorySheet) {
+        throw new Error('Master Inventory sheet not found');
+      }
+      
+      // Load all inventory rows to build itemClass-to-rowIndex map
+      console.log(`[${timestamp}] 📖 Loading inventory rows...`);
+      const inventoryRows = await inventorySheet.getRows();
+      const rowsToUpdate = [];
+      
+      inventoryRows.forEach((row, index) => {
+        const itemClass = row.get('Item Class');
+        if (itemClass === classCode) {
+          rowsToUpdate.push(index + 2); // +2 for header row and 0-indexing
+        }
+      });
+      
+      console.log(`[${timestamp}] 📊 Found ${rowsToUpdate.length} items to update`);
+      
+      if (rowsToUpdate.length === 0) {
+        console.log(`[${timestamp}] ✅ No items to update for category ${classCode}`);
+        return;
+      }
+      
+      // Get column index for Item Desc
+      await inventorySheet.loadHeaderRow();
+      const headers = inventorySheet.headerValues;
+      const itemDescColIndex = headers.indexOf('Item Desc');
+      
+      if (itemDescColIndex === -1) {
+        throw new Error('Item Desc column not found in Master Inventory');
+      }
+      
+      // Helper function to convert column index to letter (0=A, 1=B, etc.)
+      const colIndexToLetter = (index) => {
+        let letter = '';
+        let temp = index;
+        while (temp >= 0) {
+          letter = String.fromCharCode((temp % 26) + 65) + letter;
+          temp = Math.floor(temp / 26) - 1;
+        }
+        return letter;
+      };
+      
+      const colLetter = colIndexToLetter(itemDescColIndex);
+      const minRow = Math.min(...rowsToUpdate);
+      const maxRow = Math.max(...rowsToUpdate);
+      
+      // Load only the cells we need to update (Item Desc column for relevant rows)
+      const cellRange = `${colLetter}${minRow}:${colLetter}${maxRow}`;
+      console.log(`[${timestamp}] 📥 Loading cells in range: ${cellRange}`);
+      await inventorySheet.loadCells(cellRange);
+      console.log(`[${timestamp}] ✅ Cells loaded (1 API call)`);
+      
+      // Update all cells in memory
+      rowsToUpdate.forEach(rowIndex => {
+        const row0Based = rowIndex - 1;
+        inventorySheet.getCell(row0Based, itemDescColIndex).value = newClassDesc;
+      });
+      
+      // Save all changes in a single API call
+      console.log(`[${timestamp}] 💾 Saving ${rowsToUpdate.length} cell updates...`);
+      await inventorySheet.saveUpdatedCells();
+      console.log(`[${timestamp}] ✅ Updated Item Desc for ${rowsToUpdate.length} items in Master Inventory (1 API call)`);
+      
+    } catch (error) {
+      console.error(`[${timestamp}] ❌ Error updating category:`, error);
+      throw error;
+    }
+  }
+
+  async checkCategoryUniqueness(classCode, classDesc, excludeClass = null) {
+    await this.initialize();
+    
+    try {
+      const categories = await this.getCategories();
+      const classUnique = !categories.some(c => 
+        c.class === classCode && c.class !== excludeClass
+      );
+      const classDescUnique = !categories.some(c => 
+        c.classDesc === classDesc && c.class !== excludeClass
+      );
+      return { classUnique, classDescUnique };
+    } catch (error) {
+      console.error('❌ Error checking category uniqueness:', error);
+      throw error;
+    }
+  }
+
+  async syncMetadataFromSheets() {
+    await this.initialize();
+    const timestamp = new Date().toISOString();
+    
+    try {
+      console.log(`[${timestamp}] 🔄 Syncing metadata from Google Sheets to SQLite...`);
+      
+      const categories = await this.getCategories();
+      
+      // Clear and repopulate metadata table in SQLite
+      await sqliteAPI.clearMetadataTable();
+      
+      for (const category of categories) {
+        await sqliteAPI.addMetadataCategory(category);
+      }
+      
+      console.log(`[${timestamp}] ✅ Synced ${categories.length} categories to SQLite metadata table`);
+    } catch (error) {
+      console.error(`[${timestamp}] ❌ Error syncing metadata:`, error);
+      throw error;
+    }
+  }
+
+  // ========== ITEM MANAGEMENT OPERATIONS ==========
+
+  async getNextItemNum(classCode) {
+    await this.initialize();
+    const timestamp = new Date().toISOString();
+    
+    try {
+      console.log(`[${timestamp}] 🔢 Getting next item number for class: ${classCode}`);
+      const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
+      const rows = await inventorySheet.getRows();
+      
+      // Filter rows by class and exclude soft-deleted items
+      const classItems = rows.filter(row => 
+        row.get('Item Class') === classCode &&
+        row.get('Status') !== 'Removed from inventory'
+      );
+      
+      if (classItems.length === 0) {
+        return { nextNum: '001', nextItemId: `${classCode}-001` };
+      }
+      
+      // Find max Item Num
+      const maxNum = Math.max(...classItems.map(row => {
+        const itemNum = row.get('Item Num');
+        return parseInt(itemNum, 10) || 0;
+      }));
+      
+      const nextNum = (maxNum + 1).toString().padStart(3, '0');
+      console.log(`[${timestamp}] ✅ Next item number: ${nextNum}`);
+      return { nextNum, nextItemId: `${classCode}-${nextNum}` };
+    } catch (error) {
+      console.error(`[${timestamp}] ❌ Error getting next item number:`, error);
+      throw error;
+    }
+  }
+
+  async addItem(itemData) {
+    await this.initialize();
+    const timestamp = new Date().toISOString();
+    
+    try {
+      console.log(`[${timestamp}] ➕ Adding item to Master Inventory:`, itemData.itemId);
+      const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
+      
+      if (!inventorySheet) {
+        throw new Error('Master Inventory sheet not found');
+      }
+      
+      await inventorySheet.addRow({
+        'Item Class': itemData.itemClass,
+        'Item Desc': itemData.itemDesc,
+        'Item Num': itemData.itemNum,
+        'Item ID': itemData.itemId,
+        'Description': itemData.description,
+        'Is Tagged': itemData.isTagged ? 'TRUE' : 'FALSE',
+        'Condition': itemData.condition,
+        'Status': itemData.status,
+        'Purchase Date': itemData.purchaseDate || '',
+        'Cost': itemData.cost || '',
+        'Checked Out To': '',
+        'Checked Out By': '',
+        'Check Out Date': '',
+        'Outing Name': '',
+        'Notes': itemData.notes || '',
+        'In App': itemData.inApp ? 'TRUE' : 'FALSE'
+      });
+      
+      console.log(`[${timestamp}] ✅ Item added to Master Inventory`);
+    } catch (error) {
+      console.error(`[${timestamp}] ❌ Error adding item:`, error);
+      throw error;
+    }
+  }
+
+  async updateItemInSheets(itemId, updates) {
+    await this.initialize();
+    const timestamp = new Date().toISOString();
+    
+    try {
+      console.log(`[${timestamp}] 📝 Updating item in Master Inventory: ${itemId}`);
+      const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
+      const rows = await inventorySheet.getRows();
+      
+      const targetRow = rows.find(row => row.get('Item ID') === itemId);
+      
+      if (!targetRow) {
+        throw new Error(`Item ${itemId} not found in Master Inventory`);
+      }
+      
+      // Update allowed fields (NOT itemClass, itemNum, itemId)
+      if (updates.description !== undefined) targetRow.set('Description', updates.description);
+      if (updates.isTagged !== undefined) targetRow.set('Is Tagged', updates.isTagged ? 'TRUE' : 'FALSE');
+      if (updates.condition !== undefined) targetRow.set('Condition', updates.condition);
+      if (updates.status !== undefined) targetRow.set('Status', updates.status);
+      if (updates.purchaseDate !== undefined) targetRow.set('Purchase Date', updates.purchaseDate || '');
+      if (updates.cost !== undefined) targetRow.set('Cost', updates.cost || '');
+      if (updates.notes !== undefined) targetRow.set('Notes', updates.notes || '');
+      if (updates.inApp !== undefined) targetRow.set('In App', updates.inApp ? 'TRUE' : 'FALSE');
+      
+      await targetRow.save();
+      console.log(`[${timestamp}] ✅ Item updated in Master Inventory`);
+    } catch (error) {
+      console.error(`[${timestamp}] ❌ Error updating item:`, error);
+      throw error;
+    }
+  }
+
+  async softDeleteItem(itemId) {
+    await this.initialize();
+    const timestamp = new Date().toISOString();
+    
+    try {
+      console.log(`[${timestamp}] 🗑️ Soft deleting item: ${itemId}`);
+      const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
+      const rows = await inventorySheet.getRows();
+      
+      const targetRow = rows.find(row => row.get('Item ID') === itemId);
+      
+      if (!targetRow) {
+        throw new Error(`Item ${itemId} not found in Master Inventory`);
+      }
+      
+      targetRow.set('Status', 'Removed from inventory');
+      await targetRow.save();
+      
+      console.log(`[${timestamp}] ✅ Item soft deleted in Master Inventory`);
+    } catch (error) {
+      console.error(`[${timestamp}] ❌ Error soft deleting item:`, error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new SheetsAPI();

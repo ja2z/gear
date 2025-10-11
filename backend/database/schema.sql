@@ -37,6 +37,14 @@ CREATE TABLE IF NOT EXISTS transactions (
   FOREIGN KEY (item_id) REFERENCES items (item_id)
 );
 
+-- Metadata table (Categories from Metadata sheet)
+CREATE TABLE IF NOT EXISTS metadata (
+  class TEXT PRIMARY KEY,
+  class_desc TEXT UNIQUE NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Categories view for easy access
 CREATE VIEW IF NOT EXISTS categories AS
 SELECT 
@@ -54,5 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_items_status ON items(status);
 CREATE INDEX IF NOT EXISTS idx_items_condition ON items(condition);
 CREATE INDEX IF NOT EXISTS idx_items_outing ON items(outing_name);
 CREATE INDEX IF NOT EXISTS idx_items_in_app ON items(in_app);
+CREATE INDEX IF NOT EXISTS idx_items_class ON items(item_class);
 CREATE INDEX IF NOT EXISTS idx_transactions_item_id ON transactions(item_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_timestamp ON transactions(timestamp);
+CREATE INDEX IF NOT EXISTS idx_metadata_class_desc ON metadata(class_desc);

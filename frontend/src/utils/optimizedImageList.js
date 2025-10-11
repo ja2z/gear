@@ -9,14 +9,34 @@ export const OPTIMIZED_IMAGES = [
     "lqip": "/images/IMG_0406.lqip.webp"
   },
   {
+    "original": "/images/IMG_0415.png",
+    "webp": "/images/IMG_0415.webp",
+    "lqip": "/images/IMG_0415.lqip.webp"
+  },
+  {
     "original": "/images/IMG_0424.png",
     "webp": "/images/IMG_0424.webp",
     "lqip": "/images/IMG_0424.lqip.webp"
   },
   {
+    "original": "/images/IMG_0468.png",
+    "webp": "/images/IMG_0468.webp",
+    "lqip": "/images/IMG_0468.lqip.webp"
+  },
+  {
+    "original": "/images/IMG_0477.png",
+    "webp": "/images/IMG_0477.webp",
+    "lqip": "/images/IMG_0477.lqip.webp"
+  },
+  {
     "original": "/images/IMG_0489.png",
     "webp": "/images/IMG_0489.webp",
     "lqip": "/images/IMG_0489.lqip.webp"
+  },
+  {
+    "original": "/images/IMG_0507.png",
+    "webp": "/images/IMG_0507.webp",
+    "lqip": "/images/IMG_0507.lqip.webp"
   },
   {
     "original": "/images/IMG_3195.png",
@@ -49,6 +69,11 @@ export const OPTIMIZED_IMAGES = [
     "lqip": "/images/IMG_8083.lqip.webp"
   },
   {
+    "original": "/images/IMG_8429.png",
+    "webp": "/images/IMG_8429.webp",
+    "lqip": "/images/IMG_8429.lqip.webp"
+  },
+  {
     "original": "/images/IMG_8618.png",
     "webp": "/images/IMG_8618.webp",
     "lqip": "/images/IMG_8618.lqip.webp"
@@ -59,9 +84,24 @@ export const OPTIMIZED_IMAGES = [
     "lqip": "/images/IMG_8699.lqip.webp"
   },
   {
+    "original": "/images/IMG_8736.png",
+    "webp": "/images/IMG_8736.webp",
+    "lqip": "/images/IMG_8736.lqip.webp"
+  },
+  {
     "original": "/images/IMG_9212.png",
     "webp": "/images/IMG_9212.webp",
     "lqip": "/images/IMG_9212.lqip.webp"
+  },
+  {
+    "original": "/images/IMG_9330.png",
+    "webp": "/images/IMG_9330.webp",
+    "lqip": "/images/IMG_9330.lqip.webp"
+  },
+  {
+    "original": "/images/IMG_9348.png",
+    "webp": "/images/IMG_9348.webp",
+    "lqip": "/images/IMG_9348.lqip.webp"
   },
   {
     "original": "/images/IMG_9395.png",
@@ -74,9 +114,19 @@ export const OPTIMIZED_IMAGES = [
     "lqip": "/images/IMG_9450.lqip.webp"
   },
   {
+    "original": "/images/IMG_9479.png",
+    "webp": "/images/IMG_9479.webp",
+    "lqip": "/images/IMG_9479.lqip.webp"
+  },
+  {
     "original": "/images/IMG_9519.png",
     "webp": "/images/IMG_9519.webp",
     "lqip": "/images/IMG_9519.lqip.webp"
+  },
+  {
+    "original": "/images/IMG_9882.png",
+    "webp": "/images/IMG_9882.webp",
+    "lqip": "/images/IMG_9882.lqip.webp"
   }
 ];
 
