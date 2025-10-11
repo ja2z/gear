@@ -2,17 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
+import { useInventory } from '../../hooks/useInventory';
 import { validateCategoryName } from '../../utils/validation';
-
-// Configure API base URL based on environment
-const API_URL = import.meta.env.PROD 
-  ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com')
-  : 'http://localhost:3001';
 
 const EditCategory = () => {
   const navigate = useNavigate();
   const { classCode } = useParams();
   const { toast, showToast, hideToast } = useToast();
+  const { getData } = useInventory();
 
   const [category, setCategory] = useState(null);
   const [classDesc, setClassDesc] = useState('');
@@ -27,9 +24,7 @@ const EditCategory = () => {
   const fetchCategory = async () => {
     try {
       setFetchLoading(true);
-      const response = await fetch(`${API_URL}/api/metadata/categories`);
-      if (!response.ok) throw new Error('Failed to fetch categories');
-      const data = await response.json();
+      const data = await getData('/metadata/categories');
       
       const found = data.find(cat => cat.class === classCode);
       if (!found) {
@@ -58,10 +53,9 @@ const EditCategory = () => {
     // Check uniqueness on server (excluding current category)
     if (!newErrors.classDesc) {
       try {
-        const response = await fetch(
-          `${API_URL}/api/metadata/categories/check-unique?classDesc=${encodeURIComponent(classDesc)}&excludeClass=${classCode}`
+        const data = await getData(
+          `/metadata/categories/check-unique?classDesc=${encodeURIComponent(classDesc)}&excludeClass=${classCode}`
         );
-        const data = await response.json();
         
         if (!data.classDescUnique) {
           newErrors.classDesc = 'Category name already exists';
@@ -87,7 +81,13 @@ const EditCategory = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/metadata/categories/${classCode}`, {
+      
+      // Use custom fetch since useInventory doesn't have a PUT method helper
+      const API_BASE_URL = import.meta.env.PROD 
+        ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api')
+        : '/api';
+      
+      const response = await fetch(`${API_BASE_URL}/metadata/categories/${classCode}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'

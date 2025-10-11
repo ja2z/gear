@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
+import { useInventory } from '../../hooks/useInventory';
 import {
   validateItemDescription,
   validateCost,
@@ -10,15 +11,11 @@ import {
   validateNotes
 } from '../../utils/validation';
 
-// Configure API base URL based on environment
-const API_URL = import.meta.env.PROD 
-  ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com')
-  : 'http://localhost:3001';
-
 const AddItem = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast, showToast, hideToast } = useToast();
+  const { getData, postData } = useInventory();
 
   const [selectedCategory, setSelectedCategory] = useState(location.state?.selectedCategory || null);
   const [nextItemNum, setNextItemNum] = useState('');
@@ -43,9 +40,7 @@ const AddItem = () => {
 
   const fetchNextItemNum = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/manage-inventory/next-item-num/${selectedCategory.class}`);
-      if (!response.ok) throw new Error('Failed to fetch next item number');
-      const data = await response.json();
+      const data = await getData(`/manage-inventory/next-item-num/${selectedCategory.class}`);
       setNextItemNum(data.nextNum);
     } catch (error) {
       console.error('Error fetching next item number:', error);
@@ -118,18 +113,7 @@ const AddItem = () => {
         inApp: formData.inApp
       };
 
-      const response = await fetch(`${API_URL}/api/manage-inventory/items`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(itemData)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add item');
-      }
+      await postData('/manage-inventory/items', itemData);
 
       showToast('Item added successfully', 'success');
       setTimeout(() => {

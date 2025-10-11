@@ -2,16 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
-
-// Configure API base URL based on environment
-const API_BASE_URL = import.meta.env.PROD 
-  ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api')
-  : '/api';
+import { useInventory } from '../../hooks/useInventory';
 
 const ViewInventory = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast, showToast, hideToast } = useToast();
+  const { getData } = useInventory();
   
   const [viewMode, setViewMode] = useState('category'); // 'category' or 'item'
   const [categoryStats, setCategoryStats] = useState([]);
@@ -32,9 +29,7 @@ const ViewInventory = () => {
   const fetchCategoryStats = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/manage-inventory/category-stats`);
-      if (!response.ok) throw new Error('Failed to fetch category stats');
-      const data = await response.json();
+      const data = await getData('/manage-inventory/category-stats');
       setCategoryStats(data);
     } catch (error) {
       console.error('Error fetching category stats:', error);
@@ -48,9 +43,7 @@ const ViewInventory = () => {
   const fetchItems = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/manage-inventory/items`);
-      if (!response.ok) throw new Error('Failed to fetch items');
-      const data = await response.json();
+      const data = await getData('/manage-inventory/items');
       setItems(data);
     } catch (error) {
       console.error('Error fetching items:', error);

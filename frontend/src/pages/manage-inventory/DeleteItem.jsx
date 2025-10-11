@@ -2,16 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
-
-// Configure API base URL based on environment
-const API_URL = import.meta.env.PROD 
-  ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com')
-  : 'http://localhost:3001';
+import { useInventory } from '../../hooks/useInventory';
 
 const DeleteItem = () => {
   const navigate = useNavigate();
   const { itemId } = useParams();
   const { toast, showToast, hideToast } = useToast();
+  const { getData } = useInventory();
   
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -25,9 +22,7 @@ const DeleteItem = () => {
     const fetchItem = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_URL}/api/manage-inventory/items/${itemId}`);
-        if (!response.ok) throw new Error('Failed to fetch item');
-        const data = await response.json();
+        const data = await getData(`/manage-inventory/items/${itemId}`);
         setItem(data);
       } catch (error) {
         console.error('Error fetching item:', error);
@@ -39,14 +34,20 @@ const DeleteItem = () => {
     };
 
     fetchItem();
-  }, [itemId, navigate]);
+  }, [itemId, navigate, getData]);
 
   const handleDelete = async () => {
     if (!isValid) return;
     
     try {
       setDeleteLoading(true);
-      const response = await fetch(`${API_URL}/api/manage-inventory/items/${itemId}`, {
+      
+      // Use custom fetch since useInventory doesn't have a DELETE method helper
+      const API_BASE_URL = import.meta.env.PROD 
+        ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api')
+        : '/api';
+      
+      const response = await fetch(`${API_BASE_URL}/manage-inventory/items/${itemId}`, {
         method: 'DELETE'
       });
 

@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-
-// Configure API base URL based on environment
-const API_URL = import.meta.env.PROD 
-  ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com')
-  : 'http://localhost:3001';
+import { useInventory } from '../../hooks/useInventory';
 
 const ManageInventoryDashboard = () => {
   const navigate = useNavigate();
+  const { postData } = useInventory();
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState(null);
 
@@ -19,13 +16,7 @@ const ManageInventoryDashboard = () => {
         setSyncError(null);
         
         // Trigger sync endpoint that will read from Google Sheets and update SQLite
-        const response = await fetch(`${API_URL}/api/manage-inventory/sync`, {
-          method: 'POST'
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to sync data');
-        }
+        await postData('/manage-inventory/sync', {});
         
         console.log('Successfully synced inventory data');
       } catch (error) {

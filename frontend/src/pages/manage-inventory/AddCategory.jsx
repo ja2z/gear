@@ -2,16 +2,13 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
+import { useInventory } from '../../hooks/useInventory';
 import { validateCategoryCode, validateCategoryName } from '../../utils/validation';
-
-// Configure API base URL based on environment
-const API_URL = import.meta.env.PROD 
-  ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com')
-  : 'http://localhost:3001';
 
 const AddCategory = () => {
   const navigate = useNavigate();
   const { toast, showToast, hideToast } = useToast();
+  const { getData, postData } = useInventory();
 
   const [formData, setFormData] = useState({
     class: '',
@@ -36,10 +33,9 @@ const AddCategory = () => {
     // Check uniqueness on server
     if (!newErrors.class && !newErrors.classDesc) {
       try {
-        const response = await fetch(
-          `${API_URL}/api/metadata/categories/check-unique?class=${encodeURIComponent(formData.class)}&classDesc=${encodeURIComponent(formData.classDesc)}`
+        const data = await getData(
+          `/metadata/categories/check-unique?class=${encodeURIComponent(formData.class)}&classDesc=${encodeURIComponent(formData.classDesc)}`
         );
-        const data = await response.json();
         
         if (!data.classUnique) {
           newErrors.class = 'Category code already exists';
@@ -73,18 +69,7 @@ const AddCategory = () => {
         classDesc: formData.classDesc.trim()
       };
 
-      const response = await fetch(`${API_URL}/api/metadata/categories`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(categoryData)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create category');
-      }
+      await postData('/metadata/categories', categoryData);
 
       showToast('Category created successfully', 'success');
       setTimeout(() => {

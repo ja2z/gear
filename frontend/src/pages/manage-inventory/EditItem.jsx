@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
+import { useInventory } from '../../hooks/useInventory';
 import {
   validateItemDescription,
   validateCost,
@@ -9,15 +10,11 @@ import {
   validateNotes
 } from '../../utils/validation';
 
-// Configure API base URL based on environment
-const API_URL = import.meta.env.PROD 
-  ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com')
-  : 'http://localhost:3001';
-
 const EditItem = () => {
   const navigate = useNavigate();
   const { itemId } = useParams();
   const { toast, showToast, hideToast } = useToast();
+  const { getData, postData } = useInventory();
 
   const [item, setItem] = useState(null);
   const [formData, setFormData] = useState({
@@ -40,9 +37,7 @@ const EditItem = () => {
   const fetchItem = async () => {
     try {
       setFetchLoading(true);
-      const response = await fetch(`${API_URL}/api/manage-inventory/items/${itemId}`);
-      if (!response.ok) throw new Error('Item not found');
-      const data = await response.json();
+      const data = await getData(`/manage-inventory/items/${itemId}`);
       
       setItem(data);
       setFormData({
@@ -116,7 +111,12 @@ const EditItem = () => {
         inApp: formData.inApp
       };
 
-      const response = await fetch(`${API_URL}/api/manage-inventory/items/${itemId}`, {
+      // Use a custom fetch since useInventory doesn't have a PUT method helper
+      const API_BASE_URL = import.meta.env.PROD 
+        ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api')
+        : '/api';
+      
+      const response = await fetch(`${API_BASE_URL}/manage-inventory/items/${itemId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
