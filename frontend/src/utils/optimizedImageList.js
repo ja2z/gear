@@ -4,6 +4,16 @@
 
 export const OPTIMIZED_IMAGES = [
   {
+    "original": "/images/IMG_0406.png",
+    "webp": "/images/IMG_0406.webp",
+    "lqip": "/images/IMG_0406.lqip.webp"
+  },
+  {
+    "original": "/images/IMG_0415.png",
+    "webp": "/images/IMG_0415.webp",
+    "lqip": "/images/IMG_0415.lqip.webp"
+  },
+  {
     "original": "/images/IMG_0424.png",
     "webp": "/images/IMG_0424.webp",
     "lqip": "/images/IMG_0424.lqip.webp"

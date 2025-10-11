@@ -72,27 +72,57 @@ const ViewInventory = () => {
     }
   }, [viewMode]);
 
-  // Perform pending scroll after items are loaded
+  // Perform pending scroll when category is set and view mode is 'item'
   useEffect(() => {
-    if (!loading && items.length > 0 && pendingScrollToCategory) {
-      // Use requestAnimationFrame to ensure DOM is fully updated
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const element = document.getElementById(`category-${pendingScrollToCategory}`);
-          if (element) {
-            const elementRect = element.getBoundingClientRect();
-            const absoluteElementTop = elementRect.top + window.pageYOffset;
-            const targetPosition = absoluteElementTop - 200;
+    if (viewMode === 'item' && pendingScrollToCategory && !loading) {
+      let cancelled = false;
+      let timeoutIds = [];
+      
+      // Use setTimeout for better mobile browser compatibility
+      // Mobile browsers need more time for DOM to settle after state changes
+      const attemptScroll = (retries = 0) => {
+        if (cancelled) return;
+        
+        const element = document.getElementById(`category-${pendingScrollToCategory}`);
+        if (element) {
+          // Force a reflow to ensure sticky header recalculates (important for mobile)
+          void document.body.offsetHeight;
+          
+          const elementRect = element.getBoundingClientRect();
+          const currentScrollPos = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
+          const absoluteElementTop = elementRect.top + currentScrollPos;
+          const targetPosition = absoluteElementTop - 200;
+          
+          // Try smooth scroll first, but have a fallback
+          try {
             window.scrollTo({
               top: targetPosition,
               behavior: 'smooth'
             });
+          } catch (e) {
+            // Fallback for older mobile browsers
+            window.scrollTo(0, targetPosition);
           }
           setPendingScrollToCategory(null);
-        });
-      });
+        } else if (retries < 3) {
+          // Element not found, retry after a short delay (mobile DOM might not be ready)
+          const retryTimeoutId = setTimeout(() => attemptScroll(retries + 1), 100);
+          timeoutIds.push(retryTimeoutId);
+        } else {
+          // Give up after 3 retries
+          setPendingScrollToCategory(null);
+        }
+      };
+      
+      const initialTimeoutId = setTimeout(() => attemptScroll(), 250);
+      timeoutIds.push(initialTimeoutId);
+      
+      return () => {
+        cancelled = true;
+        timeoutIds.forEach(id => clearTimeout(id));
+      };
     }
-  }, [loading, items, pendingScrollToCategory]);
+  }, [viewMode, loading, pendingScrollToCategory]);
 
   // Filter categories by search (include item descriptions like Categories.jsx)
   const filteredCategories = categoryStats.filter(cat => {
