@@ -3,7 +3,10 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Configure API base URL based on environment
+const API_URL = import.meta.env.PROD 
+  ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com')
+  : 'http://localhost:3001';
 
 const ViewInventory = () => {
   const navigate = useNavigate();
