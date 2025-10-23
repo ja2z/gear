@@ -181,3 +181,6 @@ const transactionSheet = doc.sheetsByTitle['Transaction Log'];
 
 ## Deployment
 - App is deployed on Render (nodejs hosting site)
+
+## Testing
+- When testing locally (such as using Cursor AI IDE), if a backend change is made, restart the servers by using utils/restart-servers.sh

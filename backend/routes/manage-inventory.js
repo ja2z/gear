@@ -233,5 +233,17 @@ router.delete('/items/:itemId', async (req, res) => {
   }
 });
 
+// Get transaction log for a specific item
+router.get('/items/:itemId/transactions', async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    const transactions = await sheetsAPI.getItemTransactions(itemId);
+    res.json(transactions);
+  } catch (error) {
+    console.error('Error fetching item transactions:', error);
+    res.status(500).json({ error: 'Failed to fetch transaction log' });
+  }
+});
+
 module.exports = router;
 

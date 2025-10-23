@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 import { useInventory } from '../../hooks/useInventory';
+import { formatDate } from '../../utils/dateFormatting';
 import {
   validateItemDescription,
   validateCost,
@@ -196,6 +197,30 @@ const EditItem = () => {
             />
           </div>
 
+          {/* View Item Log Button */}
+          <div>
+            <Link
+              to={`/manage-inventory/item-log/${itemId}`}
+              className="w-full px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center space-x-2 no-underline"
+              style={{ minHeight: '44px' }}
+            >
+              <svg 
+                className="w-5 h-5" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                />
+              </svg>
+              <span>View Item Log</span>
+            </Link>
+          </div>
+
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -300,6 +325,25 @@ const EditItem = () => {
             </div>
             {errors.status && (
               <p className="text-red-500 text-sm mt-1">{errors.status}</p>
+            )}
+            
+            {/* Checked Out Info - show when item is checked out */}
+            {item.status === 'Checked out' && item.checkedOutTo && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-gray-800">
+                  <span className="font-medium">Checked out to:</span> {item.checkedOutTo}
+                  {item.checkOutDate && (
+                    <span className="block mt-1">
+                      <span className="font-medium">On:</span> {formatDate(item.checkOutDate)}
+                    </span>
+                  )}
+                  {item.outingName && (
+                    <span className="block mt-1">
+                      <span className="font-medium">For:</span> {item.outingName}
+                    </span>
+                  )}
+                </p>
+              </div>
             )}
           </div>
 

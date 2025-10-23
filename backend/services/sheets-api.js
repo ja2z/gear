@@ -208,6 +208,7 @@ class SheetsAPI {
         'Action': transactionData.action,
         'Item ID': transactionData.itemId,
         'Outing Name': transactionData.outingName,
+        'Checked Out To': transactionData.scoutName || '',
         'Condition': transactionData.condition,
         'Processed By': transactionData.processedBy,
         'Notes': transactionData.notes
@@ -249,6 +250,7 @@ class SheetsAPI {
         'Action': transaction.action,
         'Item ID': transaction.itemId,
         'Outing Name': transaction.outingName,
+        'Checked Out To': transaction.scoutName || '',
         'Condition': transaction.condition,
         'Processed By': transaction.processedBy,
         'Notes': transaction.notes
@@ -971,6 +973,53 @@ class SheetsAPI {
       console.log(`[${timestamp}] ✅ Item soft deleted in Master Inventory`);
     } catch (error) {
       console.error(`[${timestamp}] ❌ Error soft deleting item:`, error);
+      throw error;
+    }
+  }
+
+  // ========== TRANSACTION LOG OPERATIONS ==========
+
+  async getItemTransactions(itemId) {
+    await this.initialize();
+    const timestamp = new Date().toISOString();
+    
+    try {
+      console.log(`[${timestamp}] 📖 Fetching transactions for item: ${itemId}`);
+      const transactionSheet = this.doc.sheetsByTitle['Transaction Log'];
+      
+      if (!transactionSheet) {
+        throw new Error('Transaction Log sheet not found');
+      }
+      
+      const rows = await transactionSheet.getRows();
+      
+      // Normalize the search itemId (trim whitespace)
+      const searchItemId = itemId.trim();
+      
+      // Filter by Item ID and sort by timestamp ascending
+      // Trim whitespace from sheet values for comparison
+      const transactions = rows
+        .filter(row => {
+          const rowItemId = row.get('Item ID');
+          const trimmedRowItemId = rowItemId ? rowItemId.trim() : '';
+          return trimmedRowItemId === searchItemId;
+        })
+        .map(row => ({
+          timestamp: row.get('Timestamp'),
+          action: row.get('Action'),
+          itemId: row.get('Item ID'),
+          outingName: row.get('Outing Name') || '',
+          checkedOutTo: row.get('Checked Out To') || '',
+          condition: row.get('Condition') || '',
+          processedBy: row.get('Processed By') || '',
+          notes: row.get('Notes') || ''
+        }))
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      
+      console.log(`[${timestamp}] ✅ Found ${transactions.length} transactions for ${itemId}`);
+      return transactions;
+    } catch (error) {
+      console.error(`[${timestamp}] ❌ Error fetching transactions:`, error);
       throw error;
     }
   }

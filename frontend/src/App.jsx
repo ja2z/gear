@@ -26,6 +26,7 @@ import SelectCategory from './pages/manage-inventory/SelectCategory';
 import ManageCategories from './pages/manage-inventory/ManageCategories';
 import AddCategory from './pages/manage-inventory/AddCategory';
 import EditCategory from './pages/manage-inventory/EditCategory';
+import ItemTransactionLog from './pages/manage-inventory/ItemTransactionLog';
 
 function App() {
   return (
@@ -50,6 +51,7 @@ function App() {
               <Route path="/manage-inventory/view" element={<ViewInventory />} />
               <Route path="/manage-inventory/add-item" element={<AddItem />} />
               <Route path="/manage-inventory/edit-item/:itemId" element={<EditItem />} />
+              <Route path="/manage-inventory/item-log/:itemId" element={<ItemTransactionLog />} />
               <Route path="/manage-inventory/delete-item/:itemId" element={<DeleteItem />} />
               <Route path="/manage-inventory/select-category" element={<SelectCategory />} />
               <Route path="/manage-inventory/categories" element={<ManageCategories />} />

@@ -286,6 +286,8 @@ class SQLiteAPI {
   }
 
   async getItemById(itemId) {
+    await this.initialize();
+    
     return new Promise((resolve, reject) => {
       const query = `
         SELECT 
