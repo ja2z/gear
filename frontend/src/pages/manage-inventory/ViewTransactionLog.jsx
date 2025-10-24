@@ -208,7 +208,7 @@ const ViewTransactionLog = () => {
               setDateRange(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[44px]"
+            className="w-full px-4 py-4 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[56px]"
           >
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
@@ -218,7 +218,7 @@ const ViewTransactionLog = () => {
         </div>
 
         {/* Show Past Outings Toggle */}
-        <div className="flex items-center">
+        <div className="flex items-center py-2">
           <input
             type="checkbox"
             id="showPastOutings"
@@ -227,11 +227,11 @@ const ViewTransactionLog = () => {
               setShowPastOutings(e.target.checked);
               setSelectedOuting(''); // Reset selected outing when toggling
             }}
-            className="h-5 w-5 text-scout-blue focus:ring-scout-blue border-gray-300 rounded cursor-pointer"
+            className="h-6 w-6 text-scout-blue focus:ring-scout-blue border-gray-300 rounded cursor-pointer"
           />
           <label
             htmlFor="showPastOutings"
-            className="ml-2 text-sm font-medium text-gray-700 cursor-pointer"
+            className="ml-3 text-base font-medium text-gray-700 cursor-pointer"
           >
             Show past outings
           </label>
@@ -248,7 +248,7 @@ const ViewTransactionLog = () => {
               setSelectedOuting(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[44px]"
+            className="w-full px-4 py-4 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[56px]"
           >
             <option value="">All outings</option>
             {outings.map((outing) => (
@@ -272,14 +272,14 @@ const ViewTransactionLog = () => {
               setCurrentPage(1);
             }}
             placeholder="e.g., TENT-001"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[44px]"
+            className="search-input"
           />
         </div>
 
         {/* Clear Filters Button */}
         <button
           onClick={handleClearFilters}
-          className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors min-h-[44px] font-medium"
+          className="w-full px-4 py-4 text-base bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium touch-target"
         >
           Clear Filters
         </button>
@@ -363,13 +363,13 @@ const ViewTransactionLog = () => {
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="px-4 py-2 bg-scout-blue text-white rounded-lg hover:bg-scout-blue/90 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] flex-1 font-medium"
+              className="px-4 py-4 bg-scout-blue text-white rounded-lg hover:bg-scout-blue/90 disabled:opacity-50 disabled:cursor-not-allowed min-h-[56px] flex-1 font-medium text-base"
             >
               Previous
             </button>
 
             {/* Page Indicator */}
-            <div className="text-sm text-gray-600 whitespace-nowrap">
+            <div className="text-sm text-gray-600 whitespace-nowrap px-4">
               Page {currentPage} of {totalPages}
             </div>
 
@@ -377,31 +377,10 @@ const ViewTransactionLog = () => {
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 bg-scout-blue text-white rounded-lg hover:bg-scout-blue/90 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] flex-1 font-medium"
+              className="px-4 py-4 bg-scout-blue text-white rounded-lg hover:bg-scout-blue/90 disabled:opacity-50 disabled:cursor-not-allowed min-h-[56px] flex-1 font-medium text-base"
             >
               Next
             </button>
-          </div>
-
-          {/* Jump to Page (Desktop-friendly) */}
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <label htmlFor="pageJump" className="text-sm text-gray-600">
-              Go to page:
-            </label>
-            <input
-              id="pageJump"
-              type="number"
-              min="1"
-              max={totalPages}
-              value={currentPage}
-              onChange={(e) => {
-                const page = parseInt(e.target.value);
-                if (page >= 1 && page <= totalPages) {
-                  handlePageChange(page);
-                }
-              }}
-              className="w-20 px-2 py-1 border border-gray-300 rounded text-center focus:ring-2 focus:ring-scout-blue focus:border-scout-blue"
-            />
           </div>
         </div>
       )}
