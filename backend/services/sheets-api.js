@@ -1023,6 +1023,87 @@ class SheetsAPI {
       throw error;
     }
   }
+
+  async getAllTransactions(filters = {}) {
+    await this.initialize();
+    const timestamp = new Date().toISOString();
+    
+    try {
+      const { dateRange, outing, itemId, limit = 50, offset = 0 } = filters;
+      
+      console.log(`[${timestamp}] 📖 Fetching all transactions with filters:`, filters);
+      const transactionSheet = this.doc.sheetsByTitle['Transaction Log'];
+      
+      if (!transactionSheet) {
+        throw new Error('Transaction Log sheet not found');
+      }
+      
+      const rows = await transactionSheet.getRows();
+      
+      // Map all rows to transaction objects
+      let transactions = rows.map(row => ({
+        timestamp: row.get('Timestamp'),
+        action: row.get('Action'),
+        itemId: row.get('Item ID'),
+        outingName: row.get('Outing Name') || '',
+        checkedOutTo: row.get('Checked Out To') || '',
+        condition: row.get('Condition') || '',
+        processedBy: row.get('Processed By') || '',
+        notes: row.get('Notes') || ''
+      }));
+      
+      // Apply filters
+      
+      // Date range filter
+      if (dateRange && dateRange !== 'all') {
+        const daysAgo = parseInt(dateRange);
+        if (!isNaN(daysAgo)) {
+          const cutoffDate = new Date();
+          cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+          
+          transactions = transactions.filter(t => {
+            const txDate = new Date(t.timestamp);
+            return txDate >= cutoffDate;
+          });
+        }
+      }
+      
+      // Outing filter
+      if (outing && outing.trim() !== '') {
+        const searchOuting = outing.trim().toLowerCase();
+        transactions = transactions.filter(t => 
+          t.outingName.toLowerCase().includes(searchOuting)
+        );
+      }
+      
+      // Item ID filter
+      if (itemId && itemId.trim() !== '') {
+        const searchItemId = itemId.trim().toLowerCase();
+        transactions = transactions.filter(t => 
+          t.itemId.toLowerCase().includes(searchItemId)
+        );
+      }
+      
+      // Sort by timestamp descending (most recent first)
+      transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      // Get total count before pagination
+      const total = transactions.length;
+      
+      // Apply pagination
+      const paginatedTransactions = transactions.slice(offset, offset + limit);
+      
+      console.log(`[${timestamp}] ✅ Found ${total} transactions (returning ${paginatedTransactions.length})`);
+      
+      return {
+        transactions: paginatedTransactions,
+        total
+      };
+    } catch (error) {
+      console.error(`[${timestamp}] ❌ Error fetching all transactions:`, error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new SheetsAPI();

@@ -245,5 +245,26 @@ router.get('/items/:itemId/transactions', async (req, res) => {
   }
 });
 
+// Get all transactions with optional filters
+router.get('/transactions', async (req, res) => {
+  try {
+    const { dateRange, outing, itemId, limit, offset } = req.query;
+    
+    const filters = {
+      dateRange: dateRange || '30', // Default to last 30 days
+      outing: outing || '',
+      itemId: itemId || '',
+      limit: limit ? parseInt(limit) : 50,
+      offset: offset ? parseInt(offset) : 0
+    };
+    
+    const result = await sheetsAPI.getAllTransactions(filters);
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching all transactions:', error);
+    res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
+});
+
 module.exports = router;
 

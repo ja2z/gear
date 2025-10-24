@@ -80,6 +80,13 @@ const ManageInventoryDashboard = () => {
           >
             📁 Manage Categories
           </button>
+
+          <button
+            onClick={() => navigate('/manage-inventory/view-logs')}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] w-full p-6 text-center text-lg touch-target bg-purple-600 text-white shadow-xs hover:bg-purple-700"
+          >
+            📋 View Logs
+          </button>
         </div>
       </div>
       )}
