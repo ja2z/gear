@@ -27,12 +27,34 @@ app.use('/api/manage-inventory', require('./routes/manage-inventory'));
 
 // Lightweight ping endpoint for keep-alive
 app.get('/api/ping', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Scout Gear Management API is running',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
+  const uptime = process.uptime();
+  const uptimeSec = Math.floor(uptime);
+  const uptimeMin = Math.floor(uptime / 60);
+  const uptimeHr = Math.floor(uptime / 3600);
+  
+  // Format timestamp in Pacific time
+  const now = new Date();
+  const timestamp = now.toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).replace(/(\d+)\/(\d+)\/(\d+),\s+(\d+:\d+:\d+)/, '$3-$1-$2 $4');
+  
+  // Get timezone abbreviation (PST or PDT)
+  const timeZone = now.toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    timeZoneName: 'short'
+  }).split(' ').pop();
+  
+  const statusCode = 200;
+  const message = `${timestamp} ${timeZone} - SUCCESS: App is healthy (HTTP ${statusCode}, uptime: ${uptimeSec} sec = ${uptimeMin} min = ${uptimeHr} hr)`;
+  
+  res.status(statusCode).send(message);
 });
 
 // Health check endpoint
