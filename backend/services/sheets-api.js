@@ -1130,27 +1130,43 @@ class SheetsAPI {
       
       const rows = await transactionSheet.getRows();
       
-      // Extract unique outing names and count transactions per outing
+      // Extract unique outing names, count transactions, and track earliest timestamp per outing
       const outingMap = new Map();
       
       rows.forEach(row => {
         const outingName = row.get('Outing Name');
+        const timestamp = row.get('Timestamp');
         if (outingName && outingName.trim() !== '') {
           const trimmedName = outingName.trim();
           if (!outingMap.has(trimmedName)) {
-            outingMap.set(trimmedName, 0);
+            outingMap.set(trimmedName, {
+              count: 0,
+              minTimestamp: timestamp
+            });
           }
-          outingMap.set(trimmedName, outingMap.get(trimmedName) + 1);
+          const outingData = outingMap.get(trimmedName);
+          outingData.count += 1;
+          
+          // Track the earliest timestamp for this outing
+          if (timestamp && (!outingData.minTimestamp || timestamp < outingData.minTimestamp)) {
+            outingData.minTimestamp = timestamp;
+          }
         }
       });
       
-      // Convert to array and sort alphabetically
+      // Convert to array and sort by most recent first (earliest timestamp for each outing)
       const outings = Array.from(outingMap.entries())
-        .map(([outingName, transactionCount]) => ({
+        .map(([outingName, data]) => ({
           outingName,
-          transactionCount
+          transactionCount: data.count,
+          minTimestamp: data.minTimestamp
         }))
-        .sort((a, b) => a.outingName.localeCompare(b.outingName));
+        .sort((a, b) => {
+          // Sort by most recent first (descending order)
+          if (!a.minTimestamp) return 1;
+          if (!b.minTimestamp) return -1;
+          return b.minTimestamp.localeCompare(a.minTimestamp);
+        });
       
       console.log(`[${timestamp}] ✅ Found ${outings.length} unique outings`);
       return outings;

@@ -19,7 +19,6 @@ const ViewTransactionLog = () => {
   const [selectedOuting, setSelectedOuting] = useState('');
   const [itemIdSearch, setItemIdSearch] = useState('');
   const [searchDebounce, setSearchDebounce] = useState('');
-  const [showPastOutings, setShowPastOutings] = useState(false);
   const [filteredItemIds, setFilteredItemIds] = useState([]); // For outing item breakdown filtering
   
   // Pagination state
@@ -28,10 +27,10 @@ const ViewTransactionLog = () => {
   const [unfilteredCount, setUnfilteredCount] = useState(0); // Total for outing without item filter
   const itemsPerPage = 50;
 
-  // Fetch outings for filter dropdown when toggle changes
+  // Fetch outings for filter dropdown on mount
   useEffect(() => {
     fetchOutings();
-  }, [showPastOutings]);
+  }, []);
 
   // Debounce item ID search
   useEffect(() => {
@@ -67,14 +66,8 @@ const ViewTransactionLog = () => {
 
   const fetchOutings = async () => {
     try {
-      let data;
-      if (showPastOutings) {
-        // Fetch all outings from transaction log (including past)
-        data = await getData('/manage-inventory/all-outings');
-      } else {
-        // Fetch only active outings (with currently checked out items)
-        data = await getData('/inventory/outings');
-      }
+      // Always fetch all outings from transaction log (past and present), sorted by most recent first
+      const data = await getData('/manage-inventory/all-outings');
       setOutings(data);
     } catch (error) {
       console.error('Error fetching outings:', error);
@@ -144,7 +137,6 @@ const ViewTransactionLog = () => {
     setDateRange('30');
     setSelectedOuting('');
     setItemIdSearch('');
-    setShowPastOutings(false);
     setFilteredItemIds([]);
     setCurrentPage(1);
   };
@@ -197,69 +189,52 @@ const ViewTransactionLog = () => {
 
       {/* Filters Section */}
       <div className="bg-white px-5 py-4 border-b border-gray-200 sticky top-16 z-40 space-y-3">
-        {/* Date Range Filter */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Date Range
-          </label>
-          <select
-            value={dateRange}
-            onChange={(e) => {
-              setDateRange(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full px-4 py-4 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[56px]"
-          >
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="all">All time</option>
-          </select>
+        {/* Row 1: Date Range and Outing side by side */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Date Range Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Date Range
+            </label>
+            <select
+              value={dateRange}
+              onChange={(e) => {
+                setDateRange(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-4 py-4 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[56px]"
+            >
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="all">All time</option>
+            </select>
+          </div>
+
+          {/* Outing Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Outing
+            </label>
+            <select
+              value={selectedOuting}
+              onChange={(e) => {
+                setSelectedOuting(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-4 py-4 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[56px]"
+            >
+              <option value="">All outings</option>
+              {outings.map((outing) => (
+                <option key={outing.outingName} value={outing.outingName}>
+                  {outing.outingName} ({outing.transactionCount} {outing.transactionCount === 1 ? 'transaction' : 'transactions'})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Show Past Outings Toggle */}
-        <div className="flex items-center py-2">
-          <input
-            type="checkbox"
-            id="showPastOutings"
-            checked={showPastOutings}
-            onChange={(e) => {
-              setShowPastOutings(e.target.checked);
-              setSelectedOuting(''); // Reset selected outing when toggling
-            }}
-            className="h-6 w-6 text-scout-blue focus:ring-scout-blue border-gray-300 rounded cursor-pointer"
-          />
-          <label
-            htmlFor="showPastOutings"
-            className="ml-3 text-base font-medium text-gray-700 cursor-pointer"
-          >
-            Show past outings
-          </label>
-        </div>
-
-        {/* Outing Filter */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Outing
-          </label>
-          <select
-            value={selectedOuting}
-            onChange={(e) => {
-              setSelectedOuting(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full px-4 py-4 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[56px]"
-          >
-            <option value="">All outings</option>
-            {outings.map((outing) => (
-              <option key={outing.outingName} value={outing.outingName}>
-                {outing.outingName} ({outing.transactionCount} {outing.transactionCount === 1 ? 'transaction' : 'transactions'})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Item ID Search */}
+        {/* Row 2: Search Item ID - full width */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Search Item ID
@@ -276,7 +251,7 @@ const ViewTransactionLog = () => {
           />
         </div>
 
-        {/* Clear Filters Button */}
+        {/* Row 3: Clear Filters Button */}
         <button
           onClick={handleClearFilters}
           className="w-full px-4 py-4 text-base bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium touch-target"
