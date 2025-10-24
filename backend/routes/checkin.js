@@ -21,6 +21,19 @@ router.post('/', async (req, res) => {
     const defaultConditions = itemIds.map(() => 'Usable');
     const finalConditions = conditions || defaultConditions;
     
+    // Capture current item data (including outing names) before check-in
+    const itemsBeforeCheckin = {};
+    for (const itemId of itemIds) {
+      try {
+        const item = await sqliteAPI.getItemById(itemId);
+        if (item) {
+          itemsBeforeCheckin[itemId] = item.outingName || '';
+        }
+      } catch (error) {
+        console.warn(`⚠️ Could not fetch item ${itemId} before check-in:`, error.message);
+      }
+    }
+    
     // Process checkin in SQLite (data should already be fresh from session start)
     const results = await sqliteAPI.checkinItems(
       itemIds,
@@ -39,12 +52,13 @@ router.post('/', async (req, res) => {
         // Prepare all transaction data for batch sync
         const transactionsData = successful.map((result, index) => {
           const condition = finalConditions[index] || 'Usable';
+          const outingName = itemsBeforeCheckin[result.itemId] || '';
           return {
             transactionId: result.transactionId,
             timestamp: new Date().toISOString(),
             action: 'Check in',
             itemId: result.itemId,
-            outingName: '', // Checkin doesn't have outing name
+            outingName: outingName,
             condition: condition,
             processedBy: processedBy,
             notes: notes
@@ -113,6 +127,19 @@ router.post('/test-bulk', async (req, res) => {
     
     console.log(`🎯 Attempting to checkin ${itemIds.length} items:`, itemIds.slice(0, 5), '...');
     
+    // Capture current item data (including outing names) before check-in
+    const itemsBeforeCheckin = {};
+    for (const itemId of itemIds) {
+      try {
+        const item = await sqliteAPI.getItemById(itemId);
+        if (item) {
+          itemsBeforeCheckin[itemId] = item.outingName || '';
+        }
+      } catch (error) {
+        console.warn(`⚠️ Could not fetch item ${itemId} before check-in:`, error.message);
+      }
+    }
+    
     // Process checkin using existing logic
     const results = await sqliteAPI.checkinItems(
       itemIds,
@@ -133,12 +160,13 @@ router.post('/test-bulk', async (req, res) => {
         // Prepare all transaction data for batch sync
         const transactionsData = successful.map((result, index) => {
           const condition = finalConditions[index] || 'Usable';
+          const outingName = itemsBeforeCheckin[result.itemId] || '';
           return {
             transactionId: result.transactionId,
             timestamp: new Date().toISOString(),
             action: 'Check in',
             itemId: result.itemId,
-            outingName: '', // Checkin doesn't have outing name
+            outingName: outingName,
             condition: condition,
             processedBy: processedBy,
             notes: notes

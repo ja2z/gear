@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const sqliteAPI = require('../services/sqlite-api');
 const sheetsAPI = require('../services/sheets-api');
+const { formatOutingName } = require('../utils/dateUtils');
 
 // POST /api/checkout - Process checkout transaction
 router.post('/', async (req, res) => {
@@ -17,11 +18,14 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Outing leader name, outing name, and QM name are required' });
     }
     
+    // Format outing name with month and year (e.g., "Campout" becomes "Campout (July 2025)")
+    const formattedOutingName = formatOutingName(outingName);
+    
     // Process checkout in SQLite (data should already be fresh from session start)
     const results = await sqliteAPI.checkoutItems(
       itemIds,
       scoutName,
-      outingName,
+      formattedOutingName,
       processedBy,
       notes
     );
@@ -39,7 +43,7 @@ router.post('/', async (req, res) => {
           timestamp: new Date().toISOString(),
           action: 'Check out',
           itemId: result.itemId,
-          outingName: outingName,
+          outingName: formattedOutingName,
           scoutName: scoutName, // Add scout name to transaction data
           condition: result.condition || 'Usable', // Use original condition or default to Usable
           processedBy: processedBy,
@@ -75,6 +79,9 @@ router.post('/test-bulk', async (req, res) => {
   try {
     const { scoutName = 'Test Scout', outingName = 'Test Outing', processedBy = 'Test QM', notes = 'Bulk test checkout', targetCount = 95 } = req.body;
     
+    // Format outing name with month and year
+    const formattedOutingName = formatOutingName(outingName);
+    
     console.log(`🧪 Starting bulk test checkout of ${targetCount} items...`);
     
     // Get all available usable items
@@ -104,7 +111,7 @@ router.post('/test-bulk', async (req, res) => {
     const results = await sqliteAPI.checkoutItems(
       itemIds,
       scoutName,
-      outingName,
+      formattedOutingName,
       processedBy,
       notes
     );
@@ -124,7 +131,7 @@ router.post('/test-bulk', async (req, res) => {
           timestamp: new Date().toISOString(),
           action: 'Check out',
           itemId: result.itemId,
-          outingName: outingName,
+          outingName: formattedOutingName,
           scoutName: scoutName,
           condition: result.condition || 'Usable',
           processedBy: processedBy,

@@ -76,7 +76,19 @@ router.get('/outings', async (req, res) => {
     }
     
     const outings = await sqliteAPI.getOutingsWithItems();
-    res.json(outings);
+    
+    // Enrich with transaction counts from Google Sheets
+    const allOutingsFromTransactions = await sheetsAPI.getAllOutingsFromTransactions();
+    const transactionCountMap = new Map(
+      allOutingsFromTransactions.map(o => [o.outingName, o.transactionCount])
+    );
+    
+    const enrichedOutings = outings.map(outing => ({
+      ...outing,
+      transactionCount: transactionCountMap.get(outing.outingName) || 0
+    }));
+    
+    res.json(enrichedOutings);
   } catch (error) {
     console.error('Error fetching outings:', error);
     res.status(500).json({ error: 'Failed to fetch outings' });

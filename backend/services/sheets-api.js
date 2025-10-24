@@ -1076,12 +1076,23 @@ class SheetsAPI {
         );
       }
       
-      // Item ID filter
+      // Item ID filter (supports both search and exact match list)
       if (itemId && itemId.trim() !== '') {
-        const searchItemId = itemId.trim().toLowerCase();
-        transactions = transactions.filter(t => 
-          t.itemId.toLowerCase().includes(searchItemId)
-        );
+        const searchItemId = itemId.trim();
+        
+        // Check if it's a comma-separated list for exact matching
+        if (searchItemId.includes(',')) {
+          const itemIdList = searchItemId.split(',').map(id => id.trim().toLowerCase());
+          transactions = transactions.filter(t => 
+            itemIdList.includes(t.itemId.toLowerCase())
+          );
+        } else {
+          // Single search term - use contains search
+          const searchTerm = searchItemId.toLowerCase();
+          transactions = transactions.filter(t => 
+            t.itemId.toLowerCase().includes(searchTerm)
+          );
+        }
       }
       
       // Sort by timestamp descending (most recent first)
@@ -1101,6 +1112,117 @@ class SheetsAPI {
       };
     } catch (error) {
       console.error(`[${timestamp}] ❌ Error fetching all transactions:`, error);
+      throw error;
+    }
+  }
+
+  async getAllOutingsFromTransactions() {
+    await this.initialize();
+    const timestamp = new Date().toISOString();
+    
+    try {
+      console.log(`[${timestamp}] 📖 Fetching all outings from transaction log`);
+      const transactionSheet = this.doc.sheetsByTitle['Transaction Log'];
+      
+      if (!transactionSheet) {
+        throw new Error('Transaction Log sheet not found');
+      }
+      
+      const rows = await transactionSheet.getRows();
+      
+      // Extract unique outing names and count transactions per outing
+      const outingMap = new Map();
+      
+      rows.forEach(row => {
+        const outingName = row.get('Outing Name');
+        if (outingName && outingName.trim() !== '') {
+          const trimmedName = outingName.trim();
+          if (!outingMap.has(trimmedName)) {
+            outingMap.set(trimmedName, 0);
+          }
+          outingMap.set(trimmedName, outingMap.get(trimmedName) + 1);
+        }
+      });
+      
+      // Convert to array and sort alphabetically
+      const outings = Array.from(outingMap.entries())
+        .map(([outingName, transactionCount]) => ({
+          outingName,
+          transactionCount
+        }))
+        .sort((a, b) => a.outingName.localeCompare(b.outingName));
+      
+      console.log(`[${timestamp}] ✅ Found ${outings.length} unique outings`);
+      return outings;
+    } catch (error) {
+      console.error(`[${timestamp}] ❌ Error fetching all outings:`, error);
+      throw error;
+    }
+  }
+
+  async getOutingItemBreakdown(outingName) {
+    await this.initialize();
+    const timestamp = new Date().toISOString();
+    
+    try {
+      console.log(`[${timestamp}] 📖 Fetching item breakdown for outing: ${outingName}`);
+      const transactionSheet = this.doc.sheetsByTitle['Transaction Log'];
+      
+      if (!transactionSheet) {
+        throw new Error('Transaction Log sheet not found');
+      }
+      
+      const rows = await transactionSheet.getRows();
+      
+      // Filter transactions for this outing and track last action per item
+      const itemLastAction = new Map();
+      
+      rows.forEach(row => {
+        const txOutingName = row.get('Outing Name');
+        if (txOutingName && txOutingName.trim() === outingName.trim()) {
+          const itemId = row.get('Item ID');
+          const action = row.get('Action');
+          const timestamp = row.get('Timestamp');
+          
+          if (itemId && action && timestamp) {
+            // Store or update with most recent transaction
+            if (!itemLastAction.has(itemId) || 
+                new Date(timestamp) > new Date(itemLastAction.get(itemId).timestamp)) {
+              itemLastAction.set(itemId, {
+                action,
+                timestamp
+              });
+            }
+          }
+        }
+      });
+      
+      // Count unique items and their status, and track item IDs
+      const checkedOutItems = [];
+      const checkedInItems = [];
+      
+      itemLastAction.forEach((data, itemId) => {
+        if (data.action === 'Check out') {
+          checkedOutItems.push(itemId);
+        } else if (data.action === 'Check in') {
+          checkedInItems.push(itemId);
+        }
+      });
+      
+      const totalUniqueItems = itemLastAction.size;
+      
+      console.log(`[${timestamp}] ✅ Outing breakdown - Total: ${totalUniqueItems}, Checked out: ${checkedOutItems.length}, Checked in: ${checkedInItems.length}`);
+      
+      return {
+        outingName,
+        totalUniqueItems,
+        checkedOut: checkedOutItems.length,
+        checkedIn: checkedInItems.length,
+        checkedOutItems,
+        checkedInItems
+      };
+    } catch (error) {
+      console.error(`[${timestamp}] ❌ Error fetching outing item breakdown:`, error);
       throw error;
     }
   }

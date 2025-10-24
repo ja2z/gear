@@ -12,40 +12,69 @@ const ViewTransactionLog = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [outings, setOutings] = useState([]);
+  const [outingBreakdown, setOutingBreakdown] = useState(null);
   
   // Filter state
   const [dateRange, setDateRange] = useState('30'); // Default to 30 days
   const [selectedOuting, setSelectedOuting] = useState('');
   const [itemIdSearch, setItemIdSearch] = useState('');
   const [searchDebounce, setSearchDebounce] = useState('');
+  const [showPastOutings, setShowPastOutings] = useState(false);
+  const [filteredItemIds, setFilteredItemIds] = useState([]); // For outing item breakdown filtering
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [unfilteredCount, setUnfilteredCount] = useState(0); // Total for outing without item filter
   const itemsPerPage = 50;
 
-  // Fetch outings for filter dropdown
+  // Fetch outings for filter dropdown when toggle changes
   useEffect(() => {
     fetchOutings();
-  }, []);
+  }, [showPastOutings]);
 
   // Debounce item ID search
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchDebounce(itemIdSearch);
+      // Clear filtered item IDs when user types in search
+      if (itemIdSearch) {
+        setFilteredItemIds([]);
+      }
     }, 300);
 
     return () => clearTimeout(timer);
   }, [itemIdSearch]);
 
+  // Clear filtered item IDs when outing changes
+  useEffect(() => {
+    setFilteredItemIds([]);
+  }, [selectedOuting]);
+
   // Fetch transactions when filters or pagination change
   useEffect(() => {
     fetchTransactions();
-  }, [dateRange, selectedOuting, searchDebounce, currentPage]);
+  }, [dateRange, selectedOuting, searchDebounce, currentPage, filteredItemIds]);
+
+  // Fetch outing breakdown when an outing is selected
+  useEffect(() => {
+    if (selectedOuting) {
+      fetchOutingBreakdown();
+    } else {
+      setOutingBreakdown(null);
+    }
+  }, [selectedOuting]);
 
   const fetchOutings = async () => {
     try {
-      const data = await getData('/inventory/outings');
+      let data;
+      if (showPastOutings) {
+        // Fetch all outings from transaction log (including past)
+        data = await getData('/manage-inventory/all-outings');
+      } else {
+        // Fetch only active outings (with currently checked out items)
+        data = await getData('/inventory/outings');
+      }
       setOutings(data);
     } catch (error) {
       console.error('Error fetching outings:', error);
@@ -68,13 +97,30 @@ const ViewTransactionLog = () => {
         params.append('outing', selectedOuting);
       }
       
-      if (searchDebounce) {
+      // Use filteredItemIds if set, otherwise use search
+      if (filteredItemIds.length > 0) {
+        params.append('itemId', filteredItemIds.join(','));
+      } else if (searchDebounce) {
         params.append('itemId', searchDebounce);
       }
       
       const data = await getData(`/manage-inventory/transactions?${params.toString()}`);
       setTransactions(data.transactions);
       setTotalCount(data.total);
+      
+      // If filtering by item IDs, fetch unfiltered count for "show all" display
+      if (filteredItemIds.length > 0 && selectedOuting) {
+        const unfilteredParams = new URLSearchParams({
+          dateRange,
+          limit: '1',
+          offset: '0',
+          outing: selectedOuting
+        });
+        const unfilteredData = await getData(`/manage-inventory/transactions?${unfilteredParams.toString()}`);
+        setUnfilteredCount(unfilteredData.total);
+      } else {
+        setUnfilteredCount(0);
+      }
     } catch (error) {
       console.error('Error fetching transactions:', error);
       showToast('Failed to load transactions', 'error');
@@ -83,10 +129,44 @@ const ViewTransactionLog = () => {
     }
   };
 
+  const fetchOutingBreakdown = async () => {
+    try {
+      const data = await getData(`/manage-inventory/outing-breakdown/${encodeURIComponent(selectedOuting)}`);
+      setOutingBreakdown(data);
+    } catch (error) {
+      console.error('Error fetching outing breakdown:', error);
+      // Non-critical error, don't show toast
+      setOutingBreakdown(null);
+    }
+  };
+
   const handleClearFilters = () => {
     setDateRange('30');
     setSelectedOuting('');
     setItemIdSearch('');
+    setShowPastOutings(false);
+    setFilteredItemIds([]);
+    setCurrentPage(1);
+  };
+
+  const handleFilterByCheckedOut = () => {
+    if (outingBreakdown && outingBreakdown.checkedOutItems.length > 0) {
+      setFilteredItemIds(outingBreakdown.checkedOutItems);
+      setItemIdSearch(''); // Clear text search
+      setCurrentPage(1);
+    }
+  };
+
+  const handleFilterByCheckedIn = () => {
+    if (outingBreakdown && outingBreakdown.checkedInItems.length > 0) {
+      setFilteredItemIds(outingBreakdown.checkedInItems);
+      setItemIdSearch(''); // Clear text search
+      setCurrentPage(1);
+    }
+  };
+
+  const handleShowAllOutingTransactions = () => {
+    setFilteredItemIds([]);
     setCurrentPage(1);
   };
 
@@ -137,6 +217,26 @@ const ViewTransactionLog = () => {
           </select>
         </div>
 
+        {/* Show Past Outings Toggle */}
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="showPastOutings"
+            checked={showPastOutings}
+            onChange={(e) => {
+              setShowPastOutings(e.target.checked);
+              setSelectedOuting(''); // Reset selected outing when toggling
+            }}
+            className="h-5 w-5 text-scout-blue focus:ring-scout-blue border-gray-300 rounded cursor-pointer"
+          />
+          <label
+            htmlFor="showPastOutings"
+            className="ml-2 text-sm font-medium text-gray-700 cursor-pointer"
+          >
+            Show past outings
+          </label>
+        </div>
+
         {/* Outing Filter */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -153,7 +253,7 @@ const ViewTransactionLog = () => {
             <option value="">All outings</option>
             {outings.map((outing) => (
               <option key={outing.outingName} value={outing.outingName}>
-                {outing.outingName} ({outing.itemCount} items)
+                {outing.outingName} ({outing.transactionCount} {outing.transactionCount === 1 ? 'transaction' : 'transactions'})
               </option>
             ))}
           </select>
@@ -189,8 +289,43 @@ const ViewTransactionLog = () => {
       {!loading && (
         <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
           <p className="text-sm text-gray-600">
-            Showing {startItem}-{endItem} of {totalCount} transactions
+            Showing {startItem}-{endItem} of {totalCount} {totalCount === 1 ? 'transaction' : 'transactions'}
+            {unfilteredCount > 0 && unfilteredCount > totalCount && (
+              <>
+                {' '}
+                <button
+                  onClick={handleShowAllOutingTransactions}
+                  className="text-scout-blue hover:underline font-medium"
+                >
+                  (show all {unfilteredCount})
+                </button>
+              </>
+            )}
           </p>
+          {selectedOuting && outingBreakdown && (
+            <div className="mt-2 pt-2 border-t border-gray-300">
+              <p className="text-sm font-medium text-gray-700">
+                {outingBreakdown.outingName} - {outingBreakdown.totalUniqueItems} unique {outingBreakdown.totalUniqueItems === 1 ? 'item' : 'items'}
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                <button
+                  onClick={handleFilterByCheckedOut}
+                  className="text-scout-blue font-medium hover:underline cursor-pointer"
+                  disabled={outingBreakdown.checkedOut === 0}
+                >
+                  {outingBreakdown.checkedOut} checked out
+                </button>
+                {' • '}
+                <button
+                  onClick={handleFilterByCheckedIn}
+                  className="text-scout-green font-medium hover:underline cursor-pointer"
+                  disabled={outingBreakdown.checkedIn === 0}
+                >
+                  {outingBreakdown.checkedIn} checked in
+                </button>
+              </p>
+            </div>
+          )}
         </div>
       )}
 

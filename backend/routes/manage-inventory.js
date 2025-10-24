@@ -266,5 +266,28 @@ router.get('/transactions', async (req, res) => {
   }
 });
 
+// Get all outings from transaction log (including past outings)
+router.get('/all-outings', async (req, res) => {
+  try {
+    const outings = await sheetsAPI.getAllOutingsFromTransactions();
+    res.json(outings);
+  } catch (error) {
+    console.error('Error fetching all outings:', error);
+    res.status(500).json({ error: 'Failed to fetch outings' });
+  }
+});
+
+// Get item breakdown for a specific outing
+router.get('/outing-breakdown/:outingName', async (req, res) => {
+  try {
+    const { outingName } = req.params;
+    const breakdown = await sheetsAPI.getOutingItemBreakdown(outingName);
+    res.json(breakdown);
+  } catch (error) {
+    console.error('Error fetching outing breakdown:', error);
+    res.status(500).json({ error: 'Failed to fetch outing breakdown' });
+  }
+});
+
 module.exports = router;
 
