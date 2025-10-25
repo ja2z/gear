@@ -197,7 +197,7 @@ const ViewInventory = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen-small flex flex-col bg-gray-100">
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
       {/* Header */}
@@ -222,7 +222,7 @@ const ViewInventory = () => {
       </div>
 
       {/* Toggle Control */}
-      <div className="bg-white px-5 py-3 border-b border-gray-200 sticky top-16 z-40">
+      <div className="bg-white px-5 py-3 border-b border-gray-200">
         <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
           <button
             onClick={() => {
@@ -268,8 +268,9 @@ const ViewInventory = () => {
         />
       </div>
 
-      {/* Content */}
-      <div className="px-5 py-5 pb-20">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-5 py-5 pb-20">
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-scout-blue"></div>
@@ -365,6 +366,7 @@ const ViewInventory = () => {
             })}
           </div>
         )}
+        </div>
       </div>
     </div>
   );

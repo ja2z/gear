@@ -64,7 +64,7 @@ const Categories = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
       <div className="header">
         <Link
@@ -98,52 +98,54 @@ const Categories = () => {
         />
       </div>
 
-      {/* Categories List */}
-      <div className="px-5 py-5 pb-20">
-        <div className="space-y-3">
-          {filteredCategories.map((category) => (
-            <Link
-              key={category.name}
-              to={`/items/${category.name}`}
-              className="card touch-target block category-link no-underline"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-base">
-                  {category.description}
-                </span>
-                <div className="flex items-center space-x-2">
-                  {(() => {
-                    const itemsInCart = getItemsInCartByCategory(category.name);
-                    const adjustedAvailable = category.available_count - itemsInCart;
-                    
-                    return (
-                      <>
-                        {itemsInCart > 0 && (
-                          <span className="status-in-cart">
-                            {itemsInCart} in cart
+      {/* Categories List - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-5 py-5 pb-20">
+          <div className="space-y-3">
+            {filteredCategories.map((category) => (
+              <Link
+                key={category.name}
+                to={`/items/${category.name}`}
+                className="card touch-target block category-link no-underline"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-base">
+                    {category.description}
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    {(() => {
+                      const itemsInCart = getItemsInCartByCategory(category.name);
+                      const adjustedAvailable = category.available_count - itemsInCart;
+                      
+                      return (
+                        <>
+                          {itemsInCart > 0 && (
+                            <span className="status-in-cart">
+                              {itemsInCart} in cart
+                            </span>
+                          )}
+                          <span className={`no-underline ${
+                            adjustedAvailable === 0 
+                              ? 'status-checked-out' 
+                              : 'status-in-shed'
+                          }`}>
+                            {adjustedAvailable} available
                           </span>
-                        )}
-                        <span className={`no-underline ${
-                          adjustedAvailable === 0 
-                            ? 'status-checked-out' 
-                            : 'status-in-shed'
-                        }`}>
-                          {adjustedAvailable} available
-                        </span>
-                      </>
-                    );
-                  })()}
+                        </>
+                      );
+                    })()}
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {filteredCategories.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No categories found matching your search.</p>
+              </Link>
+            ))}
           </div>
-        )}
+
+          {filteredCategories.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No categories found matching your search.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

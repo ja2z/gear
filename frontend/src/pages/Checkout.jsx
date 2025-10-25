@@ -118,7 +118,7 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
       <div className="header">
         <Link
@@ -167,7 +167,9 @@ const Checkout = () => {
         </div>
       </div>
 
-      <div className="px-5 py-6 pb-20">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-5 py-6 pb-20">
         {outingMode === 'new' ? (
           // New Outing Form
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -411,11 +413,12 @@ const Checkout = () => {
             <p className="text-red-800 text-sm">{submitError}</p>
           </div>
         )}
+        </div>
       </div>
 
       {/* Bottom Navigation */}
       {(outingMode === 'new' || (outingMode === 'existing' && selectedOuting)) && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50" style={{width: '100vw'}}>
+        <div className="bg-white border-t border-gray-200 p-4">
           <button
             type="submit"
             disabled={loading}

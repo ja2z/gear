@@ -78,7 +78,7 @@ const CheckinForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
       <div className="header">
         <Link
@@ -91,43 +91,46 @@ const CheckinForm = () => {
         <div className="w-10 h-10"></div>
       </div>
 
-      <div className="px-5 py-6 pb-20">
-        {/* Selected Items Summary */}
-        <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 text-center">
-            Checking In {selectedItems.length} Item{selectedItems.length > 1 ? 's' : ''}
-          </h2>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* QM Name Input */}
-          <div>
-            <label htmlFor="qmName" className="block text-sm font-semibold text-gray-700 mb-2">
-              Your Name (QM) *
-            </label>
-            <input
-              type="text"
-              id="qmName"
-              name="qmName"
-              value={formData.qmName}
-              onChange={handleChange}
-              required
-              className="form-input"
-              placeholder="Enter quartermaster name"
-            />
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-5 py-6 pb-20">
+          {/* Selected Items Summary */}
+          <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 text-center">
+              Checking In {selectedItems.length} Item{selectedItems.length > 1 ? 's' : ''}
+            </h2>
           </div>
 
-          {/* Error Display */}
-          {submitError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800 text-sm">{submitError}</p>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* QM Name Input */}
+            <div>
+              <label htmlFor="qmName" className="block text-sm font-semibold text-gray-700 mb-2">
+                Your Name (QM) *
+              </label>
+              <input
+                type="text"
+                id="qmName"
+                name="qmName"
+                value={formData.qmName}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter quartermaster name"
+              />
             </div>
-          )}
-        </form>
+
+            {/* Error Display */}
+            {submitError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-800 text-sm">{submitError}</p>
+              </div>
+            )}
+          </form>
+        </div>
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50" style={{width: '100vw'}}>
+      <div className="bg-white border-t border-gray-200 p-4">
         <button
           type="submit"
           form="checkin-form"

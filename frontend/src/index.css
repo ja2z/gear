@@ -35,6 +35,10 @@ body {
 
 /* Utility classes */
 .min-h-screen { min-height: 100vh; }
+.h-screen-small { height: 100svh; } /* Small viewport height - prevents Safari URL bar collapse */
+.overflow-y-auto { overflow-y: auto; }
+.overflow-hidden { overflow: hidden; }
+.flex-col { flex-direction: column; }
 .bg-gray-100 { background-color: #f5f5f5; }
 .bg-white { background-color: white; }
 .bg-scout-blue { background-color: #1E398A; }

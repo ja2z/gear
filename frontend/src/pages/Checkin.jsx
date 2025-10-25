@@ -137,7 +137,7 @@ const Checkin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
       <div className="header">
         <Link
@@ -163,34 +163,36 @@ const Checkin = () => {
         />
       </div>
 
-      {/* Multi-select notice */}
-      <div className="bg-blue-50 border border-blue-100 px-5 py-3 mx-5 mt-5 rounded-lg">
-        <p className="text-scout-blue text-sm text-center">
-          Tap items or click condition to select
-        </p>
-      </div>
-
-      {/* Error Display */}
-      {dataError && (
-        <div className="px-5 py-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800 text-sm">{dataError}</p>
-          </div>
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Multi-select notice */}
+        <div className="bg-blue-50 border border-blue-100 px-5 py-3 mx-5 mt-5 rounded-lg">
+          <p className="text-scout-blue text-sm text-center">
+            Tap items or click condition to select
+          </p>
         </div>
-      )}
 
-      {/* Loading State */}
-      {dataLoading && (
-        <div className="px-5 py-12">
-          <div className="text-center">
-            <p className="text-gray-500">Loading checked out items...</p>
+        {/* Error Display */}
+        {dataError && (
+          <div className="px-5 py-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800 text-sm">{dataError}</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Items List */}
-      {!dataLoading && !dataError && (
-        <div className="px-5 py-5 pb-20">
+        {/* Loading State */}
+        {dataLoading && (
+          <div className="px-5 py-12">
+            <div className="text-center">
+              <p className="text-gray-500">Loading checked out items...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Items List */}
+        {!dataLoading && !dataError && (
+          <div className="px-5 py-5 pb-20">
         <div className="space-y-3 mb-6">
           {filteredItems.map((item) => {
             const isSelected = selectedItems.find(i => i.itemId === item.itemId);
@@ -268,53 +270,41 @@ const Checkin = () => {
             <p className="text-red-800 text-sm">{submitError}</p>
           </div>
         )}
-
-          {/* Submit Button - Always Visible */}
-          <div 
-            style={{
-              position: 'fixed',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              backgroundColor: 'white',
-              borderTop: '1px solid #e5e7eb',
-              padding: '1rem',
-              zIndex: 50,
-              width: '100%',
-              boxSizing: 'border-box'
-            }}
-          >
-            <button
-              onClick={handleSubmit}
-              disabled={loading || selectedItems.length === 0}
-              style={{
-                width: '100%',
-                height: '3rem',
-                backgroundColor: selectedItems.length > 0 ? '#1E398A' : '#9ca3af',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.75rem',
-                fontSize: '1rem',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: (loading || selectedItems.length === 0) ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.5 : 1,
-                transition: 'all 0.2s',
-                boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
-              }}
-            >
-              {loading 
-                ? 'Processing...' 
-                : selectedItems.length === 0 
-                  ? 'Check In 0 Items'
-                  : `Check In ${selectedItems.length} Item${selectedItems.length > 1 ? 's' : ''}`
-              }
-            </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* Submit Button - Fixed at Bottom */}
+      <div className="bg-white border-t border-gray-200 p-4">
+        <button
+          onClick={handleSubmit}
+          disabled={loading || selectedItems.length === 0}
+          style={{
+            width: '100%',
+            height: '3rem',
+            backgroundColor: selectedItems.length > 0 ? '#1E398A' : '#9ca3af',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.75rem',
+            fontSize: '1rem',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: (loading || selectedItems.length === 0) ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.5 : 1,
+            transition: 'all 0.2s',
+            boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
+          }}
+        >
+          {loading 
+            ? 'Processing...' 
+            : selectedItems.length === 0 
+              ? 'Check In 0 Items'
+              : `Check In ${selectedItems.length} Item${selectedItems.length > 1 ? 's' : ''}`
+          }
+        </button>
+      </div>
     </div>
   );
 };

@@ -78,7 +78,7 @@ const Items = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
       <div className="header">
         <Link
@@ -101,79 +101,82 @@ const Items = () => {
         </Link>
       </div>
 
-      {/* Multi-select notice */}
-      <div className="bg-blue-50 border border-blue-100 px-5 py-3 mx-5 mt-5 rounded-lg">
-        <p className="text-scout-blue text-sm text-center">
-          Tap items to select
-        </p>
-      </div>
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Multi-select notice */}
+        <div className="bg-blue-50 border border-blue-100 px-5 py-3 mx-5 mt-5 rounded-lg">
+          <p className="text-scout-blue text-sm text-center">
+            Tap items to select
+          </p>
+        </div>
 
-      {/* Items List */}
-      <div className="px-5 py-5 pb-20">
-        <div className="space-y-3">
-          {items.map((item) => {
-            const isSelected = selectedItems.find(selected => selected.itemId === item.itemId);
-            const isAvailable = item.status === 'In shed';
-            const isUsable = item.condition === 'Usable';
-            const isUnknown = item.condition === 'Unknown';
-            const inCart = isItemInCart(item.itemId);
-            const isSelectable = isAvailable && (isUsable || isUnknown) && !inCart;
-            
-            return (
-              <div
-                key={item.itemId}
-                onClick={() => isSelectable && toggleItem(item)}
-                className={`card touch-target ${
-                  isSelectable ? 'cursor-pointer' : 'cursor-not-allowed'
-                } ${
-                  isSelected 
-                    ? 'card-selected' 
-                    : inCart
-                      ? 'opacity-60 bg-green-50 border-green-200'
-                      : !isSelectable 
-                        ? 'opacity-60' 
-                        : ''
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-scout-blue">{item.itemId}</span>
-                      <div className="flex items-center space-x-2">
-                        {inCart && (
-                          <span className="status-in-cart">
-                            In cart
+        {/* Items List */}
+        <div className="px-5 py-5 pb-20">
+          <div className="space-y-3">
+            {items.map((item) => {
+              const isSelected = selectedItems.find(selected => selected.itemId === item.itemId);
+              const isAvailable = item.status === 'In shed';
+              const isUsable = item.condition === 'Usable';
+              const isUnknown = item.condition === 'Unknown';
+              const inCart = isItemInCart(item.itemId);
+              const isSelectable = isAvailable && (isUsable || isUnknown) && !inCart;
+              
+              return (
+                <div
+                  key={item.itemId}
+                  onClick={() => isSelectable && toggleItem(item)}
+                  className={`card touch-target ${
+                    isSelectable ? 'cursor-pointer' : 'cursor-not-allowed'
+                  } ${
+                    isSelected 
+                      ? 'card-selected' 
+                      : inCart
+                        ? 'opacity-60 bg-green-50 border-green-200'
+                        : !isSelectable 
+                          ? 'opacity-60' 
+                          : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold text-scout-blue">{item.itemId}</span>
+                        <div className="flex items-center space-x-2">
+                          {inCart && (
+                            <span className="status-in-cart">
+                              In cart
+                            </span>
+                          )}
+                          {!isUsable && isAvailable && (
+                            <span className={isUnknown ? 'status-condition-unknown' : 'status-unusable'}>
+                              {isUnknown ? 'Condition unknown' : 'Unusable'}
+                            </span>
+                          )}
+                          <span className={item.status === 'In shed' ? 'status-in-shed' : item.status === 'Checked out' ? 'status-checked-out' : item.status === 'Missing' ? 'status-missing' : 'status-out-for-repair'}>
+                            {item.status}
                           </span>
-                        )}
-                        {!isUsable && isAvailable && (
-                          <span className={isUnknown ? 'status-condition-unknown' : 'status-unusable'}>
-                            {isUnknown ? 'Condition unknown' : 'Unusable'}
-                          </span>
-                        )}
-                        <span className={item.status === 'In shed' ? 'status-in-shed' : item.status === 'Checked out' ? 'status-checked-out' : item.status === 'Missing' ? 'status-missing' : 'status-out-for-repair'}>
-                          {item.status}
-                        </span>
+                        </div>
                       </div>
+                      <p className="text-sm text-gray-600">{item.description}</p>
+                      {!isAvailable && item.outingName && (
+                        <div className="mt-2">
+                          <span className="text-xs text-gray-500">Currently on: </span>
+                          <span className="outing-badge">
+                            {item.outingName}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-sm text-gray-600">{item.description}</p>
-                    {!isAvailable && item.outingName && (
-                      <div className="mt-2">
-                        <span className="text-xs text-gray-500">Currently on: </span>
-                        <span className="outing-badge">
-                          {item.outingName}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50" style={{width: '100vw'}}>
+      <div className="bg-white border-t border-gray-200 p-4">
         <button
           onClick={handleAddSelectedToCart}
           disabled={selectedItems.length === 0}

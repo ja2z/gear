@@ -31,7 +31,7 @@ const ManageCategories = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
       <div className="header">
         <Link
@@ -64,31 +64,33 @@ const ManageCategories = () => {
         />
       </div>
 
-      {/* Content */}
-      <div className="px-5 py-5 pb-20">
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-scout-blue"></div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredCategories.map((cat) => (
-              <div
-                key={cat.class}
-                onClick={() => navigate(`/manage-inventory/edit-category/${cat.class}`)}
-                className="card touch-target block cursor-pointer"
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-medium text-gray-900">{cat.class_desc}</span>
-                    <span className="text-gray-500 text-sm ml-2">({cat.class})</span>
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-5 py-5 pb-20">
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-scout-blue"></div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredCategories.map((cat) => (
+                <div
+                  key={cat.class}
+                  onClick={() => navigate(`/manage-inventory/edit-category/${cat.class}`)}
+                  className="card touch-target block cursor-pointer"
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="font-medium text-gray-900">{cat.class_desc}</span>
+                      <span className="text-gray-500 text-sm ml-2">({cat.class})</span>
+                    </div>
+                    <span className="text-gray-400 text-xl">›</span>
                   </div>
-                  <span className="text-gray-400 text-xl">›</span>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

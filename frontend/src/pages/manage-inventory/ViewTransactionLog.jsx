@@ -164,7 +164,7 @@ const ViewTransactionLog = () => {
   const endItem = Math.min(currentPage * itemsPerPage, totalCount);
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen-small flex flex-col bg-gray-100">
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
       {/* Header */}
@@ -180,7 +180,7 @@ const ViewTransactionLog = () => {
       </div>
 
       {/* Filters Section */}
-      <div className="bg-white px-5 py-4 border-b border-gray-200 sticky top-16 z-40 space-y-3">
+      <div className="bg-white px-5 py-4 border-b border-gray-200 space-y-3">
         {/* Row 1: Date Range and Outing side by side */}
         <div className="grid grid-cols-2 gap-3">
           {/* Date Range Filter */}
@@ -244,9 +244,11 @@ const ViewTransactionLog = () => {
         </div>
       </div>
 
-      {/* Results Count */}
-      {!loading && (
-        <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Results Count */}
+        {!loading && (
+          <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
           <p className="text-sm text-gray-600">
             Showing {startItem}-{endItem} of {totalCount} {totalCount === 1 ? 'transaction' : 'transactions'}
             {unfilteredCount > 0 && unfilteredCount > totalCount && (
@@ -312,11 +314,12 @@ const ViewTransactionLog = () => {
             ))}
           </div>
         )}
+        </div>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination - Fixed at Bottom */}
       {!loading && totalPages > 1 && (
-        <div className="px-5 py-6 bg-white border-t border-gray-200 sticky bottom-0">
+        <div className="px-5 py-6 bg-white border-t border-gray-200">
           <div className="flex items-center justify-between gap-4">
             {/* Previous Button */}
             <button
