@@ -133,14 +133,6 @@ const ViewTransactionLog = () => {
     }
   };
 
-  const handleClearFilters = () => {
-    setDateRange('30');
-    setSelectedOuting('');
-    setItemIdSearch('');
-    setFilteredItemIds([]);
-    setCurrentPage(1);
-  };
-
   const handleFilterByCheckedOut = () => {
     if (outingBreakdown && outingBreakdown.checkedOutItems.length > 0) {
       setFilteredItemIds(outingBreakdown.checkedOutItems);
@@ -250,14 +242,6 @@ const ViewTransactionLog = () => {
             className="search-input"
           />
         </div>
-
-        {/* Row 3: Clear Filters Button */}
-        <button
-          onClick={handleClearFilters}
-          className="w-full px-4 py-4 text-base bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium touch-target"
-        >
-          Clear Filters
-        </button>
       </div>
 
       {/* Results Count */}
