@@ -31,6 +31,13 @@ const AddItem = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
+  // Check if all required fields are filled
+  const isFormValid = 
+    selectedCategory !== null &&
+    formData.description.trim() !== '' &&
+    formData.condition !== '' &&
+    formData.status !== '';
+
   // Fetch next item number when category is selected
   useEffect(() => {
     if (selectedCategory) {
@@ -366,7 +373,7 @@ const AddItem = () => {
           <button
             type="submit"
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || !isFormValid}
             className="flex-1 px-4 py-3 bg-scout-blue text-white rounded-lg hover:bg-scout-blue/90 min-h-[44px] disabled:opacity-50"
           >
             {loading ? 'Saving...' : 'Save Item'}

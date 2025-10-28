@@ -17,6 +17,9 @@ const AddCategory = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
+  // Check if all required fields are filled
+  const isFormValid = formData.class.trim() !== '' && formData.classDesc.trim() !== '';
+
   const validateForm = async () => {
     const newErrors = {};
 
@@ -163,7 +166,7 @@ const AddCategory = () => {
           <button
             type="submit"
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || !isFormValid}
             className="flex-1 px-4 py-3 bg-scout-blue text-white rounded-lg hover:bg-scout-blue/90 min-h-[44px] disabled:opacity-50"
           >
             {loading ? 'Creating...' : 'Create Category'}
