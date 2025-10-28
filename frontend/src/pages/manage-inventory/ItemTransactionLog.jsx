@@ -32,7 +32,7 @@ const ItemTransactionLog = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen-small flex flex-col bg-gray-100">
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
       {/* Header */}
@@ -47,8 +47,9 @@ const ItemTransactionLog = () => {
         <div className="w-10 h-10"></div>
       </div>
 
-      {/* Content */}
-      <div className="px-5 py-6">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-5 py-6">
         {/* Item ID Display */}
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-gray-900">{itemId}</h2>
@@ -73,6 +74,7 @@ const ItemTransactionLog = () => {
             ))}
           </div>
         )}
+        </div>
       </div>
     </div>
   );

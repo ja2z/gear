@@ -85,7 +85,7 @@ const DeleteItem = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen-small flex flex-col bg-gray-100">
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
       {/* Header */}
@@ -100,8 +100,9 @@ const DeleteItem = () => {
         <div className="w-10 h-10"></div>
       </div>
 
-      {/* Content */}
-      <div className="px-5 py-6 pb-32">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-5 py-6 pb-32">
         <div className="bg-white rounded-lg p-6 shadow-sm">
           <div className="text-center mb-6">
             <span className="text-5xl">⚠️</span>
@@ -146,6 +147,7 @@ const DeleteItem = () => {
               autoFocus
             />
           </div>
+        </div>
         </div>
       </div>
 

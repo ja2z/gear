@@ -31,7 +31,7 @@ const ManageInventoryDashboard = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
       <div className="header">
         <Link
@@ -44,28 +44,30 @@ const ManageInventoryDashboard = () => {
         <div className="w-10 h-10"></div>
       </div>
 
-      {/* Sync Error Display */}
-      {syncError && (
-        <div className="px-5 py-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800 text-sm">{syncError}</p>
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Sync Error Display */}
+        {syncError && (
+          <div className="px-5 py-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800 text-sm">{syncError}</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Loading State */}
-      {syncing && (
-        <div className="px-5 py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-scout-blue mx-auto mb-4"></div>
-            <p className="text-gray-600">Syncing inventory data...</p>
+        {/* Loading State */}
+        {syncing && (
+          <div className="px-5 py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-scout-blue mx-auto mb-4"></div>
+              <p className="text-gray-600">Syncing inventory data...</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Content */}
-      {!syncing && (
-        <div className="px-5 py-8">
+        {/* Content */}
+        {!syncing && (
+          <div className="px-5 py-8">
         <div className="space-y-6">
           <button
             onClick={() => navigate('/manage-inventory/view')}
@@ -88,8 +90,9 @@ const ManageInventoryDashboard = () => {
             📋 View Logs
           </button>
         </div>
+        </div>
+        )}
       </div>
-      )}
     </div>
   );
 };

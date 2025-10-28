@@ -155,7 +155,7 @@ const EditItem = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen-small flex flex-col bg-gray-100">
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
       {/* Header */}
@@ -170,8 +170,9 @@ const EditItem = () => {
         <div className="w-10 h-10"></div>
       </div>
 
-      {/* Form */}
-      <div className="px-5 py-6 pb-32">
+      {/* Scrollable Form */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-5 py-6 pb-32">
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Category (Read-only) */}
           <div>
@@ -405,6 +406,7 @@ const EditItem = () => {
         
         {/* Spacer for sticky bottom bar */}
         <div style={{ height: '80px' }}></div>
+        </div>
       </div>
 
       {/* Sticky Bottom Actions */}
