@@ -430,6 +430,11 @@ body.input-focused {
   border-color: #1E398A;
 }
 
+/* Prevent iOS zoom on input focus - MUST be at least 16px */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
 /* Form input styles */
 .form-input {
   width: 100%;
