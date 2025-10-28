@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useCart } from '../context/CartContext';
 
 const Cart = () => {
   const { items, removeItem, getTotalItems } = useCart();
   const [viewMode, setViewMode] = useState('items'); // 'items' or 'categories'
   const [buttonRenderKey, setButtonRenderKey] = useState(0);
+  const [scrollingToCategory, setScrollingToCategory] = useState(false);
+  const scrollContainerRef = useRef(null);
 
   // Custom remove handler that forces complete button re-render
   const handleRemoveItem = (itemId) => {
@@ -19,19 +21,18 @@ const Cart = () => {
 
 // Reset scroll position when switching view modes
 useEffect(() => {
-  // Scroll to just past 0 to trigger sticky header repositioning
-  window.scrollTo(0, 1);
+  // Don't scroll to top if we're scrolling to a specific category
+  if (scrollingToCategory || !scrollContainerRef.current) {
+    return;
+  }
   
-  // Force a reflow to ensure sticky header recalculates
-  void document.body.offsetHeight;
-  
-  // Then scroll to actual top
+  // Scroll the container to top
   requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      window.scrollTo(0, 0);
-    });
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
   });
-}, [viewMode]);
+}, [viewMode]); // Removed scrollingToCategory from deps to prevent re-triggering
 
   // Group items by category for categories view
   const getItemsByCategory = () => {
@@ -52,22 +53,34 @@ useEffect(() => {
 
   // Scroll to category anchor
   const scrollToCategory = (category) => {
+    // Set flag to prevent auto-scroll to top
+    setScrollingToCategory(true);
     setViewMode('items');
     // Use setTimeout to ensure the view mode change has rendered
     setTimeout(() => {
       const element = document.getElementById(`category-${category}`);
-      if (element) {
-        // Get the current scroll position and the element position
+      const container = scrollContainerRef.current;
+      
+      if (element && container) {
+        // Get the element's position relative to the container
+        const containerRect = container.getBoundingClientRect();
         const elementRect = element.getBoundingClientRect();
-        const absoluteElementTop = elementRect.top + window.pageYOffset;
-        // Scroll to position the element just below the sticky toggle control
-        // Header height (~64px) + toggle control height (~60px) + some padding
-        const targetPosition = absoluteElementTop - 140; // Increased from 120 to 140
-        window.scrollTo({
-          top: targetPosition,
+        
+        // Calculate the scroll position
+        // We want to position the element below the toggle control
+        // Toggle control height is approximately 60px, add some padding
+        const offset = 20; // padding from top
+        const targetScrollTop = container.scrollTop + (elementRect.top - containerRect.top) - offset;
+        
+        container.scrollTo({
+          top: targetScrollTop,
           behavior: 'smooth'
         });
       }
+      // Reset the flag after scrolling is complete
+      setTimeout(() => {
+        setScrollingToCategory(false);
+      }, 300); // Wait for smooth scroll animation to complete
     }, 100);
   };
 
@@ -128,7 +141,10 @@ useEffect(() => {
       <div className="bg-white px-5 py-3 border-b border-gray-200">
         <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
           <button
-            onClick={() => setViewMode('items')}
+            onClick={() => {
+              setScrollingToCategory(false);
+              setViewMode('items');
+            }}
             className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all touch-target ${
               viewMode === 'items'
                 ? 'bg-white text-gray-900 shadow-sm'
@@ -138,7 +154,10 @@ useEffect(() => {
             Items
           </button>
           <button
-            onClick={() => setViewMode('categories')}
+            onClick={() => {
+              setScrollingToCategory(false);
+              setViewMode('categories');
+            }}
             className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all touch-target ${
               viewMode === 'categories'
                 ? 'bg-white text-gray-900 shadow-sm'
@@ -151,7 +170,7 @@ useEffect(() => {
       </div>
 
       {/* Cart Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         <div className="px-5 py-5 pb-20">
           {viewMode === 'items' ? (
             // Items View

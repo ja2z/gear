@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
@@ -17,6 +17,7 @@ const ViewInventory = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [pendingScrollToCategory, setPendingScrollToCategory] = useState(null);
+  const scrollContainerRef = useRef(null);
 
   // Check if navigated from edit/delete with category filter
   useEffect(() => {
@@ -30,8 +31,12 @@ const ViewInventory = () => {
 
   // Scroll to top when switching to category view
   useEffect(() => {
-    if (viewMode === 'category') {
-      window.scrollTo(0, 0);
+    if (viewMode === 'category' && scrollContainerRef.current) {
+      requestAnimationFrame(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = 0;
+        }
+      });
       setPendingScrollToCategory(null); // Clear any pending scroll
     }
   }, [viewMode]);
@@ -74,7 +79,7 @@ const ViewInventory = () => {
 
   // Perform pending scroll when category is set and view mode is 'item'
   useEffect(() => {
-    if (viewMode === 'item' && pendingScrollToCategory && !loading) {
+    if (viewMode === 'item' && pendingScrollToCategory && !loading && scrollContainerRef.current) {
       let cancelled = false;
       let timeoutIds = [];
       
@@ -84,24 +89,26 @@ const ViewInventory = () => {
         if (cancelled) return;
         
         const element = document.getElementById(`category-${pendingScrollToCategory}`);
-        if (element) {
-          // Force a reflow to ensure sticky header recalculates (important for mobile)
-          void document.body.offsetHeight;
-          
+        const container = scrollContainerRef.current;
+        
+        if (element && container) {
+          // Get the element's position relative to the container
+          const containerRect = container.getBoundingClientRect();
           const elementRect = element.getBoundingClientRect();
-          const currentScrollPos = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
-          const absoluteElementTop = elementRect.top + currentScrollPos;
-          const targetPosition = absoluteElementTop - 200;
+          
+          // Calculate the scroll position
+          const offset = 20; // padding from top
+          const targetScrollTop = container.scrollTop + (elementRect.top - containerRect.top) - offset;
           
           // Try smooth scroll first, but have a fallback
           try {
-            window.scrollTo({
-              top: targetPosition,
+            container.scrollTo({
+              top: targetScrollTop,
               behavior: 'smooth'
             });
           } catch (e) {
-            // Fallback for older mobile browsers
-            window.scrollTo(0, targetPosition);
+            // Fallback for older browsers
+            container.scrollTop = targetScrollTop;
           }
           setPendingScrollToCategory(null);
         } else if (retries < 3) {
@@ -269,7 +276,7 @@ const ViewInventory = () => {
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         <div className="px-5 py-5 pb-20">
         {loading ? (
           <div className="flex justify-center items-center py-12">

@@ -14,6 +14,7 @@ import CheckinForm from './pages/CheckinForm';
 import OutingSelection from './pages/OutingSelection';
 import Success from './pages/Success';
 import ScrollToTop from './components/ScrollToTop';
+import InputFocusLock from './components/InputFocusLock';
 import { CartProvider } from './context/CartContext';
 import { SyncProvider } from './context/SyncContext';
 // Manage Inventory imports
@@ -35,7 +36,8 @@ function App() {
       <CartProvider>
         <Router>
           <ScrollToTop />
-          <div className="min-h-screen bg-gray-50">
+          <InputFocusLock />
+          <div className="h-full overflow-hidden bg-gray-50">
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/categories" element={<Categories />} />

@@ -74,7 +74,7 @@ const Landing = () => {
       {imageData && <ImagePreloader images={[imageData]} />}
       
       <div 
-        className="min-h-screen bg-gray-100 relative"
+        className="h-screen-small flex flex-col bg-gray-100 relative overflow-hidden"
         style={{
           backgroundImage: currentImage ? `url(${currentImage})` : undefined,
           backgroundSize: 'cover',
@@ -105,7 +105,7 @@ const Landing = () => {
       </div>
 
       {/* Content */}
-      <div className="px-5 py-8 relative z-10 flex flex-col justify-center min-h-[calc(100vh-120px)]">
+      <div className="px-5 py-8 relative z-10 flex flex-col justify-center flex-1">
         <div className="space-y-6">
           <button
             onClick={handleCheckoutClick}
