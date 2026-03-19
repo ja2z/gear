@@ -64,7 +64,7 @@ const OutingSelection = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
       <div className="header">
         <Link
@@ -87,6 +87,9 @@ const OutingSelection = () => {
           className="search-input"
         />
       </div>
+
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
 
       {/* Error Display */}
       {error && (
@@ -159,6 +162,8 @@ const OutingSelection = () => {
           )}
         </div>
       )}
+
+      </div>{/* end scrollable content */}
     </div>
   );
 };
