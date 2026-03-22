@@ -1,6 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
+const { normalizeCost } = require('../utils/parse-cost');
 
 class SQLiteAPI {
   constructor() {
@@ -342,9 +343,11 @@ class SQLiteAPI {
           condition, processed_by, notes
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `;
-      
+
+      const ts = transaction.timestamp || new Date().toISOString();
+
       this.db.run(query, [
-        transaction.transactionId, new Date().toISOString(), transaction.action,
+        transaction.transactionId, ts, transaction.action,
         transaction.itemId, transaction.outingName, transaction.condition,
         transaction.processedBy, transaction.notes
       ], function(err) {
@@ -468,7 +471,7 @@ class SQLiteAPI {
       condition: row.condition,
       status: row.status,
       purchaseDate: row.purchase_date,
-      cost: row.cost,
+      cost: normalizeCost(row.cost),
       checkedOutTo: row.checked_out_to,
       checkedOutBy: row.checked_out_by,
       checkOutDate: row.check_out_date,
@@ -661,19 +664,29 @@ class SQLiteAPI {
     });
   }
 
-  async updateItem(itemId, updates) {
+  async updateItem(itemId, updates, options = {}) {
     await this.initialize();
-    
+    const clearCheckout = options.clearCheckout === true;
+
     return new Promise((resolve, reject) => {
-      const query = `
+      const query = clearCheckout
+        ? `
+        UPDATE items
+        SET description = ?, is_tagged = ?, condition = ?, status = ?,
+            purchase_date = ?, cost = ?, notes = ?, in_app = ?,
+            checked_out_to = ?, checked_out_by = ?, check_out_date = ?, outing_name = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE item_id = ?
+      `
+        : `
         UPDATE items
         SET description = ?, is_tagged = ?, condition = ?, status = ?,
             purchase_date = ?, cost = ?, notes = ?, in_app = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE item_id = ?
       `;
-      
-      this.db.run(query, [
+
+      const baseParams = [
         updates.description,
         updates.isTagged ? 1 : 0,
         updates.condition,
@@ -681,9 +694,14 @@ class SQLiteAPI {
         updates.purchaseDate || null,
         updates.cost || null,
         updates.notes || '',
-        updates.inApp ? 1 : 0,
-        itemId
-      ], function(err) {
+        updates.inApp ? 1 : 0
+      ];
+
+      const params = clearCheckout
+        ? [...baseParams, '', '', null, '', itemId]
+        : [...baseParams, itemId];
+
+      this.db.run(query, params, function(err) {
         if (err) {
           console.error('Error updating item:', err);
           reject(err);

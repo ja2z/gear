@@ -1,6 +1,7 @@
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { JWT } = require('google-auth-library');
 const sqliteAPI = require('./sqlite-api');
+const { normalizeCost } = require('../utils/parse-cost');
 
 class SheetsAPI {
   constructor() {
@@ -117,7 +118,7 @@ class SheetsAPI {
           condition: (row.get('Condition') || 'Usable').trim(),
           status: (row.get('Status') || 'In shed').trim(),
           purchaseDate: row.get('Purchase Date') || null,
-          cost: row.get('Cost') || null,
+          cost: normalizeCost(row.get('Cost')),
           checkedOutTo: (row.get('Checked Out To') || '').trim(),
           checkedOutBy: (row.get('Checked Out By') || '').trim(),
           checkOutDate: row.get('Check Out Date') || null,
@@ -611,7 +612,7 @@ class SheetsAPI {
         const condition = (row.get('Condition') || 'Usable').trim();
         const status = (row.get('Status') || 'In shed').trim();
         const purchaseDate = row.get('Purchase Date') || null;
-        const cost = row.get('Cost') ? parseFloat(row.get('Cost')) : null;
+        const cost = normalizeCost(row.get('Cost'));
         const checkedOutTo = row.get('Checked Out To') || '';
         const checkedOutBy = row.get('Checked Out By') || '';
         const checkOutDate = row.get('Check Out Date') || null;
@@ -919,21 +920,22 @@ class SheetsAPI {
     }
   }
 
-  async updateItemInSheets(itemId, updates) {
+  async updateItemInSheets(itemId, updates, options = {}) {
     await this.initialize();
     const timestamp = new Date().toISOString();
-    
+    const { clearCheckoutFields = false } = options;
+
     try {
       console.log(`[${timestamp}] 📝 Updating item in Master Inventory: ${itemId}`);
       const inventorySheet = this.doc.sheetsByTitle['Master Inventory'];
       const rows = await inventorySheet.getRows();
-      
+
       const targetRow = rows.find(row => row.get('Item ID') === itemId);
-      
+
       if (!targetRow) {
         throw new Error(`Item ${itemId} not found in Master Inventory`);
       }
-      
+
       // Update allowed fields (NOT itemClass, itemNum, itemId)
       if (updates.description !== undefined) targetRow.set('Description', updates.description);
       if (updates.isTagged !== undefined) targetRow.set('Is Tagged', updates.isTagged ? 'TRUE' : 'FALSE');
@@ -943,11 +945,52 @@ class SheetsAPI {
       if (updates.cost !== undefined) targetRow.set('Cost', updates.cost || '');
       if (updates.notes !== undefined) targetRow.set('Notes', updates.notes || '');
       if (updates.inApp !== undefined) targetRow.set('In App', updates.inApp ? 'TRUE' : 'FALSE');
-      
+
+      // Manage Inventory: pseudo check-in — clear checkout columns (status/condition come from updates above)
+      if (clearCheckoutFields) {
+        targetRow.set('Checked Out To', '');
+        targetRow.set('Checked Out By', '');
+        targetRow.set('Check Out Date', '');
+        targetRow.set('Outing Name', '');
+      }
+
       await targetRow.save();
       console.log(`[${timestamp}] ✅ Item updated in Master Inventory`);
     } catch (error) {
       console.error(`[${timestamp}] ❌ Error updating item:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Append one row to Transaction Log (same shape as batchSyncToGoogleSheets).
+   * Used for Manage Inventory edit when transitioning off "Checked out".
+   */
+  async appendTransactionLogRow(row) {
+    await this.initialize();
+    const timestamp = new Date().toISOString();
+
+    try {
+      const transactionSheet = this.doc.sheetsByTitle['Transaction Log'];
+      if (!transactionSheet) {
+        throw new Error('Transaction Log sheet not found');
+      }
+
+      await transactionSheet.addRow({
+        'Transaction ID': row.transactionId,
+        'Timestamp': row.timestamp,
+        'Action': row.action,
+        'Item ID': row.itemId,
+        'Outing Name': row.outingName || '',
+        'Checked Out To': row.scoutName || '',
+        'Condition': row.condition,
+        'Processed By': row.processedBy,
+        'Notes': row.notes || ''
+      });
+
+      console.log(`[${timestamp}] ✅ Appended Transaction Log row for ${row.itemId}`);
+    } catch (error) {
+      console.error(`[${timestamp}] ❌ Error appending transaction log row:`, error);
       throw error;
     }
   }

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const sheetsAPI = require('../services/sheets-api');
 const sqliteAPI = require('../services/sqlite-api');
+const { parseCostFromRaw, normalizeCost } = require('../utils/parse-cost');
 
 // Sync data from Google Sheets to SQLite
 router.post('/sync', async (req, res) => {
@@ -116,8 +117,8 @@ router.post('/items', async (req, res) => {
     
     // Validate cost if provided
     if (itemData.cost !== null && itemData.cost !== undefined && itemData.cost !== '') {
-      const cost = parseFloat(itemData.cost);
-      if (isNaN(cost) || cost <= 0) {
+      const cost = parseCostFromRaw(itemData.cost);
+      if (cost === null || cost <= 0) {
         return res.status(400).json({ error: 'Cost must be greater than 0' });
       }
     }
@@ -133,7 +134,7 @@ router.post('/items', async (req, res) => {
       condition: itemData.condition,
       status: itemData.status,
       purchaseDate: itemData.purchaseDate || null,
-      cost: itemData.cost || null,
+      cost: normalizeCost(itemData.cost),
       notes: itemData.notes ? itemData.notes.trim() : '',
       inApp: itemData.inApp !== undefined ? itemData.inApp : true
     };
@@ -156,7 +157,12 @@ router.put('/items/:itemId', async (req, res) => {
   try {
     const { itemId } = req.params;
     const updates = req.body;
-    
+
+    const existing = await sqliteAPI.getItemById(itemId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
     // Validate required fields if provided
     if (updates.description !== undefined) {
       if (!updates.description || updates.description.length > 50) {
@@ -179,8 +185,8 @@ router.put('/items/:itemId', async (req, res) => {
     }
     
     if (updates.cost !== null && updates.cost !== undefined && updates.cost !== '') {
-      const cost = parseFloat(updates.cost);
-      if (isNaN(cost) || cost <= 0) {
+      const cost = parseCostFromRaw(updates.cost);
+      if (cost === null || cost <= 0) {
         return res.status(400).json({ error: 'Cost must be greater than 0' });
       }
     }
@@ -192,22 +198,76 @@ router.put('/items/:itemId', async (req, res) => {
       condition: updates.condition,
       status: updates.status,
       purchaseDate: updates.purchaseDate || null,
-      cost: updates.cost || null,
+      cost: updates.cost !== undefined ? normalizeCost(updates.cost) : undefined,
       notes: updates.notes !== undefined ? updates.notes.trim() : undefined,
       inApp: updates.inApp
     };
     
     // Remove undefined values
-    Object.keys(cleanUpdates).forEach(key => 
+    Object.keys(cleanUpdates).forEach(key =>
       cleanUpdates[key] === undefined && delete cleanUpdates[key]
     );
-    
+
+    // Full row for SQLite (and Sheets): merge with existing so partial API bodies do not null out fields
+    const persistUpdates = {
+      description: cleanUpdates.description !== undefined ? cleanUpdates.description : existing.description,
+      isTagged: cleanUpdates.isTagged !== undefined ? cleanUpdates.isTagged : existing.isTagged,
+      condition: cleanUpdates.condition !== undefined ? cleanUpdates.condition : existing.condition,
+      status: cleanUpdates.status !== undefined ? cleanUpdates.status : existing.status,
+      purchaseDate: cleanUpdates.purchaseDate !== undefined ? cleanUpdates.purchaseDate : existing.purchaseDate,
+      cost: cleanUpdates.cost !== undefined ? cleanUpdates.cost : existing.cost,
+      notes: cleanUpdates.notes !== undefined ? cleanUpdates.notes : existing.notes,
+      inApp: cleanUpdates.inApp !== undefined ? cleanUpdates.inApp : existing.inApp
+    };
+
+    // Manage Inventory pseudo check-in: was checked out, now moving to any non-checkout status
+    const isPseudoReturn =
+      existing.status === 'Checked out' &&
+      cleanUpdates.status !== undefined &&
+      cleanUpdates.status !== 'Checked out';
+
+    const txnTimestamp = new Date().toISOString();
+    const txnId = isPseudoReturn
+      ? `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      : null;
+
+    const baseNotesForLog = persistUpdates.notes || '';
+    const logNotes = isPseudoReturn
+      ? (baseNotesForLog ? `${baseNotesForLog} | Manage Inventory edit` : 'Manage Inventory edit')
+      : '';
+
     // Sync to Google Sheets first (fail fast)
-    await sheetsAPI.updateItemInSheets(itemId, cleanUpdates);
-    
+    await sheetsAPI.updateItemInSheets(itemId, persistUpdates, { clearCheckoutFields: isPseudoReturn });
+
+    if (isPseudoReturn) {
+      await sheetsAPI.appendTransactionLogRow({
+        transactionId: txnId,
+        timestamp: txnTimestamp,
+        action: 'Check in',
+        itemId,
+        outingName: existing.outingName || '',
+        condition: persistUpdates.condition,
+        processedBy: 'inventory edit',
+        notes: logNotes
+      });
+    }
+
     // Then update SQLite cache
-    await sqliteAPI.updateItem(itemId, cleanUpdates);
-    
+    await sqliteAPI.updateItem(itemId, persistUpdates, { clearCheckout: isPseudoReturn });
+
+    if (isPseudoReturn) {
+      await sqliteAPI.addTransaction({
+        transactionId: txnId,
+        timestamp: txnTimestamp,
+        action: 'Check in',
+        itemId,
+        outingName: existing.outingName || '',
+        condition: persistUpdates.condition,
+        processedBy: 'inventory edit',
+        notes: logNotes
+      });
+    }
+
     res.json({ success: true, itemId, updates: cleanUpdates });
   } catch (error) {
     console.error('Error updating item:', error);

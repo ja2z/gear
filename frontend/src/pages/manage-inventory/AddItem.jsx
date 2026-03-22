@@ -10,6 +10,7 @@ import {
   validateStatus,
   validateNotes
 } from '../../utils/validation';
+import { parseCostFromRaw } from '../../utils/parseCost';
 
 const AddItem = () => {
   const navigate = useNavigate();
@@ -115,7 +116,11 @@ const AddItem = () => {
         condition: formData.condition,
         status: formData.status,
         purchaseDate: formData.purchaseDate || null,
-        cost: formData.cost ? parseFloat(formData.cost) : null,
+        cost: (() => {
+          const v = typeof formData.cost === 'string' ? formData.cost.trim() : formData.cost;
+          if (v === '' || v === null || v === undefined) return null;
+          return parseCostFromRaw(formData.cost);
+        })(),
         notes: formData.notes.trim(),
         inApp: formData.inApp
       };
@@ -325,7 +330,7 @@ const AddItem = () => {
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                 errors.cost ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="$0.00"
+              placeholder="0.00"
             />
             {errors.cost && (
               <p className="text-red-500 text-sm mt-1">{errors.cost}</p>

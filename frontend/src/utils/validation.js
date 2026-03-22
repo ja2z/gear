@@ -1,3 +1,5 @@
+import { parseCostFromRaw } from './parseCost';
+
 // Category validation
 export const validateCategoryCode = (code) => {
   if (!code || code.trim() === '') {
@@ -34,15 +36,18 @@ export const validateItemDescription = (description) => {
 };
 
 export const validateCost = (cost) => {
-  if (!cost || cost === '') {
+  if (cost === null || cost === undefined || cost === '') {
     return { valid: true }; // Optional field
   }
-  const numCost = parseFloat(cost);
-  if (isNaN(numCost) || numCost <= 0) {
+  if (typeof cost === 'string' && cost.trim() === '') {
+    return { valid: true };
+  }
+  const numCost = parseCostFromRaw(cost);
+  if (numCost === null || numCost <= 0) {
     return { valid: false, error: 'Cost must be greater than 0' };
   }
-  // Check for max 2 decimal places
-  if (!/^\d+(\.\d{1,2})?$/.test(cost.toString())) {
+  const cents = Math.round(numCost * 100);
+  if (Math.abs(numCost * 100 - cents) > 1e-6) {
     return { valid: false, error: 'Cost must have at most 2 decimal places' };
   }
   return { valid: true };
