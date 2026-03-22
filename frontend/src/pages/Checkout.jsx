@@ -106,6 +106,7 @@ const Checkout = () => {
     const { name, value } = e.target;
 
     if (name === 'outingName') {
+      setSuggestionsOpen(true);
       if (!value.trim()) {
         setFormData(prev => ({
           ...prev,
@@ -256,7 +257,7 @@ const Checkout = () => {
                       onMouseDown={e => {
                         e.preventDefault();
                         cancelCloseSuggestions();
-                        setSuggestionsOpen(false);
+                        setSuggestionsOpen(true);
                         setSelectedOuting(null);
                         setFormData(prev => ({
                           ...prev,
