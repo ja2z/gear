@@ -14,13 +14,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@supabase/supabase-js": "^2.100.0",
     "cors": "^2.8.5",
-    "csv-parser": "^3.2.0",
     "dotenv": "^17.2.2",
-    "express": "^5.1.0",
-    "google-auth-library": "^10.3.0",
-    "google-spreadsheet": "^5.0.2",
-    "sqlite3": "^5.1.7"
+    "express": "^5.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

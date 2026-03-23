@@ -1,14 +1,15 @@
--- Scout Troop Gear Management Database Schema
+-- Scout Troop Gear Management - Supabase (PostgreSQL) Schema
+-- Run this once in the Supabase SQL editor before starting the app.
 
 -- Items table (Master Inventory)
 CREATE TABLE IF NOT EXISTS items (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id SERIAL PRIMARY KEY,
   item_class TEXT NOT NULL,
   item_desc TEXT NOT NULL,
   item_num TEXT NOT NULL,
   item_id TEXT UNIQUE NOT NULL,
   description TEXT,
-  is_tagged BOOLEAN DEFAULT 0,
+  is_tagged BOOLEAN DEFAULT false,
   condition TEXT DEFAULT 'Usable',
   status TEXT DEFAULT 'In shed',
   purchase_date DATE,
@@ -18,16 +19,16 @@ CREATE TABLE IF NOT EXISTS items (
   check_out_date DATE,
   outing_name TEXT,
   notes TEXT,
-  in_app BOOLEAN DEFAULT 1,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  in_app BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Transactions table (Transaction Log)
+-- Transactions table (Transaction Log) — append-only audit trail
 CREATE TABLE IF NOT EXISTS transactions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id SERIAL PRIMARY KEY,
   transaction_id TEXT UNIQUE NOT NULL,
-  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  timestamp TIMESTAMPTZ DEFAULT NOW(),
   action TEXT NOT NULL,
   item_id TEXT NOT NULL,
   outing_name TEXT,
@@ -37,26 +38,15 @@ CREATE TABLE IF NOT EXISTS transactions (
   FOREIGN KEY (item_id) REFERENCES items (item_id)
 );
 
--- Metadata table (Categories from Metadata sheet)
+-- Metadata table (Categories)
 CREATE TABLE IF NOT EXISTS metadata (
   class TEXT PRIMARY KEY,
   class_desc TEXT UNIQUE NOT NULL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Categories view for easy access
-CREATE VIEW IF NOT EXISTS categories AS
-SELECT 
-  item_class as name,
-  item_desc as description,
-  COUNT(*) as total_count,
-  SUM(CASE WHEN status = 'In shed' AND condition = 'Usable' THEN 1 ELSE 0 END) as available_count
-FROM items 
-WHERE in_app = 1
-GROUP BY item_class, item_desc;
-
--- Indexes for better performance
+-- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_items_item_id ON items(item_id);
 CREATE INDEX IF NOT EXISTS idx_items_status ON items(status);
 CREATE INDEX IF NOT EXISTS idx_items_condition ON items(condition);

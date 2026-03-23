@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
-import { useSync } from '../context/SyncContext';
 import ConnectionError from '../components/ConnectionError';
 
 const OutingSelection = () => {
   const { getData } = useInventory();
-  const { shouldSync, markSynced } = useSync();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [outingsWithItems, setOutingsWithItems] = useState([]);
@@ -14,22 +12,14 @@ const OutingSelection = () => {
   const [connectionError, setConnectionError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch real outings data from API
   useEffect(() => {
     const fetchOutings = async () => {
       try {
         setError(null);
         setConnectionError(false);
         setIsLoading(true);
-        // Use sync parameter based on context
-        const endpoint = shouldSync('checkin') ? '/inventory/outings?sync=true' : '/inventory/outings';
-        const data = await getData(endpoint);
+        const data = await getData('/inventory/outings');
         setOutingsWithItems(data);
-        
-        // Mark as synced after successful sync
-        if (shouldSync('checkin')) {
-          markSynced('checkin');
-        }
       } catch (err) {
         console.error('Error fetching outings:', err);
         setConnectionError(true);
@@ -39,7 +29,7 @@ const OutingSelection = () => {
     };
 
     fetchOutings();
-  }, []); // Empty dependency array - only run once on mount
+  }, []);
 
   const filteredOutings = outingsWithItems.filter(outing =>
     outing.outingName.toLowerCase().includes(searchTerm.toLowerCase())

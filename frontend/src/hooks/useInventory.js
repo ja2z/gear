@@ -119,42 +119,32 @@ export const useInventory = () => {
   };
 };
 
-export const useCategories = (shouldSync = false) => {
+export const useCategories = () => {
   const [categories, setCategories] = useState([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const isLoadingRef = useRef(false); // Ref to track loading state
+  const isLoadingRef = useRef(false);
   const { error, getData } = useInventory();
 
-  const loadCategories = async (forceRefresh = false, syncFromSheets = false) => {
-    // If we already have data and this isn't a forced refresh, don't reload
-    if (hasLoaded && !forceRefresh) {
-      return;
-    }
-    
-    // If we're already loading, don't start another load
-    if (isLoadingRef.current) {
-      return;
-    }
-    
+  const loadCategories = async (forceRefresh = false) => {
+    if (hasLoaded && !forceRefresh) return;
+    if (isLoadingRef.current) return;
+
     isLoadingRef.current = true;
-    
-    // Only show loading if we don't have cached data
+
     if (!hasLoaded) {
       setIsLoading(true);
     }
-    
+
     try {
-      const endpoint = syncFromSheets ? '/inventory/categories?sync=true' : '/inventory/categories';
-      const data = await getData(endpoint);
+      const data = await getData('/inventory/categories');
       setCategories(data);
       setHasLoaded(true);
     } catch (err) {
       console.error('Failed to load categories:', err);
-      // Fail fast - no fallback data
       setCategories([]);
       setHasLoaded(true);
-      throw err; // Re-throw to let calling components handle the error
+      throw err;
     } finally {
       setIsLoading(false);
       isLoadingRef.current = false;
@@ -162,14 +152,14 @@ export const useCategories = (shouldSync = false) => {
   };
 
   useEffect(() => {
-    loadCategories(false, shouldSync);
-  }, [shouldSync]); // Remove getData from dependencies to prevent re-runs
+    loadCategories();
+  }, []);
 
-  return { 
-    categories, 
-    loading: isLoading, // Only show loading when actually loading, not when using cache
-    error, 
-    refreshCategories: () => loadCategories(true, true) // Manual refresh always syncs
+  return {
+    categories,
+    loading: isLoading,
+    error,
+    refreshCategories: () => loadCategories(true),
   };
 };
 

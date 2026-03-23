@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
-import { useSync } from '../context/SyncContext';
 import ConnectionError from '../components/ConnectionError';
 import ImagePreloader from '../components/ImagePreloader';
 import { getRandomHomeImage } from '../utils/imageRotation';
@@ -10,7 +9,6 @@ import { useOptimizedImage } from '../hooks/useOptimizedImage';
 const Landing = () => {
   const navigate = useNavigate();
   const { checkHealth, loading } = useInventory();
-  const { resetSync, markSynced } = useSync();
   const [connectionError, setConnectionError] = useState(false);
   const [retryError, setRetryError] = useState(null);
   
@@ -21,12 +19,11 @@ const Landing = () => {
   const handleCheckoutClick = async (e) => {
     e.preventDefault();
     setRetryError(null);
-    
+
     try {
       const healthData = await checkHealth();
-      if (healthData.googleSheets === 'connected') {
-        resetSync(); // Reset sync state for new checkout session
-        navigate('/categories?sync=true');
+      if (healthData.supabase === 'connected') {
+        navigate('/categories');
       } else {
         setConnectionError(true);
       }
@@ -39,11 +36,10 @@ const Landing = () => {
   const handleCheckinClick = async (e) => {
     e.preventDefault();
     setRetryError(null);
-    
+
     try {
       const healthData = await checkHealth();
-      if (healthData.googleSheets === 'connected') {
-        resetSync(); // Reset sync state for new checkin session
+      if (healthData.supabase === 'connected') {
         navigate('/checkin/outings');
       } else {
         setConnectionError(true);

@@ -1,18 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useSync } from '../context/SyncContext';
 import { useCategories } from '../hooks/useInventory';
 import ConnectionError from '../components/ConnectionError';
 
 const Categories = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { getTotalItems, getItemsInCartByCategory } = useCart();
-  const { shouldSync, markSynced } = useSync();
-  const urlSync = searchParams.get('sync') === 'true';
-  const { categories, loading, error, refreshCategories } = useCategories(urlSync);
+  const { categories, loading, error, refreshCategories } = useCategories();
   const [connectionError, setConnectionError] = useState(false);
 
   // Handle errors from the useCategories hook
@@ -21,14 +17,6 @@ const Categories = () => {
       setConnectionError(true);
     }
   }, [error, loading]);
-
-  // Mark as synced after successful load
-  useEffect(() => {
-    if (categories.length > 0 && urlSync) {
-      markSynced('checkout');
-    }
-  }, [categories, urlSync, markSynced]);
-
 
   const handleRetry = () => {
     setConnectionError(false);

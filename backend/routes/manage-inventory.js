@@ -1,39 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const sheetsAPI = require('../services/sheets-api');
-const sqliteAPI = require('../services/sqlite-api');
+const supabaseAPI = require('../services/supabase-api');
 const { parseCostFromRaw, normalizeCost } = require('../utils/parse-cost');
 
-// Sync data from Google Sheets to SQLite
-router.post('/sync', async (req, res) => {
-  try {
-    console.log('Starting inventory sync from Google Sheets to SQLite...');
-    
-    // Sync Master Inventory using the correct method
-    const inventory = await sheetsAPI.syncFromGoogleSheets();
-    console.log(`Synced ${inventory.length} inventory items`);
-    
-    // Sync Metadata (categories)
-    const categories = await sheetsAPI.getCategories();
-    await sqliteAPI.syncMetadata(categories);
-    console.log(`Synced ${categories.length} categories`);
-    
-    res.json({ 
-      success: true, 
-      message: 'Sync completed successfully',
-      itemCount: inventory.length,
-      categoryCount: categories.length
-    });
-  } catch (error) {
-    console.error('Error syncing data:', error);
-    res.status(500).json({ error: 'Failed to sync data' });
-  }
-});
-
-// Get all items for management view
+// GET /api/manage-inventory/items - Get all items for management view
 router.get('/items', async (req, res) => {
   try {
-    const items = await sqliteAPI.getAllItems();
+    const items = await supabaseAPI.getAllItems();
     res.json(items);
   } catch (error) {
     console.error('Error fetching items:', error);
@@ -41,10 +14,10 @@ router.get('/items', async (req, res) => {
   }
 });
 
-// Get category statistics for aggregate view
+// GET /api/manage-inventory/category-stats - Get category statistics
 router.get('/category-stats', async (req, res) => {
   try {
-    const stats = await sqliteAPI.getCategoryStats();
+    const stats = await supabaseAPI.getCategoryStats();
     res.json(stats);
   } catch (error) {
     console.error('Error fetching category stats:', error);
@@ -52,14 +25,11 @@ router.get('/category-stats', async (req, res) => {
   }
 });
 
-// Get next item number for a category
+// GET /api/manage-inventory/next-item-num/:class - Get next item number for a category
 router.get('/next-item-num/:class', async (req, res) => {
   try {
     const { class: classCode } = req.params;
-    
-    // Get from Google Sheets (source of truth)
-    const result = await sheetsAPI.getNextItemNum(classCode);
-    
+    const result = await supabaseAPI.getNextItemNum(classCode);
     res.json(result);
   } catch (error) {
     console.error('Error getting next item number:', error);
@@ -67,16 +37,16 @@ router.get('/next-item-num/:class', async (req, res) => {
   }
 });
 
-// Get single item by ID
+// GET /api/manage-inventory/items/:itemId - Get single item by ID
 router.get('/items/:itemId', async (req, res) => {
   try {
     const { itemId } = req.params;
-    const item = await sqliteAPI.getItemById(itemId);
-    
+    const item = await supabaseAPI.getItemById(itemId);
+
     if (!item) {
       return res.status(404).json({ error: 'Item not found' });
     }
-    
+
     res.json(item);
   } catch (error) {
     console.error('Error fetching item:', error);
@@ -84,46 +54,40 @@ router.get('/items/:itemId', async (req, res) => {
   }
 });
 
-// Add new item
+// POST /api/manage-inventory/items - Add new item
 router.post('/items', async (req, res) => {
   try {
     const itemData = req.body;
-    
-    // Validate required fields
+
     if (!itemData.itemClass || !itemData.itemDesc || !itemData.itemNum || !itemData.itemId) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    
+
     if (!itemData.description || !itemData.condition || !itemData.status) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    
-    // Validate field lengths
+
     if (itemData.description.length > 50) {
       return res.status(400).json({ error: 'Description must be 50 characters or less' });
     }
-    
-    // Validate condition
+
     const validConditions = ['Usable', 'Not usable', 'Unknown'];
     if (!validConditions.includes(itemData.condition)) {
       return res.status(400).json({ error: 'Invalid condition value' });
     }
-    
-    // Validate status (for add, only these are allowed)
+
     const validStatuses = ['In shed', 'Missing', 'Out for repair'];
     if (!validStatuses.includes(itemData.status)) {
       return res.status(400).json({ error: 'Invalid status value' });
     }
-    
-    // Validate cost if provided
+
     if (itemData.cost !== null && itemData.cost !== undefined && itemData.cost !== '') {
       const cost = parseCostFromRaw(itemData.cost);
       if (cost === null || cost <= 0) {
         return res.status(400).json({ error: 'Cost must be greater than 0' });
       }
     }
-    
-    // Prepare item data
+
     const cleanItemData = {
       itemClass: itemData.itemClass.trim(),
       itemDesc: itemData.itemDesc.trim(),
@@ -136,15 +100,11 @@ router.post('/items', async (req, res) => {
       purchaseDate: itemData.purchaseDate || null,
       cost: normalizeCost(itemData.cost),
       notes: itemData.notes ? itemData.notes.trim() : '',
-      inApp: itemData.inApp !== undefined ? itemData.inApp : true
+      inApp: itemData.inApp !== undefined ? itemData.inApp : true,
     };
-    
-    // Sync to Google Sheets first (fail fast)
-    await sheetsAPI.addItem(cleanItemData);
-    
-    // Then update SQLite cache
-    await sqliteAPI.addItem(cleanItemData);
-    
+
+    await supabaseAPI.addItem(cleanItemData);
+
     res.json({ success: true, item: cleanItemData });
   } catch (error) {
     console.error('Error adding item:', error);
@@ -152,46 +112,44 @@ router.post('/items', async (req, res) => {
   }
 });
 
-// Update item
+// PUT /api/manage-inventory/items/:itemId - Update item
 router.put('/items/:itemId', async (req, res) => {
   try {
     const { itemId } = req.params;
     const updates = req.body;
 
-    const existing = await sqliteAPI.getItemById(itemId);
+    const existing = await supabaseAPI.getItemById(itemId);
     if (!existing) {
       return res.status(404).json({ error: 'Item not found' });
     }
 
-    // Validate required fields if provided
     if (updates.description !== undefined) {
       if (!updates.description || updates.description.length > 50) {
         return res.status(400).json({ error: 'Description must be between 1 and 50 characters' });
       }
     }
-    
+
     if (updates.condition !== undefined) {
       const validConditions = ['Usable', 'Not usable', 'Unknown'];
       if (!validConditions.includes(updates.condition)) {
         return res.status(400).json({ error: 'Invalid condition value' });
       }
     }
-    
+
     if (updates.status !== undefined) {
       const validStatuses = ['In shed', 'Missing', 'Out for repair', 'Checked out'];
       if (!validStatuses.includes(updates.status)) {
         return res.status(400).json({ error: 'Invalid status value' });
       }
     }
-    
+
     if (updates.cost !== null && updates.cost !== undefined && updates.cost !== '') {
       const cost = parseCostFromRaw(updates.cost);
       if (cost === null || cost <= 0) {
         return res.status(400).json({ error: 'Cost must be greater than 0' });
       }
     }
-    
-    // Prepare clean updates
+
     const cleanUpdates = {
       description: updates.description ? updates.description.trim() : undefined,
       isTagged: updates.isTagged,
@@ -200,15 +158,14 @@ router.put('/items/:itemId', async (req, res) => {
       purchaseDate: updates.purchaseDate || null,
       cost: updates.cost !== undefined ? normalizeCost(updates.cost) : undefined,
       notes: updates.notes !== undefined ? updates.notes.trim() : undefined,
-      inApp: updates.inApp
+      inApp: updates.inApp,
     };
-    
-    // Remove undefined values
-    Object.keys(cleanUpdates).forEach(key =>
-      cleanUpdates[key] === undefined && delete cleanUpdates[key]
+
+    Object.keys(cleanUpdates).forEach(
+      key => cleanUpdates[key] === undefined && delete cleanUpdates[key]
     );
 
-    // Full row for SQLite (and Sheets): merge with existing so partial API bodies do not null out fields
+    // Merge with existing so partial bodies don't null out fields
     const persistUpdates = {
       description: cleanUpdates.description !== undefined ? cleanUpdates.description : existing.description,
       isTagged: cleanUpdates.isTagged !== undefined ? cleanUpdates.isTagged : existing.isTagged,
@@ -217,10 +174,10 @@ router.put('/items/:itemId', async (req, res) => {
       purchaseDate: cleanUpdates.purchaseDate !== undefined ? cleanUpdates.purchaseDate : existing.purchaseDate,
       cost: cleanUpdates.cost !== undefined ? cleanUpdates.cost : existing.cost,
       notes: cleanUpdates.notes !== undefined ? cleanUpdates.notes : existing.notes,
-      inApp: cleanUpdates.inApp !== undefined ? cleanUpdates.inApp : existing.inApp
+      inApp: cleanUpdates.inApp !== undefined ? cleanUpdates.inApp : existing.inApp,
     };
 
-    // Manage Inventory pseudo check-in: was checked out, now moving to any non-checkout status
+    // Pseudo check-in: was checked out, now moving to a non-checkout status
     const isPseudoReturn =
       existing.status === 'Checked out' &&
       cleanUpdates.status !== undefined &&
@@ -231,16 +188,15 @@ router.put('/items/:itemId', async (req, res) => {
       ? `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       : null;
 
-    const baseNotesForLog = persistUpdates.notes || '';
+    const baseNotes = persistUpdates.notes || '';
     const logNotes = isPseudoReturn
-      ? (baseNotesForLog ? `${baseNotesForLog} | Manage Inventory edit` : 'Manage Inventory edit')
+      ? (baseNotes ? `${baseNotes} | Manage Inventory edit` : 'Manage Inventory edit')
       : '';
 
-    // Sync to Google Sheets first (fail fast)
-    await sheetsAPI.updateItemInSheets(itemId, persistUpdates, { clearCheckoutFields: isPseudoReturn });
+    await supabaseAPI.updateItem(itemId, persistUpdates, { clearCheckout: isPseudoReturn });
 
     if (isPseudoReturn) {
-      await sheetsAPI.appendTransactionLogRow({
+      await supabaseAPI.addTransaction({
         transactionId: txnId,
         timestamp: txnTimestamp,
         action: 'Check in',
@@ -248,23 +204,7 @@ router.put('/items/:itemId', async (req, res) => {
         outingName: existing.outingName || '',
         condition: persistUpdates.condition,
         processedBy: 'inventory edit',
-        notes: logNotes
-      });
-    }
-
-    // Then update SQLite cache
-    await sqliteAPI.updateItem(itemId, persistUpdates, { clearCheckout: isPseudoReturn });
-
-    if (isPseudoReturn) {
-      await sqliteAPI.addTransaction({
-        transactionId: txnId,
-        timestamp: txnTimestamp,
-        action: 'Check in',
-        itemId,
-        outingName: existing.outingName || '',
-        condition: persistUpdates.condition,
-        processedBy: 'inventory edit',
-        notes: logNotes
+        notes: logNotes,
       });
     }
 
@@ -275,17 +215,11 @@ router.put('/items/:itemId', async (req, res) => {
   }
 });
 
-// Soft delete item
+// DELETE /api/manage-inventory/items/:itemId - Soft delete item
 router.delete('/items/:itemId', async (req, res) => {
   try {
     const { itemId } = req.params;
-    
-    // Sync to Google Sheets first (fail fast)
-    await sheetsAPI.softDeleteItem(itemId);
-    
-    // Then update SQLite cache
-    await sqliteAPI.softDeleteItem(itemId);
-    
+    await supabaseAPI.softDeleteItem(itemId);
     res.json({ success: true, itemId });
   } catch (error) {
     console.error('Error soft deleting item:', error);
@@ -293,11 +227,11 @@ router.delete('/items/:itemId', async (req, res) => {
   }
 });
 
-// Get transaction log for a specific item
+// GET /api/manage-inventory/items/:itemId/transactions - Transaction log for a specific item
 router.get('/items/:itemId/transactions', async (req, res) => {
   try {
     const { itemId } = req.params;
-    const transactions = await sheetsAPI.getItemTransactions(itemId);
+    const transactions = await supabaseAPI.getItemTransactions(itemId);
     res.json(transactions);
   } catch (error) {
     console.error('Error fetching item transactions:', error);
@@ -305,20 +239,20 @@ router.get('/items/:itemId/transactions', async (req, res) => {
   }
 });
 
-// Get all transactions with optional filters
+// GET /api/manage-inventory/transactions - All transactions with optional filters
 router.get('/transactions', async (req, res) => {
   try {
     const { dateRange, outing, itemId, limit, offset } = req.query;
-    
+
     const filters = {
-      dateRange: dateRange || '30', // Default to last 30 days
+      dateRange: dateRange || '30',
       outing: outing || '',
       itemId: itemId || '',
       limit: limit ? parseInt(limit) : 50,
-      offset: offset ? parseInt(offset) : 0
+      offset: offset ? parseInt(offset) : 0,
     };
-    
-    const result = await sheetsAPI.getAllTransactions(filters);
+
+    const result = await supabaseAPI.getAllTransactions(filters);
     res.json(result);
   } catch (error) {
     console.error('Error fetching all transactions:', error);
@@ -326,10 +260,10 @@ router.get('/transactions', async (req, res) => {
   }
 });
 
-// Get all outings from transaction log (including past outings)
+// GET /api/manage-inventory/all-outings - All outings from transaction log
 router.get('/all-outings', async (req, res) => {
   try {
-    const outings = await sheetsAPI.getAllOutingsFromTransactions();
+    const outings = await supabaseAPI.getAllOutingsFromTransactions();
     res.json(outings);
   } catch (error) {
     console.error('Error fetching all outings:', error);
@@ -337,11 +271,11 @@ router.get('/all-outings', async (req, res) => {
   }
 });
 
-// Get item breakdown for a specific outing
+// GET /api/manage-inventory/outing-breakdown/:outingName - Item breakdown for a specific outing
 router.get('/outing-breakdown/:outingName', async (req, res) => {
   try {
     const { outingName } = req.params;
-    const breakdown = await sheetsAPI.getOutingItemBreakdown(outingName);
+    const breakdown = await supabaseAPI.getOutingItemBreakdown(outingName);
     res.json(breakdown);
   } catch (error) {
     console.error('Error fetching outing breakdown:', error);
@@ -350,4 +284,3 @@ router.get('/outing-breakdown/:outingName', async (req, res) => {
 });
 
 module.exports = router;
-
