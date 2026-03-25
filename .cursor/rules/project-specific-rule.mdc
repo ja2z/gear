@@ -21,16 +21,17 @@ After much research and consideration of budget constraints, I have decided to b
 ## Architecture Decision
 **Frontend:** Vite + React (mobile-first design)
 **Backend:** Express.js with Node.js
-**Data Storage:** Google Sheets (source of truth) via Google Sheets API
-**Hosting:** Our own troop server
+**Data Storage:** Supabase (PostgreSQL) — single source of truth for all reads and writes
+**Hosting:** Render (Node.js hosting)
 **Mobile Experience:** Progressive web app capabilities, touch-optimized UI
 
 **Why this stack:**
 - Fast development with Vite's hot reload
 - Excellent mobile performance
-- Simple deployment to our existing server
+- Simple deployment to Render
 - Familiar technologies that are easy to maintain
-- Google Sheets integration keeps data accessible to leadership
+- Supabase provides a managed PostgreSQL database with a simple JS client
+- No sync complexity — all reads and writes go directly to Supabase
 
 ## Mobile UI Flow Design
 The system follows an e-commerce shopping cart pattern familiar to users:
@@ -53,8 +54,8 @@ The system follows an e-commerce shopping cart pattern familiar to users:
 
 ## Data Model
 
-### 1. Master Inventory Sheet (Google Sheets)
-Sheet is updated when check out/in occurs. Each row represents a unique item.
+### 1. Master Inventory (`items` table in Supabase)
+Updated when check out/in occurs. Each row represents a unique item.
 Some items like TENT-001 get physical tags. Other items are fungible like SPOON-001 and SPOON-002 - we track individual spoons but they're interchangeable.
 
 **Columns:**
@@ -74,7 +75,7 @@ Some items like TENT-001 get physical tags. Other items are fungible like SPOON-
 - `Outing Name` - Current outing assignment
 - `Notes` - Additional information
 
-### 2. Transaction Log Sheet (Google Sheets)
+### 2. Transaction Log (`transactions` table in Supabase)
 Append-only audit trail of all checkout/checkin activities.
 
 **Columns:**
@@ -117,9 +118,11 @@ server/
 ├── routes/
 │   ├── inventory.js
 │   ├── checkout.js
-│   └── checkin.js
+│   ├── checkin.js
+│   ├── metadata.js
+│   └── manage-inventory.js
 ├── services/
-│   └── sheets-api.js
+│   └── supabase-api.js
 ├── middleware/
 └── server.js
 ```
@@ -131,30 +134,24 @@ server/
 - `POST /api/checkin` - Process checkin transaction
 - `GET /api/inventory` - Get current inventory status
 
-### Google Sheets Integration:
-- Use `google-spreadsheet` npm package for seamless API integration
-- **Service account authentication** for secure, automated access (no user OAuth needed)
-- **Real-time inventory updates** with optimistic UI for better user experience
-- **Batch operations** for multiple item checkouts to improve performance
-- **Error handling** with retry logic for network issues
+### Supabase Integration:
+- Use `@supabase/supabase-js` npm package for all database access
+- **Single service file** `supabase-api.js` replaces both the old `sheets-api.js` and `sqlite-api.js`
+- **No sync layer** — all reads and writes go directly to Supabase; no wipe-and-repopulate pattern
+- **Service key authentication** via `SUPABASE_URL` and `SUPABASE_SECRET_KEY` environment variables
+- **Error handling** with try/catch on all async operations
 - **Data validation** on both client and server sides
-- **Concurrent access handling** to prevent inventory conflicts
 
-### Google Sheets Setup:
+### Supabase Client Setup:
 ```javascript
-// Example configuration
-const { GoogleSpreadsheet } = require('google-spreadsheet');
-
-const doc = new GoogleSpreadsheet('your-spreadsheet-id');
-await doc.useServiceAccountAuth({
-  client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-  private_key: process.env.GOOGLE_PRIVATE_KEY,
-});
-
-// Access patterns for inventory updates
-const inventorySheet = doc.sheetsByTitle['Master Inventory'];
-const transactionSheet = doc.sheetsByTitle['Transaction Log'];
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
 ```
+
+### Supabase Schema (three tables):
+- `items` — master inventory (one row per item)
+- `transactions` — append-only audit trail
+- `metadata` — gear categories (class code + description)
 
 ## Development Approach
 - Start with basic checkout flow: Categories → Items → Cart → Checkout
@@ -177,7 +174,7 @@ const transactionSheet = doc.sheetsByTitle['Transaction Log'];
 - Push notifications for overdue items
 - Advanced reporting and analytics
 - User authentication with Google OAuth
-- SQLite caching for improved performance
+- Google Sheets export for leadership visibility
 
 ## Deployment
 - App is deployed on Render (nodejs hosting site)
