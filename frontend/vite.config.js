@@ -1,10 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { imageOptimizationPlugin } from './plugins/imageOptimization.js'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), imageOptimizationPlugin()],
+  plugins: [tailwindcss(), react(), imageOptimizationPlugin()],
   base: '/',
   server: {
     host: '0.0.0.0', // Allow connections from any IP address
