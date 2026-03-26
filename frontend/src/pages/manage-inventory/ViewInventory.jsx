@@ -264,9 +264,9 @@ const ViewInventory = () => {
         </Link>
       </div>
 
-      {/* Toggle + filter chip — single compact row */}
-      <div className="bg-white px-3 py-2 border-b border-gray-200 flex items-center gap-2">
-        <div className="flex flex-1 bg-gray-100 rounded-lg p-1 gap-1">
+      {/* Toggle row */}
+      <div className="bg-white px-5 py-2 border-b border-gray-200">
+        <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
           <button
             onClick={() => {
               setViewMode('category');
@@ -294,23 +294,29 @@ const ViewInventory = () => {
             By Item
           </button>
         </div>
-
-        {filteredStatus && (
-          <span className="inline-flex items-center gap-1 bg-scout-blue/10 text-scout-blue text-xs font-medium pl-2.5 pr-1.5 py-1 rounded-full whitespace-nowrap shrink-0">
-            {filteredStatus}
-            {filteredStatusCount !== null && (
-              <span className="text-scout-blue/60">· {filteredStatusCount}</span>
-            )}
-            <button
-              onClick={() => { setFilteredStatus(null); setFilteredCategory(null); }}
-              className="ml-0.5 text-scout-blue/50 hover:text-scout-blue leading-none"
-              aria-label="Clear filter"
-            >
-              ✕
-            </button>
-          </span>
-        )}
       </div>
+
+      {/* Filter banner — full-width, between toggle and search */}
+      {filteredStatus && (
+        <div className="bg-scout-blue/8 border-b border-scout-blue/15 px-5 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-scout-blue/60 shrink-0"></div>
+            <span className="text-scout-blue text-sm font-medium">
+              {filteredStatus}
+              {filteredStatusCount !== null && (
+                <span className="font-normal text-scout-blue/70"> · {filteredStatusCount} items</span>
+              )}
+            </span>
+          </div>
+          <button
+            onClick={() => { setFilteredStatus(null); setFilteredCategory(null); }}
+            className="text-scout-blue/50 hover:text-scout-blue text-xs font-medium touch-target"
+            aria-label="Clear filter"
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
       {/* Search */}
       <div className="bg-white px-5 py-3 border-b border-gray-200">
