@@ -9,9 +9,11 @@ import { useOptimizedImage } from '../hooks/useOptimizedImage';
 
 const Landing = () => {
   const navigate = useNavigate();
-  const { checkHealth, loading } = useInventory();
+  const { checkHealth } = useInventory();
   const [connectionError, setConnectionError] = useState(false);
   const [retryError, setRetryError] = useState(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkinLoading, setCheckinLoading] = useState(false);
   
   // Get the random background image once and keep it stable
   const [selectedImagePath] = useState(() => getRandomHomeImage());
@@ -20,7 +22,7 @@ const Landing = () => {
   const handleCheckoutClick = async (e) => {
     e.preventDefault();
     setRetryError(null);
-
+    setCheckoutLoading(true);
     try {
       const healthData = await checkHealth();
       if (healthData.supabase === 'connected') {
@@ -31,13 +33,15 @@ const Landing = () => {
     } catch (error) {
       console.error('Connection check failed:', error);
       setConnectionError(true);
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
   const handleCheckinClick = async (e) => {
     e.preventDefault();
     setRetryError(null);
-
+    setCheckinLoading(true);
     try {
       const healthData = await checkHealth();
       if (healthData.supabase === 'connected') {
@@ -48,6 +52,8 @@ const Landing = () => {
     } catch (error) {
       console.error('Connection check failed:', error);
       setConnectionError(true);
+    } finally {
+      setCheckinLoading(false);
     }
   };
 
@@ -111,19 +117,19 @@ const Landing = () => {
         <div className="flex gap-3">
           <button
             onClick={handleCheckoutClick}
-            disabled={loading}
+            disabled={checkoutLoading || checkinLoading}
             className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-blue text-white transition-all disabled:opacity-50 shadow-sm"
           >
-            {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <LogOut className="h-6 w-6" />}
+            {checkoutLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <LogOut className="h-6 w-6" />}
             <span className="text-base font-bold">Check Out</span>
           </button>
 
           <button
             onClick={handleCheckinClick}
-            disabled={loading}
+            disabled={checkoutLoading || checkinLoading}
             className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-green text-white transition-all disabled:opacity-50 shadow-sm"
           >
-            {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <LogIn className="h-6 w-6" />}
+            {checkinLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <LogIn className="h-6 w-6" />}
             <span className="text-base font-bold">Check In</span>
           </button>
         </div>
@@ -131,7 +137,7 @@ const Landing = () => {
         {/* Tertiary: Manage Inventory — outlined, clearly subordinate */}
         <button
           onClick={() => navigate('/manage-inventory')}
-          disabled={loading}
+          disabled={checkoutLoading || checkinLoading}
           className="w-full flex items-center justify-center gap-2 rounded-full text-sm font-medium py-3 touch-target border-2 border-scout-red text-scout-red bg-transparent transition-all disabled:opacity-50"
         >
           <ClipboardList className="h-4 w-4" />
