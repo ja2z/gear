@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 import { useInventory } from '../../hooks/useInventory';
@@ -7,17 +7,28 @@ import { useInventory } from '../../hooks/useInventory';
 const ViewInventory = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { toast, showToast, hideToast } = useToast();
   const { getData } = useInventory();
-  
+
   const [viewMode, setViewMode] = useState('category'); // 'category' or 'item'
   const [categoryStats, setCategoryStats] = useState([]);
   const [items, setItems] = useState([]);
   const [filteredCategory, setFilteredCategory] = useState(null);
+  const [filteredStatus, setFilteredStatus] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [pendingScrollToCategory, setPendingScrollToCategory] = useState(null);
   const scrollContainerRef = useRef(null);
+
+  // Handle ?status= param from dashboard — switch to item view with status filter
+  useEffect(() => {
+    const status = searchParams.get('status');
+    if (status) {
+      setViewMode('item');
+      setFilteredStatus(status);
+    }
+  }, []);
 
   // Check if navigated from edit/delete with category filter
   useEffect(() => {
@@ -153,15 +164,16 @@ const ViewInventory = () => {
     return groups;
   }, {});
 
-  // Filter items by search and category (search includes itemId and description)
+  // Filter items by search, category, and status
   const filteredItems = Object.keys(groupedItems).reduce((result, classCode) => {
     const group = groupedItems[classCode];
     const filteredGroupItems = group.items.filter(item => {
-      const matchesSearch = 
+      const matchesSearch =
         item.itemId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesCategory = !filteredCategory || item.itemClass === filteredCategory;
-      return matchesSearch && matchesCategory;
+      const matchesStatus = !filteredStatus || item.status === filteredStatus;
+      return matchesSearch && matchesCategory && matchesStatus;
     });
 
     if (filteredGroupItems.length > 0) {
@@ -263,6 +275,23 @@ const ViewInventory = () => {
           </button>
         </div>
       </div>
+
+      {/* Active status filter chip */}
+      {filteredStatus && (
+        <div className="bg-white px-5 py-2 border-b border-gray-200 flex items-center gap-2">
+          <span className="text-xs text-gray-500">Filtered by:</span>
+          <span className="inline-flex items-center gap-1.5 bg-scout-blue/10 text-scout-blue text-xs font-medium px-3 py-1 rounded-full">
+            {filteredStatus}
+            <button
+              onClick={() => setFilteredStatus(null)}
+              className="text-scout-blue/60 hover:text-scout-blue leading-none"
+              aria-label="Clear filter"
+            >
+              ✕
+            </button>
+          </span>
+        </div>
+      )}
 
       {/* Search */}
       <div className="bg-white px-5 py-4 border-b border-gray-200">
