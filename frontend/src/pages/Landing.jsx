@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, PackageCheck, ClipboardList, Loader2 } from 'lucide-react';
+import { LogOut, LogIn, ClipboardList, Loader2 } from 'lucide-react';
 import { useInventory } from '../hooks/useInventory';
 import ConnectionError from '../components/ConnectionError';
 import ImagePreloader from '../components/ImagePreloader';
@@ -101,38 +101,32 @@ const Landing = () => {
           backgroundColor: '#1E398A'
         }}
       >
-        {/* Troop 222 logo — bottom-left identity mark */}
-        <img
-          src="/Troop%20222%20Logo.webp"
-          alt="Troop 222"
-          className="absolute bottom-5 left-4 h-14 w-auto opacity-90 drop-shadow-md"
-        />
-
         {/* Gradient bleed — hero fades into the button panel below */}
         <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-b from-transparent to-white"></div>
       </div>
 
       {/* Bottom action bar — thumb-reachable */}
       <div className="shrink-0 bg-white px-5 pt-2 pb-7 space-y-3">
-        {/* Primary: Check Out — largest */}
-        <button
-          onClick={handleCheckoutClick}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-3 rounded-full text-xl font-bold py-5 touch-target bg-scout-blue text-white transition-all disabled:opacity-50 shadow-sm"
-        >
-          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Package className="h-5 w-5" />}
-          Check Out Gear
-        </button>
+        {/* Primary row: Check Out + Check In side by side */}
+        <div className="flex gap-3">
+          <button
+            onClick={handleCheckoutClick}
+            disabled={loading}
+            className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-blue text-white transition-all disabled:opacity-50 shadow-sm"
+          >
+            {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <LogOut className="h-6 w-6" />}
+            <span className="text-base font-bold">Check Out</span>
+          </button>
 
-        {/* Secondary: Check In — slightly smaller */}
-        <button
-          onClick={handleCheckinClick}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-3 rounded-full text-lg font-semibold py-4 touch-target bg-scout-green text-white transition-all disabled:opacity-50 shadow-sm"
-        >
-          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <PackageCheck className="h-5 w-5" />}
-          Check In Gear
-        </button>
+          <button
+            onClick={handleCheckinClick}
+            disabled={loading}
+            className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-green text-white transition-all disabled:opacity-50 shadow-sm"
+          >
+            {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <LogIn className="h-6 w-6" />}
+            <span className="text-base font-bold">Check In</span>
+          </button>
+        </div>
 
         {/* Tertiary: Manage Inventory — outlined, clearly subordinate */}
         <button
