@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Package, PackageCheck, ClipboardList, Loader2 } from 'lucide-react';
 import { useInventory } from '../hooks/useInventory';
 import ConnectionError from '../components/ConnectionError';
 import ImagePreloader from '../components/ImagePreloader';
@@ -14,7 +15,7 @@ const Landing = () => {
   
   // Get the random background image once and keep it stable
   const [selectedImagePath] = useState(() => getRandomHomeImage());
-  const { currentImage, imageData, isLoading: imageLoading, error: imageError } = useOptimizedImage(selectedImagePath);
+  const { currentImage, imageData } = useOptimizedImage(selectedImagePath);
 
   const handleCheckoutClick = async (e) => {
     e.preventDefault();
@@ -91,46 +92,56 @@ const Landing = () => {
       <div
         className="relative flex-1 overflow-hidden"
         style={{
-          backgroundImage: currentImage ? `url(${currentImage})` : undefined,
+          backgroundImage: currentImage
+            ? `url(${currentImage})`
+            : 'linear-gradient(to bottom, #1E398A, #0f1f5c)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundColor: imageLoading ? '#f3f4f6' : '#1E398A'
+          backgroundColor: '#1E398A'
         }}
       >
-        <div className="absolute inset-0 bg-black/30"></div>
+        {/* Troop 222 logo — bottom-left identity mark */}
+        <img
+          src="/Troop%20222%20Logo.webp"
+          alt="Troop 222"
+          className="absolute bottom-5 left-4 h-14 w-auto opacity-90 drop-shadow-md"
+        />
+
+        {/* Gradient bleed — hero fades into the button panel below */}
+        <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-b from-transparent to-white"></div>
       </div>
 
       {/* Bottom action bar — thumb-reachable */}
-      <div className="shrink-0 bg-white border-t border-gray-200 px-4 pt-4 pb-6 space-y-3">
+      <div className="shrink-0 bg-white px-5 pt-2 pb-7 space-y-3">
+        {/* Primary: Check Out — largest */}
         <button
           onClick={handleCheckoutClick}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 rounded-xl text-lg font-semibold py-4 touch-target bg-scout-blue text-white transition-all disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-3 rounded-full text-xl font-bold py-5 touch-target bg-scout-blue text-white transition-all disabled:opacity-50 shadow-sm"
         >
-          📦 Check Out Gear
-          {loading && (
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white ml-1"></div>
-          )}
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Package className="h-5 w-5" />}
+          Check Out Gear
         </button>
 
+        {/* Secondary: Check In — slightly smaller */}
         <button
           onClick={handleCheckinClick}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 rounded-xl text-lg font-semibold py-4 touch-target bg-scout-green text-white transition-all disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-3 rounded-full text-lg font-semibold py-4 touch-target bg-scout-green text-white transition-all disabled:opacity-50 shadow-sm"
         >
-          ✅ Check In Gear
-          {loading && (
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white ml-1"></div>
-          )}
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <PackageCheck className="h-5 w-5" />}
+          Check In Gear
         </button>
 
+        {/* Tertiary: Manage Inventory — outlined, clearly subordinate */}
         <button
           onClick={() => navigate('/manage-inventory')}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 rounded-xl text-lg font-semibold py-4 touch-target bg-scout-red text-white transition-all disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 rounded-full text-sm font-medium py-3 touch-target border-2 border-scout-red text-scout-red bg-transparent transition-all disabled:opacity-50"
         >
-          ⚙️ Manage Inventory
+          <ClipboardList className="h-4 w-4" />
+          Manage Inventory
         </button>
       </div>
       </div>
