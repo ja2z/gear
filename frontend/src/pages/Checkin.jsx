@@ -207,11 +207,11 @@ const Checkin = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 leading-none m-0">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
                         {item.itemId}
                       </h3>
-                      <p className="text-sm text-gray-600 leading-none -mt-0.5">{item.description}</p>
-                      <p className="text-xs text-gray-500 leading-none -mt-0.5">
+                      <p className="text-sm text-gray-600 mb-1">{item.description}</p>
+                      <p className="text-xs text-gray-700">
                         Checked out to: {item.checkedOutTo}
                       </p>
                     </div>

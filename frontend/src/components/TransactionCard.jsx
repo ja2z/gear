@@ -30,42 +30,42 @@ const TransactionCard = ({ transaction, showItemId = false }) => {
         {showItemId && transaction.itemId && (
           <div className="flex">
             <span className="font-medium text-gray-700 w-32">Item ID:</span>
-            <span className="text-gray-900">{transaction.itemId}</span>
+            <span className="text-gray-900 flex-1">{transaction.itemId}</span>
           </div>
         )}
-        
+
         {transaction.outingName && (
           <div className="flex">
             <span className="font-medium text-gray-700 w-32">Outing:</span>
-            <span className="text-gray-900">{transaction.outingName}</span>
+            <span className="text-gray-900 flex-1">{transaction.outingName}</span>
           </div>
         )}
-        
+
         {transaction.action === 'Check out' && transaction.checkedOutTo && (
           <div className="flex">
             <span className="font-medium text-gray-700 w-32">Checked Out To:</span>
-            <span className="text-gray-900">{transaction.checkedOutTo}</span>
+            <span className="text-gray-900 flex-1">{transaction.checkedOutTo}</span>
           </div>
         )}
-        
+
         {transaction.condition && (
           <div className="flex">
             <span className="font-medium text-gray-700 w-32">Condition:</span>
-            <span className="text-gray-900">{transaction.condition}</span>
+            <span className="text-gray-900 flex-1">{transaction.condition}</span>
           </div>
         )}
-        
+
         {transaction.processedBy && (
           <div className="flex">
             <span className="font-medium text-gray-700 w-32">Processed By:</span>
-            <span className="text-gray-900">{transaction.processedBy}</span>
+            <span className="text-gray-900 flex-1">{transaction.processedBy}</span>
           </div>
         )}
-        
+
         {transaction.notes && (
           <div className="flex">
             <span className="font-medium text-gray-700 w-32">Notes:</span>
-            <span className="text-gray-900">{transaction.notes}</span>
+            <span className="text-gray-900 flex-1">{transaction.notes}</span>
           </div>
         )}
       </div>
