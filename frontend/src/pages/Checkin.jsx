@@ -222,36 +222,19 @@ const Checkin = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Item Condition:
                   </label>
-                  <div className="flex space-x-2">
-                    {['Usable', 'Not usable', 'Missing'].map((condition) => (
-                      <button
-                        key={condition}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleConditionChange(item.itemId, condition);
-                        }}
-                        className={`px-4 py-2 text-sm rounded-full border border-gray-300 touch-target transition-all duration-200 ${
-                          isSelected && isSelected.condition === condition
-                            ? 'bg-scout-blue text-white'
-                            : isSelected
-                            ? 'bg-white text-gray-700 hover:bg-gray-50'
-                            : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-400'
-                        }`}
-                        style={{
-                          boxShadow: 'none !important',
-                          textShadow: 'none !important',
-                          filter: 'none !important',
-                          outline: 'none !important',
-                          borderStyle: 'solid',
-                          appearance: 'none',
-                          WebkitAppearance: 'none',
-                          MozAppearance: 'none'
-                        }}
-                      >
-                        {condition}
-                      </button>
-                    ))}
-                  </div>
+                  <select
+                    value={isSelected ? isSelected.condition : 'Usable'}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      handleConditionChange(item.itemId, e.target.value);
+                    }}
+                    className="form-input w-full rounded-lg border border-gray-300 bg-white text-gray-800 text-sm py-2 px-3"
+                  >
+                    <option value="Usable">Usable</option>
+                    <option value="Not usable">Not usable</option>
+                    <option value="Missing">Missing</option>
+                  </select>
                 </div>
               </div>
             );

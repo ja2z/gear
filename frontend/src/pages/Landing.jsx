@@ -68,81 +68,70 @@ const Landing = () => {
     <>
       {/* Preload only the selected hero image's LQIP for instant feedback */}
       {imageData && <ImagePreloader images={[imageData]} />}
-      
-      <div 
-        className="h-screen-small flex flex-col bg-gray-100 relative overflow-hidden"
-        style={{
-          backgroundImage: currentImage ? `url(${currentImage})` : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          // Show a subtle loading state while image loads
-          backgroundColor: imageLoading ? '#f3f4f6' : undefined
-        }}
-      >
-      {/* Overlay for better text readability */}
-      <div className="absolute inset-0 bg-black/30"></div>
-      
+
+      <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
-      <div className="relative z-10 bg-scout-blue text-white py-5 px-4">
+      <div className="relative z-10 bg-scout-blue text-white py-5 px-4 shrink-0">
         <div className="flex items-center justify-center">
-          <img 
-            src="/BSA_Logo.webp" 
-            alt="BSA Logo" 
+          <img
+            src="/BSA_Logo.webp"
+            alt="BSA Logo"
             className="h-10 w-auto mr-4"
           />
           <h1 className="text-xl font-semibold text-center">Troop 222 Gear Tracker</h1>
-          <img 
-            src="/BSA_Logo.webp" 
-            alt="BSA Logo" 
+          <img
+            src="/BSA_Logo.webp"
+            alt="BSA Logo"
             className="h-10 w-auto ml-4"
           />
         </div>
       </div>
 
-      {/* Content */}
-      <div className="px-5 py-8 relative z-10 flex flex-col justify-center flex-1">
-        <div className="space-y-6">
-          <button
-            onClick={handleCheckoutClick}
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full p-6 text-center text-xl touch-target bg-scout-blue text-white shadow-xs hover:bg-scout-blue relative no-underline"
-          >
-            <span className="flex items-center justify-center">
-              📦 Check Out Gear
-              {loading && (
-                <div className="ml-3">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                </div>
-              )}
-            </span>
-          </button>
+      {/* Hero image — fills remaining space above bottom bar */}
+      <div
+        className="relative flex-1 overflow-hidden"
+        style={{
+          backgroundImage: currentImage ? `url(${currentImage})` : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: imageLoading ? '#f3f4f6' : '#1E398A'
+        }}
+      >
+        <div className="absolute inset-0 bg-black/30"></div>
+      </div>
 
-          <button
-            onClick={handleCheckinClick}
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] w-full p-6 text-center text-xl touch-target bg-scout-green text-white shadow-xs hover:bg-green-700 relative no-underline"
-          >
-            <span className="flex items-center justify-center">
-              ✅ Check In Gear
-              {loading && (
-                <div className="ml-3">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                </div>
-              )}
-            </span>
-          </button>
+      {/* Bottom action bar — thumb-reachable */}
+      <div className="shrink-0 bg-white border-t border-gray-200 px-4 pt-4 pb-6 space-y-3">
+        <button
+          onClick={handleCheckoutClick}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 rounded-xl text-lg font-semibold py-4 touch-target bg-scout-blue text-white transition-all disabled:opacity-50"
+        >
+          📦 Check Out Gear
+          {loading && (
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white ml-1"></div>
+          )}
+        </button>
 
-          <button
-            onClick={() => navigate('/manage-inventory')}
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] w-full p-6 text-center text-xl touch-target bg-scout-red text-white shadow-xs hover:bg-red-700 relative no-underline"
-          >
-            <span className="flex items-center justify-center">
-              ⚙️ Manage Inventory
-            </span>
-          </button>
-        </div>
+        <button
+          onClick={handleCheckinClick}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 rounded-xl text-lg font-semibold py-4 touch-target bg-scout-green text-white transition-all disabled:opacity-50"
+        >
+          ✅ Check In Gear
+          {loading && (
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white ml-1"></div>
+          )}
+        </button>
+
+        <button
+          onClick={() => navigate('/manage-inventory')}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 rounded-xl text-lg font-semibold py-4 touch-target bg-scout-red text-white transition-all disabled:opacity-50"
+        >
+          ⚙️ Manage Inventory
+        </button>
       </div>
       </div>
     </>
