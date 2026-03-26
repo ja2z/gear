@@ -83,10 +83,11 @@ const ViewInventory = () => {
   useEffect(() => {
     if (viewMode === 'category') {
       fetchCategoryStats();
+      if (filteredStatus) fetchItems(); // need items to derive filtered category rows
     } else {
       fetchItems();
     }
-  }, [viewMode]);
+  }, [viewMode, filteredStatus]);
 
   // Perform pending scroll when category is set and view mode is 'item'
   useEffect(() => {
@@ -152,6 +153,28 @@ const ViewInventory = () => {
     );
   });
 
+  // When status filter active, derive category rows from items (not the API)
+  const categoriesDisplay = filteredStatus
+    ? Object.values(
+        items
+          .filter(item => item.status === filteredStatus &&
+            (item.itemId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))))
+          .reduce((acc, item) => {
+            if (!acc[item.itemClass]) {
+              acc[item.itemClass] = { class: item.itemClass, class_desc: item.itemDesc, count: 0 };
+            }
+            acc[item.itemClass].count++;
+            return acc;
+          }, {})
+      ).sort((a, b) => a.class_desc.localeCompare(b.class_desc))
+    : filteredCategories;
+
+  // Count of items matching the active status filter (for chip display)
+  const filteredStatusCount = filteredStatus
+    ? items.filter(i => i.status === filteredStatus).length
+    : null;
+
   // Group items by category (always show all items)
   const groupedItems = items.reduce((groups, item) => {
     if (!groups[item.itemClass]) {
@@ -187,9 +210,10 @@ const ViewInventory = () => {
 
   const scrollToCategory = (classCode) => {
     setViewMode('item');
-    setFilteredCategory(null); // Clear any category filter
+    // When a status filter is active, also narrow to this category so the list is focused
+    setFilteredCategory(filteredStatus ? classCode : null);
     setSearchQuery('');
-    setPendingScrollToCategory(classCode); // Set pending scroll - will execute after items load
+    setPendingScrollToCategory(classCode);
   };
 
   const handleDeleteClick = (itemId) => {
@@ -240,9 +264,9 @@ const ViewInventory = () => {
         </Link>
       </div>
 
-      {/* Toggle Control */}
-      <div className="bg-white px-5 py-3 border-b border-gray-200">
-        <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+      {/* Toggle + filter chip — single compact row */}
+      <div className="bg-white px-3 py-2 border-b border-gray-200 flex items-center gap-2">
+        <div className="flex flex-1 bg-gray-100 rounded-lg p-1 gap-1">
           <button
             onClick={() => {
               setViewMode('category');
@@ -250,10 +274,8 @@ const ViewInventory = () => {
               setSearchQuery('');
               setPendingScrollToCategory(null);
             }}
-            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all touch-target ${
-              viewMode === 'category'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+            className={`flex-1 py-1 px-2 rounded-md text-xs font-medium transition-all touch-target ${
+              viewMode === 'category' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
             }`}
           >
             By Category
@@ -265,36 +287,33 @@ const ViewInventory = () => {
               setSearchQuery('');
               setPendingScrollToCategory(null);
             }}
-            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all touch-target ${
-              viewMode === 'item'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+            className={`flex-1 py-1 px-2 rounded-md text-xs font-medium transition-all touch-target ${
+              viewMode === 'item' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
             }`}
           >
             By Item
           </button>
         </div>
-      </div>
 
-      {/* Active status filter chip */}
-      {filteredStatus && (
-        <div className="bg-white px-5 py-2 border-b border-gray-200 flex items-center gap-2">
-          <span className="text-xs text-gray-500">Filtered by:</span>
-          <span className="inline-flex items-center gap-1.5 bg-scout-blue/10 text-scout-blue text-xs font-medium px-3 py-1 rounded-full">
+        {filteredStatus && (
+          <span className="inline-flex items-center gap-1 bg-scout-blue/10 text-scout-blue text-xs font-medium pl-2.5 pr-1.5 py-1 rounded-full whitespace-nowrap shrink-0">
             {filteredStatus}
+            {filteredStatusCount !== null && (
+              <span className="text-scout-blue/60">· {filteredStatusCount}</span>
+            )}
             <button
-              onClick={() => setFilteredStatus(null)}
-              className="text-scout-blue/60 hover:text-scout-blue leading-none"
+              onClick={() => { setFilteredStatus(null); setFilteredCategory(null); }}
+              className="ml-0.5 text-scout-blue/50 hover:text-scout-blue leading-none"
               aria-label="Clear filter"
             >
               ✕
             </button>
           </span>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Search */}
-      <div className="bg-white px-5 py-4 border-b border-gray-200">
+      <div className="bg-white px-5 py-3 border-b border-gray-200">
         <input
           type="text"
           placeholder={viewMode === 'category' ? 'Search categories...' : 'Search items...'}
@@ -314,7 +333,7 @@ const ViewInventory = () => {
         ) : viewMode === 'category' ? (
           /* Category View */
           <div className="space-y-3">
-            {filteredCategories.map((cat) => (
+            {categoriesDisplay.map((cat) => (
               <div
                 key={cat.class}
                 onClick={() => scrollToCategory(cat.class)}
@@ -324,7 +343,10 @@ const ViewInventory = () => {
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900">{cat.class_desc}</h3>
                     <p className="text-sm text-gray-600 mt-1">
-                      {cat.total_items} total • {cat.available} avail • {cat.checked_out} out • {cat.unavailable} unavail
+                      {filteredStatus
+                        ? `${cat.count} ${filteredStatus.toLowerCase()}`
+                        : `${cat.total_items} total • ${cat.available} avail • ${cat.checked_out} out • ${cat.unavailable} unavail`
+                      }
                     </p>
                   </div>
                   <span className="text-gray-400 text-xl">›</span>
