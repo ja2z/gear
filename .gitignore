@@ -18,6 +18,10 @@ build/
 # Cursor plans
 .cursor/plans
 
+# Claude Code — exclude local settings and worktrees, but keep CLAUDE.md
+.claude/settings.local.json
+.claude/worktrees/
+
 # Sample files
 sample/
 
