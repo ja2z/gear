@@ -15,6 +15,9 @@ yarn-error.log*
 dist/
 build/
 
+# Auto-generated files
+frontend/src/utils/optimizedImageList.js
+
 # Cursor plans
 .cursor/plans
 
