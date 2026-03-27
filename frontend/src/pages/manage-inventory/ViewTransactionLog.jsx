@@ -21,6 +21,8 @@ const ViewTransactionLog = () => {
   const [searchDebounce, setSearchDebounce] = useState('');
   const [filteredItemIds, setFilteredItemIds] = useState([]); // For outing item breakdown filtering
   
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -179,41 +181,41 @@ const ViewTransactionLog = () => {
         <div className="w-10 h-10"></div>
       </div>
 
-      {/* Filters Section */}
-      <div className="bg-white px-5 py-4 border-b border-gray-200 space-y-3">
-        {/* Row 1: Date Range and Outing side by side */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Date Range Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date Range
-            </label>
-            <select
-              value={dateRange}
-              onChange={(e) => {
-                setDateRange(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full px-4 py-4 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[56px]"
+      {/* Date chips + filter toggle — always visible */}
+      <div className="bg-white px-5 py-2 border-b border-gray-200 flex items-center justify-between">
+        <div className="flex gap-2">
+          {[{ label: '7d', value: '7' }, { label: '30d', value: '30' }, { label: '90d', value: '90' }, { label: 'All', value: 'all' }].map(({ label, value }) => (
+            <button
+              key={value}
+              onClick={() => { setDateRange(value); setCurrentPage(1); }}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                dateRange === value ? 'bg-scout-blue text-white' : 'bg-gray-100 text-gray-600'
+              }`}
             >
-              <option value="7">Last 7 days</option>
-              <option value="30">Last 30 days</option>
-              <option value="90">Last 90 days</option>
-              <option value="all">All time</option>
-            </select>
-          </div>
+              {label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setFiltersOpen(o => !o)}
+          className={`cart-badge ${filtersOpen || selectedOuting || itemIdSearch ? 'text-scout-blue' : ''}`}
+          aria-label="Toggle filters"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+      </div>
 
-          {/* Outing Filter */}
+      {/* Expandable: Outing + Item ID search */}
+      {filtersOpen && (
+        <div className="bg-white px-5 py-3 border-b border-gray-200 space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Outing
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Outing</label>
             <select
               value={selectedOuting}
-              onChange={(e) => {
-                setSelectedOuting(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => { setSelectedOuting(e.target.value); setCurrentPage(1); }}
               className="w-full px-4 py-4 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[56px]"
             >
               <option value="">All outings</option>
@@ -224,25 +226,32 @@ const ViewTransactionLog = () => {
               ))}
             </select>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Search Item ID</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={itemIdSearch}
+                onChange={(e) => { setItemIdSearch(e.target.value); setCurrentPage(1); }}
+                placeholder="e.g., TENT-001"
+                className="search-input w-full pr-8"
+              />
+              {itemIdSearch && (
+                <button
+                  onClick={() => { setItemIdSearch(''); setCurrentPage(1); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 touch-target flex items-center justify-center"
+                  aria-label="Clear search"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-
-        {/* Row 2: Search Item ID - full width */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Search Item ID
-          </label>
-          <input
-            type="text"
-            value={itemIdSearch}
-            onChange={(e) => {
-              setItemIdSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="e.g., TENT-001"
-            className="search-input"
-          />
-        </div>
-      </div>
+      )}
 
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto">

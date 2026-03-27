@@ -129,7 +129,7 @@ const AddItem = () => {
 
       showToast('Item added successfully', 'success');
       setTimeout(() => {
-        navigate('/manage-inventory');
+        navigate('/manage-inventory/view');
       }, 1000);
     } catch (error) {
       console.error('Error adding item:', error);
@@ -146,7 +146,7 @@ const AddItem = () => {
       {/* Header */}
       <div className="header">
         <Link
-          to="/manage-inventory"
+          to="/manage-inventory/view"
           className="back-button no-underline"
         >
           ←
@@ -369,7 +369,7 @@ const AddItem = () => {
         <div className="flex space-x-3">
           <button
             type="button"
-            onClick={() => navigate('/manage-inventory')}
+            onClick={() => navigate('/manage-inventory/view')}
             disabled={loading}
             className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 min-h-[44px] disabled:opacity-50"
           >

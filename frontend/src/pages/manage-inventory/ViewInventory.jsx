@@ -17,6 +17,7 @@ const ViewInventory = () => {
   const [filteredCategory, setFilteredCategory] = useState(null);
   const [filteredStatus, setFilteredStatus] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pendingScrollToCategory, setPendingScrollToCategory] = useState(null);
   const scrollContainerRef = useRef(null);
@@ -264,39 +265,82 @@ const ViewInventory = () => {
         </Link>
       </div>
 
-      {/* Toggle row */}
-      <div className="bg-white px-5 py-2 border-b border-gray-200">
-        <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+      {/* Toggle row OR Search bar — mutually exclusive */}
+      {searchOpen ? (
+        <div className="bg-white px-4 py-2 border-b border-gray-200 flex items-center gap-2">
+          <div className="relative flex-1">
+            <input
+              autoFocus
+              type="text"
+              placeholder={viewMode === 'category' ? 'Search categories...' : 'Search items...'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input w-full pr-8"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 touch-target flex items-center justify-center"
+                aria-label="Clear search"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            )}
+          </div>
           <button
-            onClick={() => {
-              setViewMode('category');
-              setFilteredCategory(null);
-              setSearchQuery('');
-              setPendingScrollToCategory(null);
-            }}
-            className={`flex-1 py-1 px-2 rounded-md text-xs font-medium transition-all touch-target ${
-              viewMode === 'category' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
-            }`}
+            onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
+            className="text-gray-600 font-medium text-sm whitespace-nowrap touch-target px-1"
           >
-            By Category
-          </button>
-          <button
-            onClick={() => {
-              setViewMode('item');
-              setFilteredCategory(null);
-              setSearchQuery('');
-              setPendingScrollToCategory(null);
-            }}
-            className={`flex-1 py-1 px-2 rounded-md text-xs font-medium transition-all touch-target ${
-              viewMode === 'item' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
-            }`}
-          >
-            By Item
+            Cancel
           </button>
         </div>
-      </div>
+      ) : (
+        <div className="bg-white px-5 py-2 border-b border-gray-200 flex items-center gap-2">
+          <div className="flex flex-1 bg-gray-100 rounded-lg p-1 gap-1">
+            <button
+              onClick={() => {
+                setViewMode('category');
+                setFilteredCategory(null);
+                setSearchQuery('');
+                setPendingScrollToCategory(null);
+              }}
+              className={`flex-1 py-1 px-2 rounded-md text-xs font-medium transition-all touch-target ${
+                viewMode === 'category' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+              }`}
+            >
+              By Category
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('item');
+                setFilteredCategory(null);
+                setSearchQuery('');
+                setPendingScrollToCategory(null);
+              }}
+              className={`flex-1 py-1 px-2 rounded-md text-xs font-medium transition-all touch-target ${
+                viewMode === 'item' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+              }`}
+            >
+              By Item
+            </button>
+          </div>
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="text-gray-500 touch-target flex items-center justify-center"
+            aria-label="Search"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
+        </div>
+      )}
 
-      {/* Filter banner — full-width, between toggle and search */}
+      {/* Filter banner — full-width, below toggle/search */}
       {filteredStatus && (
         <div className="bg-scout-blue/8 border-b border-scout-blue/15 px-5 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -317,17 +361,6 @@ const ViewInventory = () => {
           </button>
         </div>
       )}
-
-      {/* Search */}
-      <div className="bg-white px-5 py-3 border-b border-gray-200">
-        <input
-          type="text"
-          placeholder={viewMode === 'category' ? 'Search categories...' : 'Search items...'}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="search-input"
-        />
-      </div>
 
       {/* Scrollable Content */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
