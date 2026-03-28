@@ -35,7 +35,8 @@ function App() {
       <Router>
         <ScrollToTop />
         <InputFocusLock />
-        <div className="h-full overflow-hidden bg-gray-50">
+        <div className="min-h-screen bg-gray-200">
+          <div className="max-w-md mx-auto bg-gray-50 min-h-screen shadow-xl">
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/categories" element={<Categories />} />
@@ -60,6 +61,7 @@ function App() {
             <Route path="/manage-inventory/add-category" element={<AddCategory />} />
             <Route path="/manage-inventory/edit-category/:classCode" element={<EditCategory />} />
           </Routes>
+          </div>
         </div>
       </Router>
     </CartProvider>

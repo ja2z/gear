@@ -177,7 +177,7 @@ const EditItem = () => {
 
       {/* Scrollable Form */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-5 py-6 pb-32">
+        <div className="px-5 py-6">
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Category (Read-only) */}
           <div>
@@ -409,13 +409,11 @@ const EditItem = () => {
 
         </form>
         
-        {/* Spacer for sticky bottom bar */}
-        <div style={{ height: '80px' }}></div>
         </div>
       </div>
 
       {/* Sticky Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50" style={{width: '100vw'}}>
+      <div className="bg-white border-t border-gray-200 p-4">
         <div className="flex space-x-3">
           <button
             type="button"
