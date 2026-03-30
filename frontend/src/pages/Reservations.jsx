@@ -97,7 +97,7 @@ const Reservations = () => {
         <div className="px-5 py-5 space-y-3">
           {/* Create button */}
           <button
-            onClick={() => navigate('/categories?mode=reserve')}
+            onClick={() => { clearCart(); navigate('/categories?mode=reserve'); }}
             className="w-full h-12 text-base font-medium rounded-md bg-scout-orange text-white"
           >
             + Create Reservation

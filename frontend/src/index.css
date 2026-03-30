@@ -269,6 +269,10 @@ body.input-focused {
   text-decoration: none !important;
 }
 
+.header-reserve {
+  background-color: #ff6b35;
+}
+
 /* Search input styles */
 .search-input {
   width: 100%;

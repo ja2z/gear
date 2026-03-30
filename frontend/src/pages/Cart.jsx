@@ -90,14 +90,14 @@ useEffect(() => {
   if (items.length === 0) {
     return (
       <div className="h-screen-small flex flex-col bg-gray-100">
-        <div className="header">
+        <div className={`header ${mode === 'reserve' ? 'header-reserve' : ''}`}>
           <Link
             to={`/categories?mode=${mode}`}
             className="back-button no-underline"
           >
             ←
           </Link>
-          <h1>Your Cart ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'items'})</h1>
+          <h1>{mode === 'reserve' ? 'Reservation Cart' : 'Your Cart'} ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'items'})</h1>
           <div className="w-10 h-10"></div>
         </div>
 
@@ -129,14 +129,14 @@ useEffect(() => {
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
-      <div className="header">
+      <div className={`header ${mode === 'reserve' ? 'header-reserve' : ''}`}>
         <Link
           to={`/categories?mode=${mode}`}
           className="back-button no-underline"
         >
           ←
         </Link>
-        <h1>Your Cart ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'items'})</h1>
+        <h1>{mode === 'reserve' ? 'Reservation Cart' : 'Your Cart'} ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'items'})</h1>
         <div className="w-10 h-10"></div>
       </div>
 
@@ -254,7 +254,7 @@ useEffect(() => {
         ) : (
           <Link
             to="/checkout"
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full h-12 text-base font-medium px-6 has-[>svg]:px-4 bg-scout-blue text-white shadow-xs hover:bg-scout-blue text-center no-underline"
+            className="flex items-center justify-center w-full h-12 text-base font-medium rounded-md bg-scout-blue text-white no-underline"
           >
             Go to Checkout
           </Link>

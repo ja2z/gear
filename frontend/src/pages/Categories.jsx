@@ -60,14 +60,14 @@ const Categories = () => {
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
-      <div className="header">
+      <div className={`header ${mode === 'reserve' ? 'header-reserve' : ''}`}>
         <Link
           to="/"
           className="back-button no-underline"
         >
           ←
         </Link>
-        <h1 className="text-center text-truncate">Select Category</h1>
+        <h1 className="text-center text-truncate">{mode === 'reserve' ? 'Reserve Gear' : 'Select Category'}</h1>
         <Link
           to={`/cart?mode=${mode}`}
           className="cart-badge no-underline"

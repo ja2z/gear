@@ -85,7 +85,7 @@ const Items = () => {
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
-      <div className="header">
+      <div className={`header ${mode === 'reserve' ? 'header-reserve' : ''}`}>
         <Link
           to={`/categories?mode=${mode}`}
           className="back-button no-underline"
@@ -125,10 +125,9 @@ const Items = () => {
               const isUsable = item.condition === 'Usable';
               const isUnknown = item.condition === 'Unknown';
               const inCart = isItemInCart(item.itemId);
-              const isOwnReservation = mode === 'reserve' &&
-                reservationMeta?.isEditing &&
-                isReserved &&
-                item.outingName === reservationMeta?.outingName;
+              const isOwnReservation = isReserved &&
+                item.outingName === reservationMeta?.outingName &&
+                (reservationMeta?.isEditing || reservationMeta?.fromReservation);
               const isSelectable = (isAvailable || isOwnReservation) && (isUsable || isUnknown) && !inCart;
               
               return (
@@ -190,10 +189,10 @@ const Items = () => {
         <button
           onClick={handleAddSelectedToCart}
           disabled={selectedItems.length === 0}
-          className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full h-12 text-base font-medium px-6 has-[>svg]:px-4 no-underline ${
-            selectedItems.length === 0 
-              ? 'bg-gray-200 text-gray-500 shadow-xs hover:bg-gray-300' 
-              : 'bg-scout-blue text-white shadow-xs hover:bg-scout-blue'
+          className={`w-full h-12 text-base font-medium rounded-md disabled:opacity-50 ${
+            selectedItems.length === 0
+              ? 'bg-gray-200 text-gray-500'
+              : 'bg-scout-blue text-white'
           }`}
         >
           {selectedItems.length === 0 

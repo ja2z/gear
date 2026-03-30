@@ -74,7 +74,7 @@ const ReservationInfo = () => {
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
-      <div className="header">
+      <div className="header header-reserve">
         <Link to="/cart?mode=reserve" className="back-button no-underline">←</Link>
         <h1 className="text-center text-truncate">Reservation Information</h1>
         <div className="w-10 h-10" />
