@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, LogIn, ClipboardList, Loader2 } from 'lucide-react';
+import { LogOut, LogIn, BookMarked, ClipboardList, Loader2 } from 'lucide-react';
 import { useInventory } from '../hooks/useInventory';
+import { useCart } from '../context/CartContext';
 import ConnectionError from '../components/ConnectionError';
+import SlowLoadHint from '../components/SlowLoadHint';
+import { useSlowLoad } from '../hooks/useSlowLoad';
 import ImagePreloader from '../components/ImagePreloader';
 import { getRandomHomeImage } from '../utils/imageRotation';
 import { useOptimizedImage } from '../hooks/useOptimizedImage';
@@ -10,23 +13,23 @@ import { useOptimizedImage } from '../hooks/useOptimizedImage';
 const Landing = () => {
   const navigate = useNavigate();
   const { checkHealth } = useInventory();
+  const { clearCart, reservationMeta } = useCart();
   const [connectionError, setConnectionError] = useState(false);
-  const [retryError, setRetryError] = useState(null);
+
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkinLoading, setCheckinLoading] = useState(false);
-  
+
   // Get the random background image once and keep it stable
   const [selectedImagePath] = useState(() => getRandomHomeImage());
   const { currentImage, imageData } = useOptimizedImage(selectedImagePath);
 
-  const handleCheckoutClick = async (e) => {
+  const withHealthCheck = (setLoading, onSuccess) => async (e) => {
     e.preventDefault();
-    setRetryError(null);
-    setCheckoutLoading(true);
+    setLoading(true);
     try {
       const healthData = await checkHealth();
       if (healthData.supabase === 'connected') {
-        navigate('/categories');
+        onSuccess();
       } else {
         setConnectionError(true);
       }
@@ -34,42 +37,25 @@ const Landing = () => {
       console.error('Connection check failed:', error);
       setConnectionError(true);
     } finally {
-      setCheckoutLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleCheckinClick = async (e) => {
-    e.preventDefault();
-    setRetryError(null);
-    setCheckinLoading(true);
-    try {
-      const healthData = await checkHealth();
-      if (healthData.supabase === 'connected') {
-        navigate('/checkin/outings');
-      } else {
-        setConnectionError(true);
-      }
-    } catch (error) {
-      console.error('Connection check failed:', error);
-      setConnectionError(true);
-    } finally {
-      setCheckinLoading(false);
-    }
-  };
+  const handleCheckoutClick = withHealthCheck(setCheckoutLoading, () => {
+    if (reservationMeta) clearCart();
+    navigate('/categories');
+  });
+  const handleCheckinClick = withHealthCheck(setCheckinLoading, () => navigate('/checkin/outings'));
 
-  const handleRetry = () => {
-    setConnectionError(false);
-    setRetryError(null);
-  };
-
-  const handleGoHome = () => {
-    setConnectionError(false);
-    setRetryError(null);
-  };
+  const handleRetry = () => setConnectionError(false);
+  const handleGoHome = () => setConnectionError(false);
 
   if (connectionError) {
     return <ConnectionError onRetry={handleRetry} onGoHome={handleGoHome} />;
   }
+
+  const anyLoading = checkoutLoading || checkinLoading;
+  const slowHint = useSlowLoad(anyLoading);
 
   return (
     <>
@@ -111,13 +97,13 @@ const Landing = () => {
         <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-b from-transparent to-white"></div>
       </div>
 
-      {/* Bottom action bar — thumb-reachable */}
+      {/* Bottom action bar — 2×2 grid */}
       <div className="shrink-0 bg-white px-5 pt-2 pb-7 space-y-3">
-        {/* Primary row: Check Out + Check In side by side */}
+        {/* Row 1: Check Out + Check In */}
         <div className="flex gap-3">
           <button
             onClick={handleCheckoutClick}
-            disabled={checkoutLoading || checkinLoading}
+            disabled={anyLoading}
             className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-blue text-white transition-all disabled:opacity-50 shadow-sm"
           >
             {checkoutLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <LogOut className="h-6 w-6" />}
@@ -126,7 +112,7 @@ const Landing = () => {
 
           <button
             onClick={handleCheckinClick}
-            disabled={checkoutLoading || checkinLoading}
+            disabled={anyLoading}
             className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-green text-white transition-all disabled:opacity-50 shadow-sm"
           >
             {checkinLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <LogIn className="h-6 w-6" />}
@@ -134,15 +120,27 @@ const Landing = () => {
           </button>
         </div>
 
-        {/* Tertiary: Manage Inventory — outlined, clearly subordinate */}
-        <button
-          onClick={() => navigate('/manage-inventory')}
-          disabled={checkoutLoading || checkinLoading}
-          className="w-full flex items-center justify-center gap-2 rounded-full text-sm font-medium py-3 touch-target border-2 border-scout-red text-scout-red bg-transparent transition-all disabled:opacity-50"
-        >
-          <ClipboardList className="h-4 w-4" />
-          Manage Inventory
-        </button>
+        {/* Row 2: Reservations + Manage Inventory */}
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate('/reservations')}
+            disabled={anyLoading}
+            className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-orange text-white transition-all disabled:opacity-50 shadow-sm"
+          >
+            <BookMarked className="h-6 w-6" />
+            <span className="text-base font-bold">Reservations</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/manage-inventory')}
+            disabled={anyLoading}
+            className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target border-2 border-scout-red text-scout-red bg-transparent transition-all disabled:opacity-50"
+          >
+            <ClipboardList className="h-6 w-6" />
+            <span className="text-base font-bold">Manage</span>
+          </button>
+        </div>
+        <SlowLoadHint hint={slowHint} />
       </div>
       </div>
     </>

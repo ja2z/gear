@@ -18,6 +18,7 @@ const ManageInventoryDashboard = () => {
           total: active.length,
           inShed: active.filter(i => i.status === 'In shed').length,
           checkedOut: checkedOut.length,
+          reserved: active.filter(i => i.status === 'Reserved').length,
           missing: active.filter(i => i.status === 'Missing').length,
           outForRepair: active.filter(i => i.status === 'Out for repair').length,
           activeOutings,
@@ -29,6 +30,7 @@ const ManageInventoryDashboard = () => {
   const subStats = stats ? [
     { label: 'In Shed',       value: stats.inShed,      status: 'In shed',        color: 'text-white/90' },
     { label: 'Checked Out',   value: stats.checkedOut,  status: 'Checked out',    color: 'text-green-300' },
+    { label: 'Reserved',      value: stats.reserved,    status: 'Reserved',       color: stats.reserved > 0 ? 'text-orange-300' : 'text-white/90' },
     { label: 'Missing',       value: stats.missing,     status: 'Missing',        color: stats.missing > 0 ? 'text-red-300' : 'text-white/90' },
     { label: 'Out for Repair',value: stats.outForRepair,status: 'Out for repair', color: stats.outForRepair > 0 ? 'text-yellow-300' : 'text-white/90' },
   ] : [];

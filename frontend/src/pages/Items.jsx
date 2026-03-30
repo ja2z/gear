@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useItems } from '../hooks/useInventory';
 import ConnectionError from '../components/ConnectionError';
+import SlowLoadHint from '../components/SlowLoadHint';
+import { useSlowLoad } from '../hooks/useSlowLoad';
 
 const Items = () => {
   const { category } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get('mode') || 'checkout';
   const { addMultipleItems, getTotalItems, isItemInCart } = useCart();
   const { items, loading, error } = useItems(category);
   const [selectedItems, setSelectedItems] = useState([]);
   const [connectionError, setConnectionError] = useState(false);
+  const slowHint = useSlowLoad(loading && items.length === 0);
 
   // Handle errors from the useItems hook
   useEffect(() => {
@@ -48,8 +53,7 @@ const Items = () => {
     }
     addMultipleItems(selectedItems);
     setSelectedItems([]);
-    // Navigate back to categories using React Router
-    navigate('/categories');
+    navigate(`/categories?mode=${mode}`);
   };
 
   const handleRetry = () => {
@@ -72,6 +76,7 @@ const Items = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-scout-blue mx-auto mb-4"></div>
           <p className="text-gray-600">Loading items...</p>
+          <SlowLoadHint hint={slowHint} />
         </div>
       </div>
     );
@@ -82,14 +87,14 @@ const Items = () => {
       {/* Header */}
       <div className="header">
         <Link
-          to="/categories"
+          to={`/categories?mode=${mode}`}
           className="back-button no-underline"
         >
           ←
         </Link>
         <h1 className="text-center text-truncate">{items.length > 0 ? items[0].itemDesc : category}</h1>
         <Link
-          to="/cart"
+          to={`/cart?mode=${mode}`}
           className="cart-badge no-underline"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="cart-icon">
@@ -116,6 +121,7 @@ const Items = () => {
             {items.map((item) => {
               const isSelected = selectedItems.find(selected => selected.itemId === item.itemId);
               const isAvailable = item.status === 'In shed';
+              const isReserved = item.status === 'Reserved';
               const isUsable = item.condition === 'Usable';
               const isUnknown = item.condition === 'Unknown';
               const inCart = isItemInCart(item.itemId);
@@ -152,7 +158,7 @@ const Items = () => {
                               {isUnknown ? 'Condition unknown' : 'Unusable'}
                             </span>
                           )}
-                          <span className={item.status === 'In shed' ? 'status-in-shed' : item.status === 'Checked out' ? 'status-checked-out' : item.status === 'Missing' ? 'status-missing' : 'status-out-for-repair'}>
+                          <span className={isAvailable ? 'status-in-shed' : isReserved ? 'status-checked-out' : item.status === 'Checked out' ? 'status-checked-out' : item.status === 'Missing' ? 'status-missing' : 'status-out-for-repair'}>
                             {item.status}
                           </span>
                         </div>
@@ -160,7 +166,7 @@ const Items = () => {
                       <p className="text-sm text-gray-600">{item.description}</p>
                       {!isAvailable && item.outingName && (
                         <div className="mt-2">
-                          <span className="text-xs text-gray-500">Currently on: </span>
+                          <span className="text-xs text-gray-500">{item.status === 'Reserved' ? 'Reserved for:' : 'Currently on:'} </span>
                           <span className="outing-badge">
                             {item.outingName}
                           </span>

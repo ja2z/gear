@@ -50,6 +50,11 @@ const clearCartFromStorage = () => {
 
 const cartReducer = (state, action) => {
   switch (action.type) {
+    case 'SET_RESERVATION_META':
+      const metaState = { ...state, reservationMeta: action.payload };
+      saveCartToStorage(metaState);
+      return metaState;
+
     case 'ADD_ITEM':
       // Check if item already exists in cart
       const existingItem = state.items.find(item => item.itemId === action.payload.itemId);
@@ -104,7 +109,8 @@ const cartReducer = (state, action) => {
       const clearedState = {
         ...state,
         items: [],
-        createdAt: null
+        createdAt: null,
+        reservationMeta: null
       };
       
       // Clear from localStorage
@@ -123,7 +129,8 @@ const cartReducer = (state, action) => {
 export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, {
     items: [],
-    createdAt: null
+    createdAt: null,
+    reservationMeta: null
   });
 
   // Initialize cart from localStorage on app startup
@@ -148,6 +155,10 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     dispatch({ type: 'CLEAR_CART' });
+  };
+
+  const setReservationMeta = (meta) => {
+    dispatch({ type: 'SET_RESERVATION_META', payload: meta });
   };
 
   const getTotalItems = () => {
@@ -176,10 +187,12 @@ export const CartProvider = ({ children }) => {
 
   const value = {
     items: state.items,
+    reservationMeta: state.reservationMeta,
     addItem,
     addMultipleItems,
     removeItem,
     clearCart,
+    setReservationMeta,
     getTotalItems,
     isItemInCart,
     getItemsInCartByCategory,

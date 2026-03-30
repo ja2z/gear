@@ -24,7 +24,7 @@ Assistant scout master (ASM) managing troop gear as quartermaster mentor. This a
 - `description` — human-readable item description e.g. "Half Dome 2+"
 - `is_tagged` — boolean, true if item has a physical tag
 - `condition` — `Usable`, `Not usable`, `Unknown`
-- `status` — `In shed`, `Checked out`, `Missing`, `Out for repair`, `Removed from inventory`
+- `status` — `In shed`, `Checked out`, `Reserved`, `Missing`, `Out for repair`, `Removed from inventory`
 - `in_app` — boolean, whether item appears in checkout flow
 - `purchase_date`, `cost`, `notes`
 - `checked_out_to`, `checked_out_by`, `check_out_date`, `outing_name`
@@ -32,6 +32,12 @@ Assistant scout master (ASM) managing troop gear as quartermaster mentor. This a
 ### `transactions` table — append-only audit trail
 - `transaction_id`, `timestamp`, `action` (Check in / Check out)
 - `item_id`, `outing_name`, `condition`, `processed_by`, `notes`
+
+### `reservations` table — active gear reservations
+- `outing_name` — PRIMARY KEY (links to `items.outing_name` where `status='Reserved'`)
+- `reserved_by` — name of person who made the reservation
+- `reserved_email` — email for confirmation
+- `created_at`
 
 ### `metadata` table — gear categories
 - `class` — category code (PRIMARY KEY, immutable)
@@ -59,3 +65,23 @@ Quartermaster-only section (no auth) accessible from landing page. Supports:
 
 ## Testing Locally
 If backend changes are made, restart servers: `utils/restart-servers.sh`
+
+## Direct Database Access (Supabase)
+When DDL or raw SQL is needed (creating tables, indexes, migrations), `psql` is not available in this environment. Use the `pg` npm package from `backend/` with the `DATABASE_URL` from `backend/.env`:
+
+```bash
+cd backend
+node -e "
+const { Client } = require('pg');
+require('dotenv').config();
+const client = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+async function run() {
+  await client.connect();
+  await client.query(\`/* your SQL here */\`);
+  await client.end();
+}
+run().catch(e => { console.error(e.message); process.exit(1); });
+"
+```
+
+`pg` may need to be installed first: `npm install pg --save-dev`

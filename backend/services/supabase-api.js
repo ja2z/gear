@@ -139,7 +139,10 @@ const supabaseAPI = {
           continue;
         }
 
-        if (item.status !== 'In shed' || (item.condition !== 'Usable' && item.condition !== 'Unknown')) {
+        const isAvailable =
+          (item.status === 'In shed' || item.status === 'Reserved') &&
+          (item.condition === 'Usable' || item.condition === 'Unknown');
+        if (!isAvailable) {
           results.push({ itemId, success: false, error: 'Item not available' });
           continue;
         }
@@ -338,7 +341,7 @@ const supabaseAPI = {
       .from('transactions')
       .select('*')
       .eq('item_id', itemId.trim())
-      .order('timestamp', { ascending: true });
+      .order('timestamp', { ascending: false });
     if (error) throw error;
 
     return data.map(row => ({
@@ -654,6 +657,130 @@ const supabaseAPI = {
     return Array.from(statsMap.values())
       .map(stat => ({ ...stat, item_descriptions: stat.item_descriptions.join(' ') }))
       .sort((a, b) => a.class_desc.localeCompare(b.class_desc));
+  },
+
+  // ========== RESERVATIONS ==========
+
+  async createReservation(itemIds, outingName, reservedBy, reservedEmail) {
+    // Upsert reservation record (allows re-reserving same outing name)
+    const { error: resError } = await supabase
+      .from('reservations')
+      .upsert({ outing_name: outingName, reserved_by: reservedBy, reserved_email: reservedEmail, created_at: new Date().toISOString() }, { onConflict: 'outing_name' });
+    if (resError) throw resError;
+
+    // Un-reserve any items currently reserved for this outing (handles edits)
+    const { error: clearError } = await supabase
+      .from('items')
+      .update({ status: 'In shed', outing_name: '', updated_at: new Date().toISOString() })
+      .eq('status', 'Reserved')
+      .eq('outing_name', outingName);
+    if (clearError) throw clearError;
+
+    const results = [];
+    for (const itemId of itemIds) {
+      try {
+        const item = await this.getItemById(itemId);
+        if (!item) {
+          results.push({ itemId, success: false, error: 'Item not found' });
+          continue;
+        }
+        const isAvailable =
+          item.status === 'In shed' &&
+          (item.condition === 'Usable' || item.condition === 'Unknown');
+        if (!isAvailable) {
+          results.push({ itemId, success: false, error: 'Item not available for reservation' });
+          continue;
+        }
+
+        const { error: updateError } = await supabase
+          .from('items')
+          .update({
+            status: 'Reserved',
+            outing_name: outingName,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('item_id', itemId);
+        if (updateError) throw updateError;
+
+        results.push({ itemId, success: true, itemId, description: item.description, itemDesc: item.itemDesc });
+      } catch (err) {
+        results.push({ itemId, success: false, error: err.message });
+      }
+    }
+    return results;
+  },
+
+  async getReservations() {
+    const { data: resData, error: resError } = await supabase
+      .from('reservations')
+      .select('outing_name, reserved_by, reserved_email, created_at')
+      .order('created_at', { ascending: false });
+    if (resError) throw resError;
+
+    // For each reservation, count how many items are still reserved
+    const result = [];
+    for (const res of resData) {
+      const { count, error: countError } = await supabase
+        .from('items')
+        .select('item_id', { count: 'exact', head: true })
+        .eq('status', 'Reserved')
+        .eq('outing_name', res.outing_name);
+      if (countError) throw countError;
+      if (count > 0) {
+        result.push({
+          outingName: res.outing_name,
+          reservedBy: res.reserved_by,
+          reservedEmail: res.reserved_email,
+          itemCount: count,
+          createdAt: res.created_at,
+        });
+      }
+    }
+    return result;
+  },
+
+  async getReservationItems(outingName) {
+    const { data: resData, error: resError } = await supabase
+      .from('reservations')
+      .select('outing_name, reserved_by, reserved_email, created_at')
+      .eq('outing_name', outingName)
+      .maybeSingle();
+    if (resError) throw resError;
+    if (!resData) return null;
+
+    const { data: items, error: itemsError } = await supabase
+      .from('items')
+      .select('*')
+      .eq('status', 'Reserved')
+      .eq('outing_name', outingName)
+      .order('item_class')
+      .order('item_num');
+    if (itemsError) throw itemsError;
+
+    return {
+      outingName: resData.outing_name,
+      reservedBy: resData.reserved_by,
+      reservedEmail: resData.reserved_email,
+      createdAt: resData.created_at,
+      items: items.map(mapRowToItem),
+    };
+  },
+
+  async deleteReservation(outingName) {
+    // Un-reserve any items still reserved for this outing (e.g. removed from cart before checkout)
+    const { error: itemsError } = await supabase
+      .from('items')
+      .update({ status: 'In shed', outing_name: '', updated_at: new Date().toISOString() })
+      .eq('status', 'Reserved')
+      .eq('outing_name', outingName);
+    if (itemsError) throw itemsError;
+
+    // Delete the reservation record
+    const { error: resError } = await supabase
+      .from('reservations')
+      .delete()
+      .eq('outing_name', outingName);
+    if (resError) throw resError;
   },
 
   // Expose the raw client for keep-alive ping in server.js

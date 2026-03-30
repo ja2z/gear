@@ -440,6 +440,9 @@ const ViewInventory = () => {
                             {item.status === 'Checked out' && item.outingName && (
                               <p className="text-xs text-gray-600 mt-1">On: {item.outingName}</p>
                             )}
+                            {item.status === 'Reserved' && item.outingName && (
+                              <p className="text-xs text-gray-600 mt-1">Reserved for: {item.outingName}</p>
+                            )}
                           </div>
                           <button
                             onClick={() => handleDeleteClick(item.itemId)}

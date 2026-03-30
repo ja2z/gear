@@ -1,8 +1,11 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { useCart } from '../context/CartContext';
 
 const Cart = () => {
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get('mode') || 'checkout';
+  const navigate = useNavigate();
   const { items, removeItem, getTotalItems } = useCart();
   const [viewMode, setViewMode] = useState('items'); // 'items' or 'categories'
   const [buttonRenderKey, setButtonRenderKey] = useState(0);
@@ -89,7 +92,7 @@ useEffect(() => {
       <div className="h-screen-small flex flex-col bg-gray-100">
         <div className="header">
           <Link
-            to="/categories"
+            to={`/categories?mode=${mode}`}
             className="back-button no-underline"
           >
             ←
@@ -111,7 +114,7 @@ useEffect(() => {
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
               <p className="text-gray-600 mb-6">Add some gear to get started!</p>
               <Link
-                to="/categories"
+                to={`/categories?mode=${mode}`}
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive px-6 py-3 bg-scout-blue text-white shadow-xs hover:bg-scout-blue touch-target no-underline"
               >
                 Browse Categories
@@ -128,7 +131,7 @@ useEffect(() => {
       {/* Header */}
       <div className="header">
         <Link
-          to="/categories"
+          to={`/categories?mode=${mode}`}
           className="back-button no-underline"
         >
           ←
@@ -241,12 +244,21 @@ useEffect(() => {
 
       {/* Bottom Navigation */}
       <div className="bg-white border-t border-gray-200 p-4">
-        <Link
-          to="/checkout"
-          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full h-12 text-base font-medium px-6 has-[>svg]:px-4 bg-scout-blue text-white shadow-xs hover:bg-scout-blue text-center no-underline"
-        >
-          Go to Checkout
-        </Link>
+        {mode === 'reserve' ? (
+          <button
+            onClick={() => navigate('/reservation-info')}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium w-full h-12 text-base font-medium px-6 bg-scout-orange text-white shadow-xs no-underline"
+          >
+            Reserve Items →
+          </button>
+        ) : (
+          <Link
+            to="/checkout"
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full h-12 text-base font-medium px-6 has-[>svg]:px-4 bg-scout-blue text-white shadow-xs hover:bg-scout-blue text-center no-underline"
+          >
+            Go to Checkout
+          </Link>
+        )}
       </div>
     </div>
   );

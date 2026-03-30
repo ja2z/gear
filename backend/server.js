@@ -24,6 +24,7 @@ app.use('/api/checkout', require('./routes/checkout'));
 app.use('/api/checkin', require('./routes/checkin'));
 app.use('/api/metadata', require('./routes/metadata'));
 app.use('/api/manage-inventory', require('./routes/manage-inventory'));
+app.use('/api/reservations', require('./routes/reservations'));
 
 // Lightweight ping endpoint for keep-alive (also touches Supabase to prevent cold connections)
 app.get('/api/ping', async (req, res) => {

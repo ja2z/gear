@@ -13,6 +13,10 @@ import Checkin from './pages/Checkin';
 import CheckinForm from './pages/CheckinForm';
 import OutingSelection from './pages/OutingSelection';
 import Success from './pages/Success';
+import CheckoutOptions from './pages/CheckoutOptions';
+import ReservationInfo from './pages/ReservationInfo';
+import ReservationSuccess from './pages/ReservationSuccess';
+import Reservations from './pages/Reservations';
 import ScrollToTop from './components/ScrollToTop';
 import InputFocusLock from './components/InputFocusLock';
 import { CartProvider } from './context/CartContext';
@@ -48,6 +52,10 @@ function App() {
             <Route path="/checkin/form" element={<CheckinForm />} />
             <Route path="/checkin" element={<Checkin />} />
             <Route path="/success" element={<Success />} />
+            <Route path="/checkout-options" element={<CheckoutOptions />} />
+            <Route path="/reservations" element={<Reservations />} />
+            <Route path="/reservation-info" element={<ReservationInfo />} />
+            <Route path="/reservation-success" element={<ReservationSuccess />} />
             {/* Manage Inventory routes */}
             <Route path="/manage-inventory" element={<ManageInventoryDashboard />} />
             <Route path="/manage-inventory/view" element={<ViewInventory />} />

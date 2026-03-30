@@ -304,7 +304,7 @@ const EditItem = () => {
               Status <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {['In shed', 'Missing', 'Out for repair', 'Checked out'].map((stat) => (
+              {['In shed', 'Reserved', 'Missing', 'Out for repair', 'Checked out'].map((stat) => (
                 <button
                   key={stat}
                   type="button"
@@ -348,6 +348,15 @@ const EditItem = () => {
                       <span className="font-medium">For:</span> {item.outingName}
                     </span>
                   )}
+                </p>
+              </div>
+            )}
+
+            {/* Reserved Info - show when item is reserved */}
+            {item.status === 'Reserved' && item.outingName && (
+              <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <p className="text-sm text-gray-800">
+                  <span className="font-medium">Reserved for:</span> {item.outingName}
                 </p>
               </div>
             )}

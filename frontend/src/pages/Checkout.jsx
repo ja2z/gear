@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useInventory } from '../hooks/useInventory';
 
@@ -7,13 +7,15 @@ const defaultDate = () =>
   new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 
 const Checkout = () => {
-  const { items, clearCart, getTotalItems } = useCart();
+  const { items, clearCart, getTotalItems, reservationMeta } = useCart();
   const { postData, getData, loading } = useInventory();
   const navigate = useNavigate();
+  const { state: locationState } = useLocation();
+  const fromReservation = reservationMeta?.fromReservation === true || locationState?.fromReservation === true;
   const [formData, setFormData] = useState({
-    scoutName: '',
+    scoutName: reservationMeta?.scoutName || locationState?.scoutName || '',
     qmName: '',
-    outingName: '',
+    outingName: reservationMeta?.outingName || locationState?.outingName || '',
     date: defaultDate(),
     notes: ''
   });
@@ -22,6 +24,7 @@ const Checkout = () => {
   const [selectedOuting, setSelectedOuting] = useState(null);
   const [outingsLoading, setOutingsLoading] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [removedItemsWarning, setRemovedItemsWarning] = useState(null); // items removed from reservation
   const blurCloseRef = useRef(null);
 
   const cancelCloseSuggestions = useCallback(() => {
@@ -73,10 +76,8 @@ const Checkout = () => {
     ? 'block text-sm font-medium text-gray-400 mb-2'
     : 'block text-sm font-semibold text-gray-700 mb-2';
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const doCheckout = async () => {
     setSubmitError(null);
-
     try {
       const itemIds = items.map(item => item.itemId);
       const checkoutData = {
@@ -91,6 +92,16 @@ const Checkout = () => {
 
       if (result.success) {
         const itemCount = getTotalItems();
+        if (fromReservation && reservationMeta?.outingName) {
+          try {
+            const apiBase = import.meta.env.PROD
+              ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api')
+              : '/api';
+            await fetch(`${apiBase}/reservations/${encodeURIComponent(reservationMeta.outingName)}`, { method: 'DELETE' });
+          } catch (err) {
+            console.error('Failed to clean up reservation:', err);
+          }
+        }
         clearCart();
         navigate(`/success?action=checkout&count=${itemCount}`);
       } else {
@@ -100,6 +111,22 @@ const Checkout = () => {
       console.error('Checkout error:', error);
       setSubmitError('Failed to process checkout. Please try again.');
     }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitError(null);
+
+    if (fromReservation && reservationMeta?.originalItems) {
+      const cartItemIds = new Set(items.map(i => i.itemId));
+      const removed = reservationMeta.originalItems.filter(i => !cartItemIds.has(i.itemId));
+      if (removed.length > 0) {
+        setRemovedItemsWarning(removed);
+        return;
+      }
+    }
+
+    await doCheckout();
   };
 
   const handleChange = (e) => {
@@ -225,6 +252,11 @@ const Checkout = () => {
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 py-6 pb-20">
+          {fromReservation && (
+            <div className="mb-5 bg-orange-50 border border-orange-200 rounded-lg px-4 py-3">
+              <p className="text-sm text-orange-800 font-medium">Checking out reserved gear for <span className="font-bold">{formData.outingName}</span></p>
+            </div>
+          )}
           <form id="checkout-form" onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-5">
               <div className="relative z-20">
@@ -430,16 +462,48 @@ const Checkout = () => {
         </div>
       </div>
 
-      {outingNameReady && (
-        <div className="bg-white border-t border-gray-200 p-4">
-          <button
-            type="submit"
-            form="checkout-form"
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full h-12 text-base font-medium px-6 has-[>svg]:px-4 bg-scout-blue text-white shadow-xs hover:bg-scout-blue"
-          >
-            {loading ? 'Processing...' : 'Complete Checkout'}
-          </button>
+      <div className="bg-white border-t border-gray-200 p-4">
+        <button
+          type="submit"
+          form="checkout-form"
+          disabled={!outingNameReady || loading}
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full h-12 text-base font-medium px-6 has-[>svg]:px-4 bg-scout-blue text-white shadow-xs hover:bg-scout-blue"
+        >
+          {loading ? 'Processing...' : 'Complete Checkout'}
+        </button>
+      </div>
+
+      {/* Removed items warning modal */}
+      {removedItemsWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md bg-white rounded-2xl p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Items Not Being Checked Out</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              The following {removedItemsWarning.length === 1 ? 'item was' : 'items were'} in your reservation but removed from the cart. {removedItemsWarning.length === 1 ? 'It' : 'They'} will be returned to available inventory:
+            </p>
+            <ul className="mb-5 space-y-1">
+              {removedItemsWarning.map(item => (
+                <li key={item.itemId} className="text-sm font-medium text-gray-800">
+                  {item.itemId} — {item.description}
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setRemovedItemsWarning(null)}
+                className="flex-1 h-11 rounded-md border border-gray-300 text-sm font-medium text-gray-700"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={() => { setRemovedItemsWarning(null); doCheckout(); }}
+                disabled={loading}
+                className="flex-1 h-11 rounded-md bg-scout-blue text-white text-sm font-medium disabled:opacity-50"
+              >
+                {loading ? 'Processing...' : 'Confirm Checkout'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

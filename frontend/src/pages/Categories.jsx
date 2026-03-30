@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useCategories } from '../hooks/useInventory';
 import ConnectionError from '../components/ConnectionError';
+import SlowLoadHint from '../components/SlowLoadHint';
+import { useSlowLoad } from '../hooks/useSlowLoad';
 
 const Categories = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
-  const { getTotalItems, getItemsInCartByCategory } = useCart();
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get('mode') || 'checkout';
+  const { items: cartItems, getTotalItems, getItemsInCartByCategory } = useCart();
   const { categories, loading, error, refreshCategories } = useCategories();
   const [connectionError, setConnectionError] = useState(false);
+  const slowHint = useSlowLoad(loading && categories.length === 0);
 
   // Handle errors from the useCategories hook
   useEffect(() => {
@@ -46,6 +51,7 @@ const Categories = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-scout-blue mx-auto mb-4"></div>
           <p className="text-gray-600">Loading categories...</p>
+          <SlowLoadHint hint={slowHint} />
         </div>
       </div>
     );
@@ -63,7 +69,7 @@ const Categories = () => {
         </Link>
         <h1 className="text-center text-truncate">Select Category</h1>
         <Link
-          to="/cart"
+          to={`/cart?mode=${mode}`}
           className="cart-badge no-underline"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="cart-icon">
@@ -93,7 +99,7 @@ const Categories = () => {
             {filteredCategories.map((category) => (
               <Link
                 key={category.name}
-                to={`/items/${category.name}`}
+                to={`/items/${category.name}?mode=${mode}`}
                 className="card touch-target block category-link no-underline"
               >
                 <div className="flex items-center justify-between">
@@ -103,7 +109,8 @@ const Categories = () => {
                   <div className="flex items-center space-x-2">
                     {(() => {
                       const itemsInCart = getItemsInCartByCategory(category.name);
-                      const adjustedAvailable = category.available_count - itemsInCart;
+                      const inShedInCart = cartItems.filter(i => i.itemClass === category.name && i.status === 'In shed').length;
+                      const adjustedAvailable = category.available_count - inShedInCart;
                       
                       return (
                         <>

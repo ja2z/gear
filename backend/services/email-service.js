@@ -1,0 +1,151 @@
+const nodemailer = require('nodemailer');
+const PDFDocument = require('pdfkit');
+
+function createTransporter() {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: false, // STARTTLS
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+}
+
+function buildPDF(outingName, reservedBy, reservationDate, items) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 50, size: 'LETTER' });
+    const chunks = [];
+
+    doc.on('data', chunk => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    // Header
+    doc
+      .fontSize(20)
+      .fillColor('#1E398A')
+      .text('Troop 222 Gear Reservation', { align: 'center' });
+
+    doc.moveDown(0.5);
+    doc
+      .fontSize(12)
+      .fillColor('#444444')
+      .text(`Outing: ${outingName}`, { align: 'center' })
+      .text(`Reserved by: ${reservedBy}`, { align: 'center' })
+      .text(`Reservation Date: ${reservationDate}`, { align: 'center' });
+
+    doc.moveDown(1);
+    doc
+      .moveTo(50, doc.y)
+      .lineTo(562, doc.y)
+      .strokeColor('#1E398A')
+      .lineWidth(1)
+      .stroke();
+    doc.moveDown(0.5);
+
+    // Items table header
+    doc
+      .fontSize(11)
+      .fillColor('#1E398A')
+      .font('Helvetica-Bold')
+      .text('Item ID', 50, doc.y, { width: 120 })
+      .text('Category', 170, doc.y - doc.currentLineHeight(), { width: 140 })
+      .text('Description', 310, doc.y - doc.currentLineHeight(), { width: 252 });
+
+    doc.moveDown(0.3);
+    doc
+      .moveTo(50, doc.y)
+      .lineTo(562, doc.y)
+      .strokeColor('#cccccc')
+      .lineWidth(0.5)
+      .stroke();
+    doc.moveDown(0.3);
+
+    // Items rows
+    doc.font('Helvetica').fillColor('#333333').fontSize(10);
+    items.forEach((item, idx) => {
+      const y = doc.y;
+      if (idx % 2 === 0) {
+        doc.rect(48, y - 2, 516, 16).fillColor('#f5f7ff').fill();
+      }
+      doc
+        .fillColor('#333333')
+        .text(item.itemId, 50, y, { width: 120 })
+        .text(item.itemDesc || '', 170, y, { width: 140 })
+        .text(item.description || '', 310, y, { width: 252 });
+    });
+
+    doc.moveDown(1.5);
+    doc
+      .fontSize(9)
+      .fillColor('#888888')
+      .text(`Total items reserved: ${items.length}`, { align: 'right' });
+
+    doc.moveDown(2);
+    doc
+      .fontSize(9)
+      .fillColor('#888888')
+      .text('Troop 222 — Gear Reservation System', { align: 'center' })
+      .text('Questions? Contact your quartermaster.', { align: 'center' });
+
+    doc.end();
+  });
+}
+
+async function sendReservationConfirmation({ outingName, reservedBy, reservedEmail, items, reservationDate }) {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn('⚠️  SMTP not configured — skipping reservation confirmation email');
+    return { skipped: true };
+  }
+
+  const transporter = createTransporter();
+  const pdfBuffer = await buildPDF(outingName, reservedBy, reservationDate, items);
+
+  const itemListHtml = items
+    .map(i => `<tr><td style="padding:4px 8px;border-bottom:1px solid #eee;">${i.itemId}</td><td style="padding:4px 8px;border-bottom:1px solid #eee;">${i.itemDesc || ''}</td><td style="padding:4px 8px;border-bottom:1px solid #eee;">${i.description || ''}</td></tr>`)
+    .join('');
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+      <div style="background:#1E398A;color:white;padding:20px;border-radius:8px 8px 0 0;">
+        <h2 style="margin:0;">Troop 222 Gear Reservation Confirmed</h2>
+      </div>
+      <div style="background:#f9f9f9;padding:20px;border:1px solid #ddd;border-top:none;">
+        <p>Hi ${reservedBy},</p>
+        <p>Your gear reservation for <strong>${outingName}</strong> has been confirmed on ${reservationDate}.</p>
+        <table style="width:100%;border-collapse:collapse;margin-top:12px;">
+          <thead>
+            <tr style="background:#1E398A;color:white;">
+              <th style="padding:6px 8px;text-align:left;">Item ID</th>
+              <th style="padding:6px 8px;text-align:left;">Category</th>
+              <th style="padding:6px 8px;text-align:left;">Description</th>
+            </tr>
+          </thead>
+          <tbody>${itemListHtml}</tbody>
+        </table>
+        <p style="margin-top:16px;">A PDF copy of this reservation is attached.</p>
+        <p style="color:#666;font-size:13px;">Questions? Contact your quartermaster.</p>
+      </div>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"Troop 222 Gear" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+    to: reservedEmail,
+    subject: `Gear Reservation Confirmed — ${outingName}`,
+    html,
+    attachments: [
+      {
+        filename: `reservation-${outingName.replace(/[^a-z0-9]/gi, '-')}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf',
+      },
+    ],
+  });
+
+  return { sent: true };
+}
+
+module.exports = { sendReservationConfirmation };
