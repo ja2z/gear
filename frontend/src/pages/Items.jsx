@@ -11,7 +11,7 @@ const Items = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'checkout';
-  const { addMultipleItems, getTotalItems, isItemInCart } = useCart();
+  const { addMultipleItems, getTotalItems, isItemInCart, reservationMeta } = useCart();
   const { items, loading, error } = useItems(category);
   const [selectedItems, setSelectedItems] = useState([]);
   const [connectionError, setConnectionError] = useState(false);
@@ -125,7 +125,11 @@ const Items = () => {
               const isUsable = item.condition === 'Usable';
               const isUnknown = item.condition === 'Unknown';
               const inCart = isItemInCart(item.itemId);
-              const isSelectable = isAvailable && (isUsable || isUnknown) && !inCart;
+              const isOwnReservation = mode === 'reserve' &&
+                reservationMeta?.isEditing &&
+                isReserved &&
+                item.outingName === reservationMeta?.outingName;
+              const isSelectable = (isAvailable || isOwnReservation) && (isUsable || isUnknown) && !inCart;
               
               return (
                 <div
@@ -134,12 +138,12 @@ const Items = () => {
                   className={`card touch-target ${
                     isSelectable ? 'cursor-pointer' : 'cursor-not-allowed'
                   } ${
-                    isSelected 
-                      ? 'card-selected' 
+                    isSelected
+                      ? 'card-selected'
                       : inCart
                         ? 'opacity-60 bg-green-50 border-green-200'
-                        : !isSelectable 
-                          ? 'opacity-60' 
+                        : !isSelectable && !isOwnReservation
+                          ? 'opacity-60'
                           : ''
                   }`}
                 >
@@ -158,13 +162,13 @@ const Items = () => {
                               {isUnknown ? 'Condition unknown' : 'Unusable'}
                             </span>
                           )}
-                          <span className={isAvailable ? 'status-in-shed' : isReserved ? 'status-checked-out' : item.status === 'Checked out' ? 'status-checked-out' : item.status === 'Missing' ? 'status-missing' : 'status-out-for-repair'}>
-                            {item.status}
+                          <span className={isAvailable || isOwnReservation ? 'status-in-shed' : isReserved ? 'status-checked-out' : item.status === 'Checked out' ? 'status-checked-out' : item.status === 'Missing' ? 'status-missing' : 'status-out-for-repair'}>
+                            {isOwnReservation ? 'Available' : item.status}
                           </span>
                         </div>
                       </div>
                       <p className="text-sm text-gray-600">{item.description}</p>
-                      {!isAvailable && item.outingName && (
+                      {!isAvailable && !isOwnReservation && item.outingName && (
                         <div className="mt-2">
                           <span className="text-xs text-gray-500">{item.status === 'Reserved' ? 'Reserved for:' : 'Currently on:'} </span>
                           <span className="outing-badge">

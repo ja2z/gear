@@ -247,7 +247,7 @@ useEffect(() => {
         {mode === 'reserve' ? (
           <button
             onClick={() => navigate('/reservation-info')}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium w-full h-12 text-base font-medium px-6 bg-scout-orange text-white shadow-xs no-underline"
+            className="w-full h-12 text-base font-medium rounded-md bg-scout-orange text-white"
           >
             Reserve Items →
           </button>
