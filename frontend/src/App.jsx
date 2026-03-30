@@ -39,8 +39,8 @@ function App() {
       <Router>
         <ScrollToTop />
         <InputFocusLock />
-        <div className="min-h-screen bg-gray-200">
-          <div className="max-w-md mx-auto bg-gray-50 min-h-screen shadow-xl">
+        <div className="min-h-screen xl:bg-gray-200">
+          <div className="xl:max-w-2xl xl:mx-auto bg-gray-50 min-h-screen xl:shadow-xl">
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/categories" element={<Categories />} />
