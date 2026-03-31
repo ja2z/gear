@@ -69,14 +69,14 @@ Source PNGs live in `frontend/public/images/`. Pre-generated WebP and LQIP files
 
 **When adding or replacing images:**
 ```bash
-cd frontend && npm run pregen
+scripts/pregen-images.sh
 ```
 Then commit the new `.webp` and `.lqip.webp` files. During `vite build`, the plugin copies these pre-generated files instead of running sharp, making Render deploys fast. If a PNG has no committed WebP, the plugin falls back to generating it on the fly (slower but safe).
 
 `npm run dev` does **not** run image optimization at all (`apply: 'build'`).
 
 ## Testing Locally
-If backend changes are made, restart servers: `utils/restart-servers.sh`
+If backend changes are made, restart servers: `scripts/restart-servers.sh`
 
 ## Direct Database Access (Supabase)
 When DDL or raw SQL is needed (creating tables, indexes, migrations), `psql` is not available in this environment. Use the `pg` npm package from `backend/` with the `DATABASE_URL` from `backend/.env`:
