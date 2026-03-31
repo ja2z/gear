@@ -13,6 +13,7 @@ const __dirname = path.dirname(__filename);
 export function imageOptimizationPlugin() {
   const plugin = {
     name: 'image-optimization',
+    apply: 'build',
     async buildStart() {
       await plugin.optimizeImages();
     },
