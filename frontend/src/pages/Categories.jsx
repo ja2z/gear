@@ -11,7 +11,7 @@ const Categories = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'checkout';
-  const { items: cartItems, getTotalItems, getItemsInCartByCategory } = useCart();
+  const { items: cartItems, getTotalItems, getItemsInCartByCategory, reservationMeta } = useCart();
   const { categories, loading, error, refreshCategories } = useCategories();
   const [connectionError, setConnectionError] = useState(false);
   const slowHint = useSlowLoad(loading && categories.length === 0);
@@ -110,7 +110,15 @@ const Categories = () => {
                     {(() => {
                       const itemsInCart = getItemsInCartByCategory(category.name);
                       const inShedInCart = cartItems.filter(i => i.itemClass === category.name && i.status === 'In shed').length;
-                      const adjustedAvailable = category.available_count - inShedInCart;
+                      let adjustedAvailable = category.available_count - inShedInCart;
+                      // When editing a reservation, own-reservation items removed from cart are still selectable
+                      if (reservationMeta?.isEditing || reservationMeta?.fromReservation) {
+                        const originalInCategory = (reservationMeta.originalItems || []).filter(i => i.itemClass === category.name);
+                        const ownReservationNotInCart = originalInCategory.filter(
+                          i => !cartItems.some(ci => ci.itemId === i.itemId)
+                        ).length;
+                        adjustedAvailable += ownReservationNotInCart;
+                      }
                       
                       return (
                         <>

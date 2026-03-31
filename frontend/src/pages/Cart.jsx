@@ -51,6 +51,10 @@ useEffect(() => {
       }
       grouped[category].items.push(item);
     });
+    // Sort items within each category by itemNum
+    Object.values(grouped).forEach(cat => {
+      cat.items.sort((a, b) => (a.itemNum || 0) - (b.itemNum || 0));
+    });
     return grouped;
   };
 
