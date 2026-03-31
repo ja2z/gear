@@ -120,7 +120,7 @@ async function sendReservationConfirmation({ outingName, reservedBy, reservedEma
   `;
 
   await resend.emails.send({
-    from: process.env.RESEND_FROM || 'qm@t222.org',
+    from: `Troop 222 QM <${process.env.RESEND_FROM || 'qm@t222.org'}>`,
     to: reservedEmail,
     subject: `Gear Reservation Confirmed — ${outingName}`,
     html,
