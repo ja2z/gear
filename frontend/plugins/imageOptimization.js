@@ -45,23 +45,34 @@ export function imageOptimizationPlugin() {
           const baseName = path.parse(file).name;
           
           try {
-            // Generate WebP version (high quality for mobile)
             const webpPath = path.join(outputDir, `${baseName}.webp`);
+            const lqipPath = path.join(outputDir, `${baseName}.lqip.webp`);
+
+            // Use pre-generated files if available (committed to public/images/)
+            const pregenWebp = path.join(imagesDir, `${baseName}.webp`);
+            const pregenLqip = path.join(imagesDir, `${baseName}.lqip.webp`);
+
+            if (fs.existsSync(pregenWebp)) {
+              fs.copyFileSync(pregenWebp, webpPath);
+              if (fs.existsSync(pregenLqip)) fs.copyFileSync(pregenLqip, lqipPath);
+              console.log(`Copied pre-generated: ${baseName}.webp`);
+              continue;
+            }
+
+            // Fallback: generate on the fly with sharp
             await sharp(inputPath)
               .webp({ quality: 85, effort: 6 })
               .toFile(webpPath);
-            
-            // Generate LQIP version (very low quality for instant loading)
-            const lqipPath = path.join(outputDir, `${baseName}.lqip.webp`);
+
             await sharp(inputPath)
-              .resize(20, null, { 
+              .resize(20, null, {
                 withoutEnlargement: true,
                 fit: 'inside'
               })
               .webp({ quality: 20, effort: 1 })
               .blur(0.5)
               .toFile(lqipPath);
-            
+
             console.log(`Optimized: ${file} → ${baseName}.webp + ${baseName}.lqip.webp`);
             
           } catch (error) {

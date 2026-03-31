@@ -63,6 +63,18 @@ Quartermaster-only section (no auth) accessible from landing page. Supports:
 - Soft-delete items (requires typing "delete item" to confirm)
 - Add / Edit categories
 
+## Hero Image Optimization
+
+Source PNGs live in `frontend/public/images/`. Pre-generated WebP and LQIP files are committed alongside them (e.g. `IMG_0406.webp`, `IMG_0406.lqip.webp`).
+
+**When adding or replacing images:**
+```bash
+cd frontend && npm run pregen
+```
+Then commit the new `.webp` and `.lqip.webp` files. During `vite build`, the plugin copies these pre-generated files instead of running sharp, making Render deploys fast. If a PNG has no committed WebP, the plugin falls back to generating it on the fly (slower but safe).
+
+`npm run dev` does **not** run image optimization at all (`apply: 'build'`).
+
 ## Testing Locally
 If backend changes are made, restart servers: `utils/restart-servers.sh`
 
