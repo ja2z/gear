@@ -61,11 +61,14 @@ router.post('/', async (req, res) => {
     }
 
     // Send confirmation email (non-blocking — don't fail the request if email fails)
-    const reservationDate = new Date().toLocaleDateString('en-US', {
+    const reservationDate = new Date().toLocaleString('en-US', {
       timeZone: 'America/Los_Angeles',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
     });
 
     sendReservationConfirmation({
