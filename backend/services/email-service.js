@@ -1,17 +1,5 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const PDFDocument = require('pdfkit');
-
-function createTransporter() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false, // STARTTLS
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-}
 
 function buildPDF(outingName, reservedBy, reservationDate, items) {
   return new Promise((resolve, reject) => {
@@ -95,12 +83,12 @@ function buildPDF(outingName, reservedBy, reservationDate, items) {
 }
 
 async function sendReservationConfirmation({ outingName, reservedBy, reservedEmail, items, reservationDate }) {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn('⚠️  SMTP not configured — skipping reservation confirmation email');
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('⚠️  RESEND_API_KEY not configured — skipping reservation confirmation email');
     return { skipped: true };
   }
 
-  const transporter = createTransporter();
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const pdfBuffer = await buildPDF(outingName, reservedBy, reservationDate, items);
 
   const itemListHtml = items
@@ -131,16 +119,15 @@ async function sendReservationConfirmation({ outingName, reservedBy, reservedEma
     </div>
   `;
 
-  await transporter.sendMail({
-    from: `"Troop 222 Gear" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+  await resend.emails.send({
+    from: process.env.RESEND_FROM || 'qm@t222.org',
     to: reservedEmail,
     subject: `Gear Reservation Confirmed — ${outingName}`,
     html,
     attachments: [
       {
         filename: `reservation-${outingName.replace(/[^a-z0-9]/gi, '-')}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf',
+        content: pdfBuffer.toString('base64'),
       },
     ],
   });
