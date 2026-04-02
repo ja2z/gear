@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "pregen": "node scripts/pregenImages.js",
-    "prebuild": "node scripts/generateImageList.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
