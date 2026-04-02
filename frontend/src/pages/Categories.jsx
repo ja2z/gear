@@ -62,7 +62,7 @@ const Categories = () => {
       {/* Header */}
       <div className={`header ${mode === 'reserve' ? 'header-reserve' : ''}`}>
         <Link
-          to="/"
+          to={mode === 'reserve' ? '/reservations' : '/'}
           className="back-button no-underline"
         >
           ←
