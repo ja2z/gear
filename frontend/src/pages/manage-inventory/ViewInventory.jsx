@@ -21,6 +21,7 @@ const ViewInventory = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pendingScrollToCategory, setPendingScrollToCategory] = useState(null);
+  const [pendingScrollTop, setPendingScrollTop] = useState(null);
   const scrollContainerRef = useRef(null);
 
   // Handle ?status= param from dashboard — switch to item view with status filter
@@ -32,12 +33,20 @@ const ViewInventory = () => {
     }
   }, []);
 
-  // Check if navigated from edit/delete with category filter
+  // Restore state when returning from edit/delete
   useEffect(() => {
-    if (location.state?.category) {
+    if (location.state?.returnState) {
+      const { viewMode: vm, filteredCategory: fc, filteredStatus: fs, searchQuery: sq, searchOpen: so, scrollTop: st } = location.state.returnState;
+      setViewMode(vm ?? 'category');
+      setFilteredCategory(fc ?? null);
+      setFilteredStatus(fs ?? null);
+      setSearchQuery(sq ?? '');
+      setSearchOpen(so ?? false);
+      if (st) setPendingScrollTop(st);
+      window.history.replaceState({}, document.title);
+    } else if (location.state?.category) {
       setViewMode('item');
       setFilteredCategory(location.state.category);
-      // Clear the location state so it doesn't interfere with subsequent clicks
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -144,6 +153,36 @@ const ViewInventory = () => {
       };
     }
   }, [viewMode, loading, pendingScrollToCategory]);
+
+  // Restore scroll position when returning from edit
+  useEffect(() => {
+    if (pendingScrollTop !== null && !loading && scrollContainerRef.current) {
+      let cancelled = false;
+      let timeoutIds = [];
+
+      const attemptScroll = (retries = 0) => {
+        if (cancelled) return;
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        container.scrollTop = pendingScrollTop;
+        // If scrollTop didn't stick (content not yet tall enough), retry
+        if (Math.abs(container.scrollTop - pendingScrollTop) < 5 || retries >= 4) {
+          if (!cancelled) setPendingScrollTop(null);
+        } else {
+          const id = setTimeout(() => attemptScroll(retries + 1), 150);
+          timeoutIds.push(id);
+        }
+      };
+
+      const id = setTimeout(() => attemptScroll(), 250);
+      timeoutIds.push(id);
+      return () => {
+        cancelled = true;
+        timeoutIds.forEach(clearTimeout);
+      };
+    }
+  }, [pendingScrollTop, loading]);
 
   // Filter categories by search (include item descriptions like Categories.jsx)
   const filteredCategories = categoryStats.filter(cat => {
@@ -401,7 +440,18 @@ const ViewInventory = () => {
                         <div className="flex justify-between items-start">
                         <div
                             className="flex-1 cursor-pointer"
-                            onClick={() => navigate(`/manage-inventory/edit-item/${item.itemId}`)}
+                            onClick={() => navigate(`/manage-inventory/edit-item/${item.itemId}`, {
+                              state: {
+                                returnState: {
+                                  viewMode,
+                                  filteredCategory,
+                                  filteredStatus,
+                                  searchQuery,
+                                  searchOpen,
+                                  scrollTop: scrollContainerRef.current?.scrollTop ?? 0
+                                }
+                              }
+                            })}
                           >
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-gray-900">{item.itemId}</span>

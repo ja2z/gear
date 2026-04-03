@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 import { useInventory } from '../../hooks/useInventory';
@@ -15,6 +15,7 @@ import { costToFormString, parseCostFromRaw } from '../../utils/parseCost';
 const EditItem = () => {
   const navigate = useNavigate();
   const { itemId } = useParams();
+  const location = useLocation();
   const { toast, showToast, hideToast } = useToast();
   const { getData, postData } = useInventory();
 
@@ -54,7 +55,7 @@ const EditItem = () => {
     } catch (error) {
       console.error('Error fetching item:', error);
       showToast('Failed to load item', 'error');
-      navigate('/manage-inventory/view');
+      navigate('/manage-inventory/view', { state: location.state });
     } finally {
       setFetchLoading(false);
     }
@@ -137,7 +138,7 @@ const EditItem = () => {
 
       showToast('Item updated successfully', 'success');
       setTimeout(() => {
-        navigate('/manage-inventory/view');
+        navigate('/manage-inventory/view', { state: location.state });
       }, 1000);
     } catch (error) {
       console.error('Error updating item:', error);
@@ -167,6 +168,7 @@ const EditItem = () => {
       <div className="header">
         <Link
           to="/manage-inventory/view"
+          state={location.state}
           className="back-button no-underline"
         >
           ←
@@ -426,7 +428,7 @@ const EditItem = () => {
         <div className="flex space-x-3">
           <button
             type="button"
-            onClick={() => navigate('/manage-inventory/view')}
+            onClick={() => navigate('/manage-inventory/view', { state: location.state })}
             disabled={loading}
             className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 min-h-[44px] disabled:opacity-50"
           >
