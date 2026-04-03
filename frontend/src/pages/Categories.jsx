@@ -11,6 +11,7 @@ const Categories = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'checkout';
+  const from = searchParams.get('from');
   const { items: cartItems, getTotalItems, getItemsInCartByCategory, reservationMeta } = useCart();
   const { categories, loading, error, refreshCategories } = useCategories();
   const [connectionError, setConnectionError] = useState(false);
@@ -62,7 +63,7 @@ const Categories = () => {
       {/* Header */}
       <div className={`header ${mode === 'reserve' ? 'header-reserve' : ''}`}>
         <Link
-          to={mode === 'reserve' ? '/reservations' : '/'}
+          to={mode === 'reserve' || from === 'reservations' ? '/reservations' : '/'}
           className="back-button no-underline"
         >
           ←

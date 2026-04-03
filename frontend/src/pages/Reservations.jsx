@@ -55,7 +55,7 @@ const Reservations = () => {
         scoutName: reservation.reservedBy,
         originalItems: reservation.items.map(i => ({ itemId: i.itemId, description: i.description, itemClass: i.itemClass, itemNum: i.itemNum })),
       });
-      navigate('/categories');
+      navigate('/categories?from=reservations');
     } catch (err) {
       setError('Could not load reservation items. Please try again.');
       setActionLoading(null);
