@@ -3,7 +3,7 @@ if ('scrollRestoration' in window.history) {
   window.history.scrollRestoration = 'manual';
 }
 
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Categories from './pages/Categories';
 import Items from './pages/Items';
@@ -47,8 +47,8 @@ function App() {
             <Route path="/items/:category" element={<Items />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
-            <Route path="/checkin/outings" element={<OutingSelection />} />
-            <Route path="/checkin/items" element={<Checkin />} />
+            <Route path="/checkin/outings" element={<Navigate to="/checkin" replace />} />
+            <Route path="/checkin/items" element={<Navigate to="/checkin" replace />} />
             <Route path="/checkin/form" element={<CheckinForm />} />
             <Route path="/checkin" element={<Checkin />} />
             <Route path="/success" element={<Success />} />

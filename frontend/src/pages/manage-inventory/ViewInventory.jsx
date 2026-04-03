@@ -3,6 +3,7 @@ import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-do
 import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 import { useInventory } from '../../hooks/useInventory';
+import SegmentedControl from '../../components/SegmentedControl';
 
 const ViewInventory = () => {
   const navigate = useNavigate();
@@ -299,34 +300,19 @@ const ViewInventory = () => {
         </div>
       ) : (
         <div className="bg-white px-5 py-2 border-b border-gray-200 flex items-center gap-2">
-          <div className="flex flex-1 bg-gray-100 rounded-lg p-1 gap-1">
-            <button
-              onClick={() => {
-                setViewMode('category');
-                setFilteredCategory(null);
-                setSearchQuery('');
-                setPendingScrollToCategory(null);
-              }}
-              className={`flex-1 py-1 px-2 rounded-md text-xs font-medium transition-all touch-target ${
-                viewMode === 'category' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
-              }`}
-            >
-              By Category
-            </button>
-            <button
-              onClick={() => {
-                setViewMode('item');
-                setFilteredCategory(null);
-                setSearchQuery('');
-                setPendingScrollToCategory(null);
-              }}
-              className={`flex-1 py-1 px-2 rounded-md text-xs font-medium transition-all touch-target ${
-                viewMode === 'item' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
-              }`}
-            >
-              By Item
-            </button>
-          </div>
+          <SegmentedControl
+            tabs={[
+              { key: 'category', label: 'Categories' },
+              { key: 'item', label: 'Items' },
+            ]}
+            value={viewMode}
+            onChange={(key) => {
+              setViewMode(key);
+              setFilteredCategory(null);
+              setSearchQuery('');
+              setPendingScrollToCategory(null);
+            }}
+          />
           <button
             onClick={() => setSearchOpen(true)}
             className="text-gray-500 touch-target flex items-center justify-center"

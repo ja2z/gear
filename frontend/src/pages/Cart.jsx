@@ -1,4 +1,5 @@
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import SegmentedControl from '../components/SegmentedControl';
 import { useEffect, useState, useRef } from 'react';
 import { useCart } from '../context/CartContext';
 
@@ -146,34 +147,14 @@ useEffect(() => {
 
       {/* Toggle Control */}
       <div className="bg-white px-5 py-3 border-b border-gray-200">
-        <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
-          <button
-            onClick={() => {
-              setScrollingToCategory(false);
-              setViewMode('items');
-            }}
-            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all touch-target ${
-              viewMode === 'items'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Items
-          </button>
-          <button
-            onClick={() => {
-              setScrollingToCategory(false);
-              setViewMode('categories');
-            }}
-            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all touch-target ${
-              viewMode === 'categories'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Categories
-          </button>
-        </div>
+        <SegmentedControl
+          tabs={[
+            { key: 'items', label: 'Items' },
+            { key: 'categories', label: 'Categories' },
+          ]}
+          value={viewMode}
+          onChange={(key) => { setScrollingToCategory(false); setViewMode(key); }}
+        />
       </div>
 
       {/* Cart Content - Scrollable */}

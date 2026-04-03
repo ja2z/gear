@@ -67,7 +67,7 @@ const CheckinForm = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">No items selected</h2>
           <Link
-            to={selectedOuting ? `/checkin/items?outing=${encodeURIComponent(selectedOuting)}` : "/checkin"}
+            to="/checkin"
             className="inline-block bg-scout-blue text-white px-6 py-3 rounded-lg hover:bg-scout-blue transition-colors touch-target no-underline"
           >
             Select Items
@@ -82,7 +82,7 @@ const CheckinForm = () => {
       {/* Header */}
       <div className="header">
         <Link
-          to={selectedOuting ? `/checkin/items?outing=${encodeURIComponent(selectedOuting)}` : "/checkin"}
+          to="/checkin"
           className="back-button no-underline"
         >
           ←

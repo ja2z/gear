@@ -45,7 +45,7 @@ const Landing = () => {
     if (reservationMeta) clearCart();
     navigate('/categories');
   });
-  const handleCheckinClick = withHealthCheck(setCheckinLoading, () => navigate('/checkin/outings'));
+  const handleCheckinClick = withHealthCheck(setCheckinLoading, () => navigate('/checkin'));
 
   const handleRetry = () => setConnectionError(false);
   const handleGoHome = () => setConnectionError(false);
