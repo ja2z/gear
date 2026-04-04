@@ -90,8 +90,9 @@ const EditCategory = () => {
       const response = await fetch(`${API_BASE_URL}/metadata/categories/${classCode}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ classDesc: classDesc.trim() })
       });
 

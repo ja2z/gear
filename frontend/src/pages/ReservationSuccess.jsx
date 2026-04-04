@@ -33,7 +33,7 @@ const ReservationSuccess = () => {
         <p className="text-gray-400 text-sm mb-8">Check your email for a confirmation and PDF summary.</p>
 
         <Link
-          to="/"
+          to="/home"
           className="inline-flex items-center justify-center rounded-md bg-scout-blue text-white px-8 py-3 text-base font-medium touch-target no-underline"
         >
           Return to Home

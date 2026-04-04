@@ -39,7 +39,7 @@ const ManageInventoryDashboard = () => {
     <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
       <div className="header">
-        <Link to="/" className="back-button no-underline">←</Link>
+        <Link to="/home" className="back-button no-underline">←</Link>
         <h1>Manage Inventory</h1>
         <div className="w-10 h-10"></div>
       </div>

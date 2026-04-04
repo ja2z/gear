@@ -30,7 +30,7 @@ const Categories = () => {
   };
 
   const handleGoHome = () => {
-    navigate('/');
+    navigate('/gear');
   };
 
   const filteredCategories = categories.filter(category => {

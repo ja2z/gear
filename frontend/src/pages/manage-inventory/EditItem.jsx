@@ -126,8 +126,9 @@ const EditItem = () => {
       const response = await fetch(`${API_BASE_URL}/manage-inventory/items/${itemId}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(updates)
       });
 

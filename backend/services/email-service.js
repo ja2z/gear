@@ -176,4 +176,60 @@ async function sendReservationConfirmation({ outingName, reservedBy, reservedEma
   return { sent: true };
 }
 
-module.exports = { sendReservationConfirmation };
+async function sendMagicLink({ to, first_name, magicLink }) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('⚠️  RESEND_API_KEY not configured — magic link:', magicLink);
+    return { skipped: true };
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+      <table width="100%" cellpadding="0" cellspacing="0"
+             style="background:#1E398A;border-radius:8px 8px 0 0;">
+        <tr>
+          <td width="52" bgcolor="#1E398A" style="padding:16px 0 16px 16px;vertical-align:middle;">
+            <img src="${BSA_LOGO_URL}" alt="BSA" width="36" height="36" style="display:block;" />
+          </td>
+          <td bgcolor="#1E398A" style="padding:16px 8px;vertical-align:middle;text-align:center;">
+            <span style="color:white;font-size:20px;font-weight:bold;">Troop 222 Gear Tracker</span>
+          </td>
+          <td width="52" bgcolor="#1E398A" style="padding:16px 16px 16px 0;vertical-align:middle;text-align:right;">
+            <img src="${BSA_LOGO_URL}" alt="BSA" width="36" height="36" style="display:block;margin-left:auto;" />
+          </td>
+        </tr>
+      </table>
+      <div style="background:#f9f9f9;padding:24px;border:1px solid #ddd;border-top:none;">
+        <p style="margin-top:0;">Hi ${first_name},</p>
+        <p>Click the button below to log in to the Troop 222 Gear Tracker.
+           This link expires in <strong>15 minutes</strong> and can only be used once.</p>
+        <div style="text-align:center;margin:28px 0;">
+          <a href="${magicLink}"
+             style="background:#1E398A;color:white;padding:14px 32px;border-radius:8px;
+                    text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;">
+            Log In to Gear Tracker
+          </a>
+        </div>
+        <p style="color:#666;font-size:13px;">
+          If you didn't request this, you can safely ignore this email.<br/>
+          This link will expire automatically.
+        </p>
+        <p style="color:#666;font-size:13px;">
+          Questions? Contact <a href="mailto:qm@t222.org">qm@t222.org</a>
+        </p>
+      </div>
+    </div>
+  `;
+
+  await resend.emails.send({
+    from:    `Troop 222 QM <${process.env.RESEND_FROM || 'qm@t222.org'}>`,
+    to,
+    subject: 'Your Troop 222 Gear Tracker login link',
+    html,
+  });
+
+  return { sent: true };
+}
+
+module.exports = { sendReservationConfirmation, sendMagicLink };

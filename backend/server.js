@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const app = express();
@@ -14,17 +15,24 @@ if (process.env.NODE_ENV === 'development') {
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 
 // Serve static files from the React app build directory
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 // Routes
-app.use('/api/inventory', require('./routes/inventory'));
-app.use('/api/checkout', require('./routes/checkout'));
-app.use('/api/checkin', require('./routes/checkin'));
-app.use('/api/metadata', require('./routes/metadata'));
-app.use('/api/manage-inventory', require('./routes/manage-inventory'));
-app.use('/api/reservations', require('./routes/reservations'));
+const { requireAuth } = require('./middleware/auth');
+
+// Public auth routes (no session required)
+app.use('/api/auth', require('./routes/auth'));
+
+// All other API routes require a valid session
+app.use('/api/inventory',        requireAuth, require('./routes/inventory'));
+app.use('/api/checkout',         requireAuth, require('./routes/checkout'));
+app.use('/api/checkin',          requireAuth, require('./routes/checkin'));
+app.use('/api/metadata',         requireAuth, require('./routes/metadata'));
+app.use('/api/manage-inventory', requireAuth, require('./routes/manage-inventory'));
+app.use('/api/reservations',     requireAuth, require('./routes/reservations'));
 
 // Lightweight ping endpoint for keep-alive (also touches Supabase to prevent cold connections)
 app.get('/api/ping', async (req, res) => {

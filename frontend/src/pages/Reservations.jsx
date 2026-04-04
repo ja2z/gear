@@ -30,7 +30,7 @@ const Reservations = () => {
       const apiBase = import.meta.env.PROD
         ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api')
         : '/api';
-      const res = await fetch(`${apiBase}/reservations/${encodeURIComponent(deleteTarget.outingName)}`, { method: 'DELETE' });
+      const res = await fetch(`${apiBase}/reservations/${encodeURIComponent(deleteTarget.outingName)}`, { method: 'DELETE', credentials: 'include' });
       if (!res.ok) throw new Error('Delete failed');
       setReservations(prev => prev.filter(r => r.outingName !== deleteTarget.outingName));
       setDeleteTarget(null);
@@ -87,7 +87,7 @@ const Reservations = () => {
     <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
       <div className="header">
-        <Link to="/" className="back-button no-underline">←</Link>
+        <Link to="/gear" className="back-button no-underline">←</Link>
         <h1>Reservations</h1>
         <div className="w-10 h-10" />
       </div>

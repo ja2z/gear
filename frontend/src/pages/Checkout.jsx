@@ -97,7 +97,7 @@ const Checkout = () => {
             const apiBase = import.meta.env.PROD
               ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api')
               : '/api';
-            await fetch(`${apiBase}/reservations/${encodeURIComponent(reservationMeta.outingName)}`, { method: 'DELETE' });
+            await fetch(`${apiBase}/reservations/${encodeURIComponent(reservationMeta.outingName)}`, { method: 'DELETE', credentials: 'include' });
           } catch (err) {
             console.error('Failed to clean up reservation:', err);
           }

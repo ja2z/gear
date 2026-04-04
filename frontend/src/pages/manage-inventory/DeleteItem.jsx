@@ -48,7 +48,8 @@ const DeleteItem = () => {
         : '/api';
       
       const response = await fetch(`${API_BASE_URL}/manage-inventory/items/${itemId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include',
       });
 
       if (!response.ok) throw new Error('Failed to delete item');

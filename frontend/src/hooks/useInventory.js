@@ -10,6 +10,10 @@ const API_BASE_URL = import.meta.env.PROD
 // Request cache to prevent duplicate API calls
 const requestCache = new Map();
 
+// Module-level 401 handler — set by AuthProvider on mount.
+let _onUnauthorized = null;
+export const setUnauthorizedHandler = (fn) => { _onUnauthorized = fn; };
+
 export const useInventory = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -31,8 +35,15 @@ export const useInventory = () => {
       }
       
       // Start new request and cache the promise
-      const requestPromise = fetch(`${API_BASE_URL}${endpoint}`)
+      const requestPromise = fetch(`${API_BASE_URL}${endpoint}`, {
+        credentials: 'include',
+      })
         .then(async (response) => {
+          if (response.status === 401) {
+            requestCache.clear();
+            _onUnauthorized?.();
+            throw new Error('Unauthorized');
+          }
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
@@ -69,9 +80,15 @@ export const useInventory = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
-      
+
+      if (response.status === 401) {
+        requestCache.clear();
+        _onUnauthorized?.();
+        throw new Error('Unauthorized');
+      }
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -215,7 +232,8 @@ export const useReservations = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/reservations`);
+      const response = await fetch(`${API_BASE_URL}/reservations`, { credentials: 'include' });
+      if (response.status === 401) { _onUnauthorized?.(); throw new Error('Unauthorized'); }
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setReservations(data);
@@ -229,7 +247,8 @@ export const useReservations = () => {
   }, []);
 
   const fetchReservationItems = useCallback(async (outingName) => {
-    const response = await fetch(`${API_BASE_URL}/reservations/${encodeURIComponent(outingName)}`);
+    const response = await fetch(`${API_BASE_URL}/reservations/${encodeURIComponent(outingName)}`, { credentials: 'include' });
+    if (response.status === 401) { _onUnauthorized?.(); throw new Error('Unauthorized'); }
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     return response.json();
   }, []);
@@ -241,8 +260,10 @@ export const useReservations = () => {
       const response = await fetch(`${API_BASE_URL}/reservations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
+      if (response.status === 401) { _onUnauthorized?.(); throw new Error('Unauthorized'); }
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || `HTTP error! status: ${response.status}`);
       return result;

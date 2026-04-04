@@ -56,7 +56,7 @@ const CheckoutOptions = () => {
     <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
       <div className="header">
-        <Link to="/" className="back-button no-underline">←</Link>
+        <Link to="/gear" className="back-button no-underline">←</Link>
         <h1>Check Out</h1>
         <div className="w-10 h-10" />
       </div>

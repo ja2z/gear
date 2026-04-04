@@ -63,7 +63,7 @@ const Items = () => {
   };
 
   const handleGoHome = () => {
-    navigate('/');
+    navigate('/gear');
   };
 
   if (connectionError) {

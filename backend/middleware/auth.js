@@ -1,0 +1,47 @@
+const authService = require('../services/auth-service');
+
+const COOKIE_NAME    = 'session';
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure:   process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge:   14 * 24 * 60 * 60 * 1000,
+};
+
+async function requireAuth(req, res, next) {
+  const rawToken = req.cookies?.[COOKIE_NAME];
+  if (!rawToken) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  let session;
+  try {
+    session = await authService.getSessionUser(rawToken);
+  } catch (err) {
+    console.error('Session lookup error:', err.message);
+    return res.status(500).json({ error: 'Auth error' });
+  }
+
+  if (!session) {
+    res.clearCookie(COOKIE_NAME);
+    return res.status(401).json({ error: 'Session expired or invalid' });
+  }
+
+  // Sliding window: renew if token is in the second half of its life
+  try {
+    const newToken = await authService.renewSessionIfNeeded(
+      session.sessionId,
+      session.expiresAt
+    );
+    if (newToken) {
+      res.cookie(COOKIE_NAME, newToken, COOKIE_OPTIONS);
+    }
+  } catch (err) {
+    console.warn('Session renewal failed (non-fatal):', err.message);
+  }
+
+  req.user = session.user;
+  next();
+}
+
+module.exports = { requireAuth, COOKIE_NAME, COOKIE_OPTIONS };
