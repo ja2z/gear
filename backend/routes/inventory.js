@@ -36,19 +36,19 @@ router.get('/items/:category', async (req, res) => {
   }
 });
 
-// GET /api/inventory/outings - Get outings with checked out items
+// GET /api/inventory/outings - Get events that have checked-out items
 router.get('/outings', async (req, res) => {
   try {
     const outings = await supabaseAPI.getOutingsWithItems();
 
     const allOutingsFromTransactions = await supabaseAPI.getAllOutingsFromTransactions();
     const transactionCountMap = new Map(
-      allOutingsFromTransactions.map(o => [o.outingName, o.transactionCount])
+      allOutingsFromTransactions.map(o => [o.eventId, o.transactionCount])
     );
 
     const enrichedOutings = outings.map(outing => ({
       ...outing,
-      transactionCount: transactionCountMap.get(outing.outingName) || 0,
+      transactionCount: transactionCountMap.get(outing.eventId) || 0,
     }));
 
     res.json(enrichedOutings);
@@ -58,11 +58,12 @@ router.get('/outings', async (req, res) => {
   }
 });
 
-// GET /api/inventory/checked-out/:outing - Get checked out items for specific outing
+// GET /api/inventory/checked-out/:outing - Get checked out items for specific event
+// Accepts either a numeric event ID or an event name string
 router.get('/checked-out/:outing', async (req, res) => {
   try {
     const { outing } = req.params;
-    const items = await supabaseAPI.getCheckedOutItemsByOuting(outing);
+    const items = await supabaseAPI.getCheckedOutItemsByOuting(decodeURIComponent(outing));
     res.json(items);
   } catch (error) {
     console.error('Error fetching checked out items:', error);
@@ -70,15 +71,16 @@ router.get('/checked-out/:outing', async (req, res) => {
   }
 });
 
-// GET /api/inventory/outing-details/:outing - Get outing details
+// GET /api/inventory/outing-details/:outing - Get event details
+// Accepts either a numeric event ID or an event name string
 router.get('/outing-details/:outing', async (req, res) => {
   try {
     const { outing } = req.params;
-    const details = await supabaseAPI.getOutingDetails(outing);
+    const details = await supabaseAPI.getOutingDetails(decodeURIComponent(outing));
     if (details) {
       res.json(details);
     } else {
-      res.status(404).json({ error: 'Outing not found' });
+      res.status(404).json({ error: 'Event not found' });
     }
   } catch (error) {
     console.error('Error fetching outing details:', error);

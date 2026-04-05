@@ -15,7 +15,7 @@ const Reservations = () => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [actionLoading, setActionLoading] = useState(null); // { outingName, type: 'edit'|'checkout' }
+  const [actionLoading, setActionLoading] = useState(null); // { eventId, type: 'edit'|'checkout' }
   const [deleteTarget, setDeleteTarget] = useState(null); // reservation pending delete confirmation
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -31,11 +31,11 @@ const Reservations = () => {
     setDeleteLoading(true);
     try {
       const res = await fetch(
-        `${getApiBaseUrl()}/reservations/${encodeURIComponent(deleteTarget.outingName)}`,
+        `${getApiBaseUrl()}/reservations/${deleteTarget.eventId}`,
         { method: 'DELETE', credentials: 'include' }
       );
       if (!res.ok) throw new Error('Delete failed');
-      setReservations(prev => prev.filter(r => r.outingName !== deleteTarget.outingName));
+      setReservations(prev => prev.filter(r => r.eventId !== deleteTarget.eventId));
       setDeleteTarget(null);
     } catch (err) {
       setError('Could not delete reservation. Please try again.');
@@ -47,13 +47,14 @@ const Reservations = () => {
   // Fix: _dest is stored on meta but shouldn't be passed to setReservationMeta
   // Rewrite loadAndNavigate to be cleaner
   const handleCheckOutClean = async (res) => {
-    setActionLoading({ outingName: res.outingName, type: 'checkout' });
+    setActionLoading({ eventId: res.eventId, type: 'checkout' });
     try {
-      const reservation = await fetchReservationItems(res.outingName);
+      const reservation = await fetchReservationItems(res.eventId);
       clearCart();
       addMultipleItems(reservation.items);
       setReservationMeta({
         fromReservation: true,
+        eventId: reservation.eventId,
         outingName: reservation.outingName,
         scoutName: reservation.reservedBy,
         originalItems: reservation.items.map(i => ({ itemId: i.itemId, description: i.description, itemClass: i.itemClass, itemNum: i.itemNum })),
@@ -66,13 +67,14 @@ const Reservations = () => {
   };
 
   const handleEditClean = async (res) => {
-    setActionLoading({ outingName: res.outingName, type: 'edit' });
+    setActionLoading({ eventId: res.eventId, type: 'edit' });
     try {
-      const reservation = await fetchReservationItems(res.outingName);
+      const reservation = await fetchReservationItems(res.eventId);
       clearCart();
       addMultipleItems(reservation.items);
       setReservationMeta({
         isEditing: true,
+        eventId: reservation.eventId,
         outingName: reservation.outingName,
         scoutName: reservation.reservedBy,
         reservedBy: reservation.reservedBy,
@@ -122,11 +124,11 @@ const Reservations = () => {
           )}
 
           {reservations.map(res => {
-            const isEditLoading = actionLoading?.outingName === res.outingName && actionLoading?.type === 'edit';
-            const isCheckoutLoading = actionLoading?.outingName === res.outingName && actionLoading?.type === 'checkout';
+            const isEditLoading = actionLoading?.eventId === res.eventId && actionLoading?.type === 'edit';
+            const isCheckoutLoading = actionLoading?.eventId === res.eventId && actionLoading?.type === 'checkout';
             const anyLoading = !!actionLoading;
             return (
-              <div key={res.outingName} className="card">
+              <div key={res.eventId} className="card">
                 <div className="mb-3">
                   <div className="font-semibold text-gray-900">{res.outingName}</div>
                   <div className="text-sm text-gray-500 mt-0.5">

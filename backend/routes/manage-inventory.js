@@ -201,7 +201,7 @@ router.put('/items/:itemId', async (req, res) => {
         timestamp: txnTimestamp,
         action: 'Check in',
         itemId,
-        outingName: existing.outingName || '',
+        eventId: existing.eventId || null,
         condition: persistUpdates.condition,
         processedBy: 'inventory edit',
         notes: logNotes,

@@ -299,8 +299,8 @@ export const useReservations = () => {
     }
   }, []);
 
-  const fetchReservationItems = useCallback(async (outingName) => {
-    const response = await fetch(`${API_BASE_URL}/reservations/${encodeURIComponent(outingName)}`, { credentials: 'include' });
+  const fetchReservationItems = useCallback(async (eventId) => {
+    const response = await fetch(`${API_BASE_URL}/reservations/${eventId}`, { credentials: 'include' });
     if (response.status === 401) { _onUnauthorized?.(); throw new Error('Unauthorized'); }
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     return response.json();

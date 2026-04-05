@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useInventory } from '../hooks/useInventory';
@@ -18,69 +18,84 @@ const Checkout = () => {
   const { state: locationState } = useLocation();
   const fromReservation = reservationMeta?.fromReservation === true || locationState?.fromReservation === true;
   const userFullName = user ? `${user.first_name} ${user.last_name}` : '';
+
   const [formData, setFormData] = useState({
+    eventId: reservationMeta?.eventId || locationState?.eventId || '',
     scoutName: reservationMeta?.scoutName || locationState?.scoutName || '',
     qmName: userFullName,
-    outingName: reservationMeta?.outingName || locationState?.outingName || '',
     date: defaultDate(),
-    notes: ''
+    notes: '',
   });
+  const [selectedEventName, setSelectedEventName] = useState(
+    reservationMeta?.outingName || locationState?.outingName || ''
+  );
+  const [events, setEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const [outings, setOutings] = useState([]);
-  const [selectedOuting, setSelectedOuting] = useState(null);
-  const [outingsLoading, setOutingsLoading] = useState(false);
-  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [removedItemsWarning, setRemovedItemsWarning] = useState(null); // items removed from reservation
-  const blurCloseRef = useRef(null);
+  const [removedItemsWarning, setRemovedItemsWarning] = useState(null);
 
-  const cancelCloseSuggestions = useCallback(() => {
-    if (blurCloseRef.current) {
-      clearTimeout(blurCloseRef.current);
-      blurCloseRef.current = null;
-    }
-  }, []);
-
-  const scheduleCloseSuggestions = useCallback(() => {
-    cancelCloseSuggestions();
-    blurCloseRef.current = setTimeout(() => {
-      setSuggestionsOpen(false);
-      blurCloseRef.current = null;
-    }, 200);
-  }, [cancelCloseSuggestions]);
+  // New-event modal state
+  const [showNewEventModal, setShowNewEventModal] = useState(false);
+  const [newEventForm, setNewEventForm] = useState({ name: '', eventTypeId: 1, startDate: '' });
+  const [eventTypes, setEventTypes] = useState([]);
+  const [newEventLoading, setNewEventLoading] = useState(false);
+  const [newEventError, setNewEventError] = useState(null);
 
   useEffect(() => {
-    const fetchOutings = async () => {
+    const fetchData = async () => {
       try {
-        setOutingsLoading(true);
-        const data = await getData('/inventory/outings');
-        setOutings(data);
+        setEventsLoading(true);
+        const [eventsData, typesData] = await Promise.all([
+          getData('/events'),
+          getData('/events/types/list'),
+        ]);
+        setEvents(eventsData);
+        setEventTypes(typesData);
+        if (typesData.length > 0) {
+          setNewEventForm(prev => ({ ...prev, eventTypeId: typesData[0].id }));
+        }
       } catch (error) {
-        console.error('Error fetching outings:', error);
-        setSubmitError('Failed to load existing outings');
+        console.error('Error fetching events:', error);
+        setSubmitError('Failed to load events');
       } finally {
-        setOutingsLoading(false);
+        setEventsLoading(false);
       }
     };
-
-    fetchOutings();
+    fetchData();
   }, [getData]);
 
-  useEffect(() => () => cancelCloseSuggestions(), [cancelCloseSuggestions]);
-
-  const outingNameReady = formData.outingName.trim().length > 0;
-  const secondaryLocked = !outingNameReady;
-
-  const filteredOutings = outings.filter(outing =>
-    outing.outingName.toLowerCase().includes(formData.outingName.toLowerCase())
-  );
+  const eventReady = !!formData.eventId;
+  const secondaryLocked = !eventReady;
 
   const secondaryFieldClass = secondaryLocked
     ? 'form-input bg-gray-50 text-gray-500 cursor-not-allowed opacity-60'
     : 'form-input';
-
   const secondaryLabelClass = secondaryLocked
     ? 'block text-sm font-medium text-gray-400 mb-2'
     : 'block text-sm font-semibold text-gray-700 mb-2';
+
+  const handleEventSelect = (e) => {
+    const eventId = e.target.value;
+    if (!eventId) {
+      setFormData(prev => ({ ...prev, eventId: '', scoutName: '', notes: '', date: defaultDate() }));
+      setSelectedEventName('');
+      return;
+    }
+    const selected = events.find(ev => String(ev.id) === String(eventId));
+    setFormData(prev => ({
+      ...prev,
+      eventId,
+      scoutName: selected?.eventSplName || prev.scoutName || '',
+      notes: '',
+      date: defaultDate(),
+    }));
+    setSelectedEventName(selected?.name || '');
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const doCheckout = async () => {
     setSubmitError(null);
@@ -89,19 +104,19 @@ const Checkout = () => {
       const checkoutData = {
         itemIds,
         scoutName: formData.scoutName,
-        outingName: formData.outingName,
+        eventId: formData.eventId,
         processedBy: formData.qmName,
-        notes: formData.notes
+        notes: formData.notes,
       };
 
       const result = await postData('/checkout', checkoutData);
 
       if (result.success) {
         const itemCount = getTotalItems();
-        if (fromReservation && reservationMeta?.outingName) {
+        if (fromReservation && reservationMeta?.eventId) {
           try {
             await fetch(
-              `${getApiBaseUrl()}/reservations/${encodeURIComponent(reservationMeta.outingName)}`,
+              `${getApiBaseUrl()}/reservations/${reservationMeta.eventId}`,
               { method: 'DELETE', credentials: 'include' }
             );
           } catch (err) {
@@ -135,80 +150,29 @@ const Checkout = () => {
     await doCheckout();
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name === 'outingName') {
-      setSuggestionsOpen(true);
-      if (!value.trim()) {
-        setFormData(prev => ({
-          ...prev,
-          outingName: value,
-          scoutName: '',
-          qmName: '',
-          notes: '',
-          date: defaultDate()
-        }));
-        setSelectedOuting(null);
-        return;
-      }
-    }
-
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleOutingSelect = async (outingName) => {
-    cancelCloseSuggestions();
-    setSuggestionsOpen(false);
-    try {
-      const details = await getData(`/inventory/outing-details/${encodeURIComponent(outingName)}`);
-      setSelectedOuting(outingName);
-      setFormData(prev => ({
-        ...prev,
-        outingName: details.outingName,
-        scoutName: details.scoutName,
-        qmName: details.qmName,
-        date: defaultDate(),
-        notes: ''
-      }));
-    } catch (error) {
-      console.error('Error fetching outing details:', error);
-      setSubmitError('Failed to load outing details');
-    }
-  };
-
-  const handleAddNewOuting = (e) => {
+  const handleCreateEvent = async (e) => {
     e.preventDefault();
-    cancelCloseSuggestions();
-    setSuggestionsOpen(false);
-    if (selectedOuting) {
-      setSelectedOuting(null);
-      setFormData(prev => ({
-        ...prev,
-        scoutName: '',
-        qmName: '',
-        notes: '',
-        date: defaultDate()
-      }));
+    setNewEventError(null);
+    if (!newEventForm.name.trim()) {
+      setNewEventError('Event name is required');
+      return;
     }
-  };
-
-  const handleOutingNameFocus = () => {
-    cancelCloseSuggestions();
-    setSuggestionsOpen(true);
-  };
-
-  const handleOutingNameBlur = () => {
-    scheduleCloseSuggestions();
-  };
-
-  const handleOutingNameKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      cancelCloseSuggestions();
-      setSuggestionsOpen(false);
+    try {
+      setNewEventLoading(true);
+      const created = await postData('/events', {
+        name: newEventForm.name.trim(),
+        eventTypeId: newEventForm.eventTypeId,
+        startDate: newEventForm.startDate || null,
+      });
+      setEvents(prev => [created, ...prev]);
+      setFormData(prev => ({ ...prev, eventId: String(created.id), scoutName: created.eventSplName || prev.scoutName }));
+      setSelectedEventName(created.name);
+      setShowNewEventModal(false);
+      setNewEventForm({ name: '', eventTypeId: eventTypes[0]?.id || 1, startDate: '' });
+    } catch (err) {
+      setNewEventError(err.message || 'Failed to create event');
+    } finally {
+      setNewEventLoading(false);
     }
   };
 
@@ -231,24 +195,11 @@ const Checkout = () => {
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
       <div className="header">
-        <Link to="/cart" className="back-button no-underline">
-          ←
-        </Link>
+        <Link to="/cart" className="back-button no-underline">←</Link>
         <h1 className="text-center text-truncate">Checkout Information</h1>
         <div className="flex shrink-0 items-center gap-2">
           <Link to="/cart" className="cart-badge no-underline">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="cart-icon"
-            >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="cart-icon">
               <circle cx="8" cy="21" r="1"></circle>
               <circle cx="19" cy="21" r="1"></circle>
               <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
@@ -264,136 +215,49 @@ const Checkout = () => {
         <div className="px-5 py-6 pb-20">
           {fromReservation && (
             <div className="mb-5 bg-orange-50 border border-orange-200 rounded-lg px-4 py-3">
-              <p className="text-sm text-orange-800 font-medium">Checking out reserved gear for <span className="font-bold">{formData.outingName}</span></p>
+              <p className="text-sm text-orange-800 font-medium">
+                Checking out reserved gear for <span className="font-bold">{selectedEventName}</span>
+              </p>
             </div>
           )}
+
           <form id="checkout-form" onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-5">
-              <div className="relative z-20">
-                <label htmlFor="outingName" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Outing Name *
+              {/* Event selector */}
+              <div>
+                <label htmlFor="eventId" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Outing / Event *
                 </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    id="outingName"
-                    name="outingName"
-                    value={formData.outingName}
-                    onChange={handleChange}
-                    onFocus={handleOutingNameFocus}
-                    onBlur={handleOutingNameBlur}
-                    onKeyDown={handleOutingNameKeyDown}
-                    autoComplete="off"
-                    aria-expanded={suggestionsOpen}
-                    aria-controls="outing-suggestions"
-                    aria-autocomplete="list"
+                <div className="flex gap-2">
+                  <select
+                    id="eventId"
+                    name="eventId"
+                    value={formData.eventId}
+                    onChange={handleEventSelect}
                     required
-                    className="form-input w-full"
-                    style={formData.outingName ? { paddingRight: '2.5rem' } : {}}
-                    placeholder="e.g. Spring Campout 2025"
-                  />
-                  {formData.outingName && (
+                    disabled={fromReservation}
+                    className={`form-input flex-1 ${fromReservation ? 'bg-gray-50 text-gray-500 cursor-not-allowed opacity-60' : ''}`}
+                  >
+                    <option value="">
+                      {eventsLoading ? 'Loading events…' : 'Select an event'}
+                    </option>
+                    {events.map(ev => (
+                      <option key={ev.id} value={ev.id}>
+                        {ev.name}{ev.startDate ? ` — ${new Date(ev.startDate).toLocaleDateString()}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {!fromReservation && (
                     <button
                       type="button"
-                      aria-label="Clear outing name"
-                      onMouseDown={e => {
-                        e.preventDefault();
-                        cancelCloseSuggestions();
-                        setSuggestionsOpen(true);
-                        setSelectedOuting(null);
-                        setFormData(prev => ({
-                          ...prev,
-                          outingName: '',
-                          scoutName: '',
-                          qmName: '',
-                          notes: '',
-                          date: defaultDate()
-                        }));
-                      }}
-                      style={{
-                        position: 'absolute',
-                        right: '0.625rem',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '1.5rem',
-                        height: '1.5rem',
-                        borderRadius: '50%',
-                        border: 'none',
-                        background: '#d1d5db',
-                        color: '#6b7280',
-                        cursor: 'pointer',
-                        fontSize: '0.75rem',
-                        lineHeight: 1,
-                        padding: 0,
-                      }}
+                      onClick={() => setShowNewEventModal(true)}
+                      className="shrink-0 h-12 px-3 rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue text-sm font-medium"
+                      aria-label="Add new event"
                     >
-                      ✕
+                      + New
                     </button>
                   )}
                 </div>
-                {suggestionsOpen && (
-                  <div
-                    id="outing-suggestions"
-                    role="listbox"
-                    className="absolute left-0 right-0 mt-1 z-30 rounded-lg border border-gray-300 bg-white shadow-lg overflow-hidden flex flex-col max-h-72"
-                  >
-                    <button
-                      type="button"
-                      role="option"
-                      onMouseDown={handleAddNewOuting}
-                      className="w-full shrink-0 text-left px-4 py-3 text-sm font-medium text-gray-900 hover:bg-gray-50 touch-target border-0 bg-white cursor-pointer"
-                    >
-                      Add new outing
-                    </button>
-                    <div className="h-1 w-full shrink-0 bg-gray-200" aria-hidden />
-                    <div className="max-h-60 overflow-y-auto p-2 bg-gray-50 rounded-b-lg" style={{ minHeight: '7.5rem' }}>
-                      <div className="rounded-md border border-gray-200 bg-white overflow-hidden" style={{ minHeight: '7rem' }}>
-                        {outingsLoading && (
-                          <div className="px-3 py-3 text-sm text-gray-500">Loading outings…</div>
-                        )}
-                        {!outingsLoading && outings.length === 0 && (
-                          <div className="px-3 py-3 text-sm text-gray-500">
-                            No items are currently checked out
-                          </div>
-                        )}
-                        {!outingsLoading &&
-                          outings.length > 0 &&
-                          filteredOutings.length === 0 && (
-                            <div className="px-3 py-3 text-sm text-gray-500">
-                              No outings found matching your search
-                            </div>
-                          )}
-                        {!outingsLoading && filteredOutings.length > 0 && (
-                          <div className="divide-y divide-gray-200">
-                            {filteredOutings.map(outing => (
-                              <button
-                                key={outing.outingName}
-                                type="button"
-                                role="option"
-                                onMouseDown={e => e.preventDefault()}
-                                onClick={() => handleOutingSelect(outing.outingName)}
-                                className={`w-full text-left px-3 py-3 text-sm border-0 bg-white hover:bg-gray-50 touch-target cursor-pointer ${
-                                  selectedOuting === outing.outingName ? 'bg-blue-50' : ''
-                                }`}
-                              >
-                                <div className="font-semibold text-gray-900">{outing.outingName}</div>
-                                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-600 mt-1">
-                                  <span>
-                                    📦 {outing.itemCount} item{outing.itemCount !== 1 ? 's' : ''}
-                                  </span>
-                                  <span>📅 {new Date(outing.checkedOutDate).toLocaleDateString()}</span>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div>
@@ -407,7 +271,7 @@ const Checkout = () => {
                   value={formData.scoutName}
                   onChange={handleChange}
                   disabled={secondaryLocked}
-                  required={outingNameReady}
+                  required={eventReady}
                   className={secondaryFieldClass}
                   placeholder="Enter outing leader name"
                 />
@@ -424,7 +288,7 @@ const Checkout = () => {
                   value={formData.qmName}
                   onChange={handleChange}
                   disabled={user ? true : secondaryLocked}
-                  required={outingNameReady}
+                  required={eventReady}
                   className={user ? 'form-input bg-gray-50 text-gray-500 cursor-not-allowed opacity-60' : secondaryFieldClass}
                   placeholder="Enter quartermaster name"
                 />
@@ -441,7 +305,7 @@ const Checkout = () => {
                   value={formData.date}
                   onChange={handleChange}
                   disabled={secondaryLocked}
-                  required={outingNameReady}
+                  required={eventReady}
                   className={secondaryFieldClass}
                 />
               </div>
@@ -476,7 +340,7 @@ const Checkout = () => {
         <button
           type="submit"
           form="checkout-form"
-          disabled={!outingNameReady || loading}
+          disabled={!eventReady || loading}
           className="w-full h-12 text-base font-medium rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue disabled:opacity-50"
         >
           {loading ? 'Processing...' : 'Complete Checkout'}
@@ -490,7 +354,8 @@ const Checkout = () => {
           <div className="w-full max-w-md bg-white rounded-2xl p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-2">Items Not Being Checked Out</h2>
             <p className="text-sm text-gray-600 mb-4">
-              The following {removedItemsWarning.length === 1 ? 'item was' : 'items were'} in your reservation but removed from the cart. {removedItemsWarning.length === 1 ? 'It' : 'They'} will be returned to available inventory:
+              The following {removedItemsWarning.length === 1 ? 'item was' : 'items were'} in your reservation but removed from the cart.{' '}
+              {removedItemsWarning.length === 1 ? 'It' : 'They'} will be returned to available inventory:
             </p>
             <ul className="mb-5 space-y-1">
               {removedItemsWarning.map(item => (
@@ -514,6 +379,69 @@ const Checkout = () => {
                 {loading ? 'Processing...' : 'Confirm Checkout'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* New event modal */}
+      {showNewEventModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md bg-white rounded-2xl p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Add New Event</h2>
+            <form onSubmit={handleCreateEvent} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Event Name *</label>
+                <input
+                  type="text"
+                  value={newEventForm.name}
+                  onChange={e => setNewEventForm(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                  autoFocus
+                  className="form-input w-full"
+                  placeholder="e.g. Spring Campout 2026"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Event Type *</label>
+                <select
+                  value={newEventForm.eventTypeId}
+                  onChange={e => setNewEventForm(prev => ({ ...prev, eventTypeId: parseInt(e.target.value, 10) }))}
+                  className="form-input w-full"
+                >
+                  {eventTypes.map(t => (
+                    <option key={t.id} value={t.id}>{t.type}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Start Date (Optional)</label>
+                <input
+                  type="date"
+                  value={newEventForm.startDate}
+                  onChange={e => setNewEventForm(prev => ({ ...prev, startDate: e.target.value }))}
+                  className="form-input w-full"
+                />
+              </div>
+              {newEventError && (
+                <p className="text-sm text-red-600">{newEventError}</p>
+              )}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowNewEventModal(false); setNewEventError(null); }}
+                  className="flex-1 h-11 rounded-md border border-gray-300 text-sm font-medium text-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={newEventLoading}
+                  className="flex-1 h-11 rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue text-sm font-medium disabled:opacity-50"
+                >
+                  {newEventLoading ? 'Creating…' : 'Create Event'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

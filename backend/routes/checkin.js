@@ -37,27 +37,29 @@ router.post('/', async (req, res) => {
   }
 });
 
-// POST /api/checkin/test-bulk - Test endpoint to checkin all items for a given outing
+// POST /api/checkin/test-bulk - Test endpoint to checkin all items for a given event
 router.post('/test-bulk', async (req, res) => {
   try {
-    const { outingName, processedBy = 'Test QM', notes = 'Bulk test checkin', conditions = [] } = req.body;
+    const { eventId, processedBy = 'Test QM', notes = 'Bulk test checkin', conditions = [] } = req.body;
 
-    if (!outingName) {
-      return res.status(400).json({ error: 'outingName is required for bulk checkin test' });
+    if (!eventId) {
+      return res.status(400).json({ error: 'eventId is required for bulk checkin test' });
     }
 
-    console.log(`🧪 Starting bulk test checkin for outing: ${outingName}...`);
+    const parsedEventId = parseInt(eventId, 10);
+
+    console.log(`🧪 Starting bulk test checkin for event ID: ${parsedEventId}...`);
 
     const inventory = await supabaseAPI.getInventory();
     const checkedOutItems = inventory.filter(
-      item => item.status === 'Checked out' && item.outingName === outingName
+      item => item.status === 'Checked out' && item.eventId === parsedEventId
     );
 
-    console.log(`📊 Found ${checkedOutItems.length} checked out items for outing: ${outingName}`);
+    console.log(`📊 Found ${checkedOutItems.length} checked out items for event ID: ${parsedEventId}`);
 
     if (checkedOutItems.length === 0) {
       return res.status(400).json({
-        error: `No checked out items found for outing: ${outingName}`,
+        error: `No checked out items found for event ID: ${parsedEventId}`,
         checkedOutCount: 0,
       });
     }

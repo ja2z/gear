@@ -21,9 +21,28 @@ function mapRowToItem(row) {
     checkedOutTo: row.checked_out_to,
     checkedOutBy: row.checked_out_by,
     checkOutDate: row.check_out_date,
-    outingName: row.outing_name,
+    eventId: row.event_id || null,
+    outingName: row.events?.name || '',   // populated via FK join
     notes: row.notes,
     inApp: Boolean(row.in_app),
+  };
+}
+
+function mapRowToEvent(row) {
+  const splUser = Array.isArray(row.spl_user) ? row.spl_user[0] : row.spl_user;
+  const asplUser = Array.isArray(row.aspl_user) ? row.aspl_user[0] : row.aspl_user;
+  return {
+    id: row.id,
+    name: row.name,
+    eventTypeId: row.event_type_id,
+    eventType: row.event_types?.type || '',
+    startDate: row.start_date,
+    endDate: row.end_date,
+    eventSplId: row.event_spl,
+    eventSplName: splUser ? `${splUser.first_name} ${splUser.last_name}` : null,
+    eventAsplId: row.event_aspl,
+    eventAsplName: asplUser ? `${asplUser.first_name} ${asplUser.last_name}` : null,
+    createdAt: row.created_at,
   };
 }
 
@@ -33,7 +52,7 @@ const supabaseAPI = {
   async getInventory() {
     const { data, error } = await supabase
       .from('items')
-      .select('*')
+      .select('*, events(id, name)')
       .eq('in_app', true)
       .neq('status', 'Removed from inventory')
       .order('item_class')
@@ -105,7 +124,7 @@ const supabaseAPI = {
   async getItemsByCategory(category) {
     const { data, error } = await supabase
       .from('items')
-      .select('*')
+      .select('*, events(id, name)')
       .eq('item_class', category)
       .eq('in_app', true)
       .neq('status', 'Removed from inventory')
@@ -117,7 +136,7 @@ const supabaseAPI = {
   async getItemById(itemId) {
     const { data, error } = await supabase
       .from('items')
-      .select('*')
+      .select('*, events(id, name)')
       .eq('item_id', itemId)
       .neq('status', 'Removed from inventory')
       .maybeSingle();
@@ -127,7 +146,7 @@ const supabaseAPI = {
 
   // ========== CHECKOUT / CHECKIN ==========
 
-  async checkoutItems(itemIds, scoutName, outingName, processedBy, notes = '') {
+  async checkoutItems(itemIds, scoutName, eventId, processedBy, notes = '') {
     const checkoutDate = new Date().toISOString().split('T')[0];
     const results = [];
 
@@ -154,7 +173,7 @@ const supabaseAPI = {
             checked_out_to: scoutName,
             checked_out_by: processedBy,
             check_out_date: checkoutDate,
-            outing_name: outingName,
+            event_id: eventId,
             notes: notes,
             updated_at: new Date().toISOString(),
           })
@@ -166,7 +185,7 @@ const supabaseAPI = {
           transactionId,
           action: 'Check out',
           itemId,
-          outingName,
+          eventId,
           condition: item.condition,
           processedBy,
           notes,
@@ -198,6 +217,7 @@ const supabaseAPI = {
 
         const itemStatus = condition === 'Missing' ? 'Missing' : 'In shed';
         const itemCondition = condition === 'Missing' ? 'Unknown' : condition;
+        const priorEventId = item.eventId || null;
 
         const { error: updateError } = await supabase
           .from('items')
@@ -206,7 +226,7 @@ const supabaseAPI = {
             checked_out_to: '',
             checked_out_by: '',
             check_out_date: null,
-            outing_name: '',
+            event_id: null,
             condition: itemCondition,
             notes: notes,
             updated_at: new Date().toISOString(),
@@ -219,7 +239,7 @@ const supabaseAPI = {
           transactionId,
           action: 'Check in',
           itemId,
-          outingName: item.outingName || '',
+          eventId: priorEventId,
           condition,
           processedBy,
           notes,
@@ -235,36 +255,37 @@ const supabaseAPI = {
     return results;
   },
 
-  // ========== OUTINGS ==========
+  // ========== OUTINGS (events with checked-out items) ==========
 
   async getOutingsWithItems() {
     const { data, error } = await supabase
       .from('items')
-      .select('outing_name, check_out_date')
+      .select('event_id, check_out_date, events(id, name)')
       .eq('status', 'Checked out')
       .eq('in_app', true)
-      .not('outing_name', 'is', null)
-      .neq('outing_name', '');
+      .not('event_id', 'is', null);
     if (error) throw error;
 
-    const outingMap = new Map();
+    const eventMap = new Map();
     data.forEach(row => {
-      const key = row.outing_name;
-      if (!outingMap.has(key)) {
-        outingMap.set(key, { item_count: 0, checked_out_date: row.check_out_date });
+      const key = row.event_id;
+      const name = row.events?.name || `Event ${key}`;
+      if (!eventMap.has(key)) {
+        eventMap.set(key, { eventId: key, outingName: name, item_count: 0, checked_out_date: row.check_out_date });
       }
-      const o = outingMap.get(key);
+      const o = eventMap.get(key);
       o.item_count++;
       if (row.check_out_date && (!o.checked_out_date || row.check_out_date < o.checked_out_date)) {
         o.checked_out_date = row.check_out_date;
       }
     });
 
-    return Array.from(outingMap.entries())
-      .map(([outingName, d]) => ({
+    return Array.from(eventMap.values())
+      .map(({ eventId, outingName, item_count, checked_out_date }) => ({
+        eventId,
         outingName,
-        itemCount: d.item_count,
-        checkedOutDate: d.checked_out_date,
+        itemCount: item_count,
+        checkedOutDate: checked_out_date,
       }))
       .sort((a, b) => {
         if (!a.checkedOutDate) return 1;
@@ -273,12 +294,24 @@ const supabaseAPI = {
       });
   },
 
-  async getCheckedOutItemsByOuting(outingName) {
+  async getCheckedOutItemsByOuting(outingNameOrEventId) {
+    // Accept either numeric event ID or event name string
+    let eventId = parseInt(outingNameOrEventId, 10);
+    if (isNaN(eventId)) {
+      const { data: ev } = await supabase
+        .from('events')
+        .select('id')
+        .eq('name', outingNameOrEventId)
+        .maybeSingle();
+      eventId = ev?.id;
+    }
+    if (!eventId) return [];
+
     const { data, error } = await supabase
       .from('items')
-      .select('item_id, item_class, item_num, description, checked_out_to, outing_name, check_out_date, condition')
+      .select('item_id, item_class, item_num, description, checked_out_to, event_id, check_out_date, condition, events(name)')
       .eq('status', 'Checked out')
-      .eq('outing_name', outingName)
+      .eq('event_id', eventId)
       .eq('in_app', true)
       .order('item_class')
       .order('item_num');
@@ -288,31 +321,126 @@ const supabaseAPI = {
       itemId: row.item_id,
       description: row.description,
       checkedOutTo: row.checked_out_to,
-      outingName: row.outing_name,
+      outingName: row.events?.name || '',
+      eventId: row.event_id,
       checkOutDate: row.check_out_date,
       condition: row.condition,
     }));
   },
 
-  async getOutingDetails(outingName) {
-    const { data, error } = await supabase
+  async getOutingDetails(outingNameOrEventId) {
+    // Accept either numeric event ID or event name string
+    let eventId = parseInt(outingNameOrEventId, 10);
+    if (isNaN(eventId)) {
+      const { data: ev } = await supabase
+        .from('events')
+        .select('id')
+        .eq('name', outingNameOrEventId)
+        .maybeSingle();
+      eventId = ev?.id;
+    }
+    if (!eventId) return null;
+
+    // Get event with SPL user details
+    const { data: eventData, error: evError } = await supabase
+      .from('events')
+      .select('id, name, start_date, event_spl, event_aspl')
+      .eq('id', eventId)
+      .maybeSingle();
+    if (evError) throw evError;
+    if (!eventData) return null;
+
+    // Get QM name from the first checked-out item for this event
+    const { data: itemData } = await supabase
       .from('items')
-      .select('outing_name, checked_out_to, checked_out_by, check_out_date, notes')
+      .select('checked_out_to, checked_out_by, check_out_date, notes')
+      .eq('event_id', eventId)
       .eq('status', 'Checked out')
-      .eq('outing_name', outingName)
-      .eq('in_app', true)
       .limit(1)
       .maybeSingle();
-    if (error) throw error;
-    if (!data) return null;
+
+    // Get SPL name from users if available
+    let scoutName = itemData?.checked_out_to || '';
+    if (eventData.event_spl) {
+      const { data: splUser } = await supabase
+        .from('users')
+        .select('first_name, last_name')
+        .eq('id', eventData.event_spl)
+        .maybeSingle();
+      if (splUser) scoutName = `${splUser.first_name} ${splUser.last_name}`;
+    }
 
     return {
-      outingName: data.outing_name,
-      scoutName: data.checked_out_to,
-      qmName: data.checked_out_by,
-      date: data.check_out_date,
-      notes: data.notes || '',
+      eventId: eventData.id,
+      outingName: eventData.name,
+      scoutName,
+      qmName: itemData?.checked_out_by || '',
+      date: itemData?.check_out_date || eventData.start_date,
+      notes: itemData?.notes || '',
     };
+  },
+
+  // ========== EVENTS CRUD ==========
+
+  async getEventTypes() {
+    const { data, error } = await supabase
+      .from('event_types')
+      .select('id, type')
+      .order('id');
+    if (error) throw error;
+    return data;
+  },
+
+  async getEvents() {
+    const { data, error } = await supabase
+      .from('events')
+      .select(`
+        id, name, event_type_id, start_date, end_date, event_spl, event_aspl, created_at,
+        event_types(type),
+        spl_user:users!events_event_spl_fkey(first_name, last_name),
+        aspl_user:users!events_event_aspl_fkey(first_name, last_name)
+      `)
+      .order('start_date', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data.map(mapRowToEvent);
+  },
+
+  async getEventById(id) {
+    const { data, error } = await supabase
+      .from('events')
+      .select(`
+        id, name, event_type_id, start_date, end_date, event_spl, event_aspl, created_at,
+        event_types(type),
+        spl_user:users!events_event_spl_fkey(first_name, last_name),
+        aspl_user:users!events_event_aspl_fkey(first_name, last_name)
+      `)
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? mapRowToEvent(data) : null;
+  },
+
+  async createEvent(eventData) {
+    const { data, error } = await supabase
+      .from('events')
+      .insert({
+        name: eventData.name,
+        event_type_id: eventData.eventTypeId,
+        start_date: eventData.startDate || null,
+        end_date: eventData.endDate || null,
+        event_spl: eventData.eventSplId || null,
+        event_aspl: eventData.eventAsplId || null,
+      })
+      .select(`
+        id, name, event_type_id, start_date, end_date, event_spl, event_aspl, created_at,
+        event_types(type),
+        spl_user:users!events_event_spl_fkey(first_name, last_name),
+        aspl_user:users!events_event_aspl_fkey(first_name, last_name)
+      `)
+      .single();
+    if (error) throw error;
+    return mapRowToEvent(data);
   },
 
   // ========== TRANSACTIONS ==========
@@ -323,7 +451,7 @@ const supabaseAPI = {
       timestamp: transaction.timestamp || new Date().toISOString(),
       action: transaction.action,
       item_id: transaction.itemId,
-      outing_name: transaction.outingName,
+      event_id: transaction.eventId || null,
       condition: transaction.condition,
       processed_by: transaction.processedBy,
       notes: transaction.notes,
@@ -339,7 +467,7 @@ const supabaseAPI = {
   async getItemTransactions(itemId) {
     const { data, error } = await supabase
       .from('transactions')
-      .select('*')
+      .select('*, events(id, name)')
       .eq('item_id', itemId.trim())
       .order('timestamp', { ascending: false });
     if (error) throw error;
@@ -348,7 +476,8 @@ const supabaseAPI = {
       timestamp: row.timestamp,
       action: row.action,
       itemId: row.item_id,
-      outingName: row.outing_name || '',
+      eventId: row.event_id || null,
+      outingName: row.events?.name || '',
       checkedOutTo: '',
       condition: row.condition || '',
       processedBy: row.processed_by || '',
@@ -361,7 +490,7 @@ const supabaseAPI = {
 
     let query = supabase
       .from('transactions')
-      .select('*', { count: 'exact' });
+      .select('*, events(id, name)', { count: 'exact' });
 
     if (dateRange && dateRange !== 'all') {
       const daysAgo = parseInt(dateRange);
@@ -373,7 +502,16 @@ const supabaseAPI = {
     }
 
     if (outing && outing.trim() !== '') {
-      query = query.ilike('outing_name', `%${outing.trim()}%`);
+      // Find event IDs whose name matches the search string
+      const { data: matchingEvents } = await supabase
+        .from('events')
+        .select('id')
+        .ilike('name', `%${outing.trim()}%`);
+      const eventIds = (matchingEvents || []).map(e => e.id);
+      if (eventIds.length === 0) {
+        return { transactions: [], total: 0 };
+      }
+      query = query.in('event_id', eventIds);
     }
 
     if (itemId && itemId.trim() !== '') {
@@ -398,7 +536,8 @@ const supabaseAPI = {
         timestamp: row.timestamp,
         action: row.action,
         itemId: row.item_id,
-        outingName: row.outing_name || '',
+        eventId: row.event_id || null,
+        outingName: row.events?.name || '',
         checkedOutTo: '',
         condition: row.condition || '',
         processedBy: row.processed_by || '',
@@ -411,29 +550,30 @@ const supabaseAPI = {
   async getAllOutingsFromTransactions() {
     const { data, error } = await supabase
       .from('transactions')
-      .select('outing_name, timestamp')
-      .not('outing_name', 'is', null)
-      .neq('outing_name', '');
+      .select('event_id, timestamp, events(id, name)')
+      .not('event_id', 'is', null);
     if (error) throw error;
 
-    const outingMap = new Map();
+    const eventMap = new Map();
     data.forEach(row => {
-      const name = row.outing_name.trim();
-      if (!outingMap.has(name)) {
-        outingMap.set(name, { count: 0, minTimestamp: row.timestamp });
+      const id = row.event_id;
+      const name = row.events?.name || `Event ${id}`;
+      if (!eventMap.has(id)) {
+        eventMap.set(id, { eventId: id, outingName: name, count: 0, minTimestamp: row.timestamp });
       }
-      const o = outingMap.get(name);
+      const o = eventMap.get(id);
       o.count++;
       if (row.timestamp && (!o.minTimestamp || row.timestamp < o.minTimestamp)) {
         o.minTimestamp = row.timestamp;
       }
     });
 
-    return Array.from(outingMap.entries())
-      .map(([outingName, d]) => ({
+    return Array.from(eventMap.values())
+      .map(({ eventId, outingName, count, minTimestamp }) => ({
+        eventId,
         outingName,
-        transactionCount: d.count,
-        minTimestamp: d.minTimestamp,
+        transactionCount: count,
+        minTimestamp,
       }))
       .sort((a, b) => {
         if (!a.minTimestamp) return 1;
@@ -442,11 +582,36 @@ const supabaseAPI = {
       });
   },
 
-  async getOutingItemBreakdown(outingName) {
+  async getOutingItemBreakdown(outingNameOrEventId) {
+    // Accept either numeric event ID or event name string
+    let eventId = parseInt(outingNameOrEventId, 10);
+    let resolvedName = outingNameOrEventId;
+
+    if (isNaN(eventId)) {
+      const { data: ev } = await supabase
+        .from('events')
+        .select('id, name')
+        .eq('name', outingNameOrEventId)
+        .maybeSingle();
+      eventId = ev?.id;
+      resolvedName = ev?.name || outingNameOrEventId;
+    } else {
+      const { data: ev } = await supabase
+        .from('events')
+        .select('name')
+        .eq('id', eventId)
+        .maybeSingle();
+      resolvedName = ev?.name || outingNameOrEventId;
+    }
+
+    if (!eventId) {
+      return { outingName: resolvedName, totalUniqueItems: 0, checkedOut: 0, checkedIn: 0, checkedOutItems: [], checkedInItems: [] };
+    }
+
     const { data, error } = await supabase
       .from('transactions')
       .select('item_id, action, timestamp')
-      .eq('outing_name', outingName)
+      .eq('event_id', eventId)
       .order('timestamp');
     if (error) throw error;
 
@@ -470,7 +635,7 @@ const supabaseAPI = {
     });
 
     return {
-      outingName,
+      outingName: resolvedName,
       totalUniqueItems: itemLastAction.size,
       checkedOut: checkedOutItems.length,
       checkedIn: checkedInItems.length,
@@ -498,7 +663,6 @@ const supabaseAPI = {
     if (error) throw error;
   },
 
-  // Alias — metadata.js route calls addCategory; keeps same contract as sheetsAPI
   async addCategory(categoryData) {
     return this.addMetadataCategory(categoryData);
   },
@@ -511,7 +675,6 @@ const supabaseAPI = {
     if (error) throw error;
   },
 
-  // Full category rename: updates metadata + all matching items' item_desc
   async updateCategory(classCode, newClassDesc) {
     await this.updateMetadataCategory(classCode, newClassDesc);
 
@@ -536,7 +699,7 @@ const supabaseAPI = {
   async getAllItems() {
     const { data, error } = await supabase
       .from('items')
-      .select('*')
+      .select('*, events(id, name)')
       .neq('status', 'Removed from inventory')
       .order('item_desc')
       .order('item_num');
@@ -576,7 +739,7 @@ const supabaseAPI = {
       checked_out_to: '',
       checked_out_by: '',
       check_out_date: null,
-      outing_name: '',
+      event_id: null,
       notes: itemData.notes || '',
       in_app: itemData.inApp !== undefined ? itemData.inApp : true,
     });
@@ -602,14 +765,13 @@ const supabaseAPI = {
       updateData.checked_out_to = '';
       updateData.checked_out_by = '';
       updateData.check_out_date = null;
-      updateData.outing_name = '';
+      updateData.event_id = null;
     }
 
     const { error } = await supabase.from('items').update(updateData).eq('item_id', itemId);
     if (error) throw error;
   },
 
-  // Alias used by manage-inventory route (matches sheetsAPI.updateItemInSheets signature)
   async updateItemInSheets(itemId, updates, options = {}) {
     return this.updateItem(itemId, updates, { clearCheckout: options.clearCheckoutFields });
   },
@@ -661,19 +823,22 @@ const supabaseAPI = {
 
   // ========== RESERVATIONS ==========
 
-  async createReservation(itemIds, outingName, reservedBy, reservedEmail) {
-    // Upsert reservation record (allows re-reserving same outing name)
+  async createReservation(itemIds, eventId, reservedBy, reservedEmail) {
+    // Upsert reservation record (allows re-reserving same event)
     const { error: resError } = await supabase
       .from('reservations')
-      .upsert({ outing_name: outingName, reserved_by: reservedBy, reserved_email: reservedEmail, created_at: new Date().toISOString() }, { onConflict: 'outing_name' });
+      .upsert(
+        { event_id: eventId, reserved_by: reservedBy, reserved_email: reservedEmail, created_at: new Date().toISOString() },
+        { onConflict: 'event_id' }
+      );
     if (resError) throw resError;
 
-    // Un-reserve any items currently reserved for this outing (handles edits)
+    // Un-reserve any items currently reserved for this event
     const { error: clearError } = await supabase
       .from('items')
-      .update({ status: 'In shed', outing_name: '', updated_at: new Date().toISOString() })
+      .update({ status: 'In shed', event_id: null, updated_at: new Date().toISOString() })
       .eq('status', 'Reserved')
-      .eq('outing_name', outingName);
+      .eq('event_id', eventId);
     if (clearError) throw clearError;
 
     const results = [];
@@ -696,13 +861,13 @@ const supabaseAPI = {
           .from('items')
           .update({
             status: 'Reserved',
-            outing_name: outingName,
+            event_id: eventId,
             updated_at: new Date().toISOString(),
           })
           .eq('item_id', itemId);
         if (updateError) throw updateError;
 
-        results.push({ itemId, success: true, itemId, description: item.description, itemDesc: item.itemDesc });
+        results.push({ itemId, success: true, description: item.description, itemDesc: item.itemDesc });
       } catch (err) {
         results.push({ itemId, success: false, error: err.message });
       }
@@ -713,22 +878,22 @@ const supabaseAPI = {
   async getReservations() {
     const { data: resData, error: resError } = await supabase
       .from('reservations')
-      .select('outing_name, reserved_by, reserved_email, created_at')
+      .select('event_id, reserved_by, reserved_email, created_at, events(id, name)')
       .order('created_at', { ascending: false });
     if (resError) throw resError;
 
-    // For each reservation, count how many items are still reserved
     const result = [];
     for (const res of resData) {
       const { count, error: countError } = await supabase
         .from('items')
         .select('item_id', { count: 'exact', head: true })
         .eq('status', 'Reserved')
-        .eq('outing_name', res.outing_name);
+        .eq('event_id', res.event_id);
       if (countError) throw countError;
       if (count > 0) {
         result.push({
-          outingName: res.outing_name,
+          eventId: res.event_id,
+          outingName: res.events?.name || `Event ${res.event_id}`,
           reservedBy: res.reserved_by,
           reservedEmail: res.reserved_email,
           itemCount: count,
@@ -739,26 +904,27 @@ const supabaseAPI = {
     return result;
   },
 
-  async getReservationItems(outingName) {
+  async getReservationItems(eventId) {
     const { data: resData, error: resError } = await supabase
       .from('reservations')
-      .select('outing_name, reserved_by, reserved_email, created_at')
-      .eq('outing_name', outingName)
+      .select('event_id, reserved_by, reserved_email, created_at, events(id, name)')
+      .eq('event_id', eventId)
       .maybeSingle();
     if (resError) throw resError;
     if (!resData) return null;
 
     const { data: items, error: itemsError } = await supabase
       .from('items')
-      .select('*')
+      .select('*, events(id, name)')
       .eq('status', 'Reserved')
-      .eq('outing_name', outingName)
+      .eq('event_id', eventId)
       .order('item_class')
       .order('item_num');
     if (itemsError) throw itemsError;
 
     return {
-      outingName: resData.outing_name,
+      eventId: resData.event_id,
+      outingName: resData.events?.name || `Event ${resData.event_id}`,
       reservedBy: resData.reserved_by,
       reservedEmail: resData.reserved_email,
       createdAt: resData.created_at,
@@ -766,20 +932,19 @@ const supabaseAPI = {
     };
   },
 
-  async deleteReservation(outingName) {
-    // Un-reserve any items still reserved for this outing (e.g. removed from cart before checkout)
+  async deleteReservation(eventId) {
+    // Un-reserve any items still reserved for this event
     const { error: itemsError } = await supabase
       .from('items')
-      .update({ status: 'In shed', outing_name: '', updated_at: new Date().toISOString() })
+      .update({ status: 'In shed', event_id: null, updated_at: new Date().toISOString() })
       .eq('status', 'Reserved')
-      .eq('outing_name', outingName);
+      .eq('event_id', eventId);
     if (itemsError) throw itemsError;
 
-    // Delete the reservation record
     const { error: resError } = await supabase
       .from('reservations')
       .delete()
-      .eq('outing_name', outingName);
+      .eq('event_id', eventId);
     if (resError) throw resError;
   },
 

@@ -1,27 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const supabaseAPI = require('../services/supabase-api');
-const { formatOutingName } = require('../utils/dateUtils');
 
 // POST /api/checkout - Process checkout transaction
 router.post('/', async (req, res) => {
   try {
-    const { itemIds, scoutName, outingName, processedBy, notes } = req.body;
+    const { itemIds, scoutName, eventId, processedBy, notes } = req.body;
 
     if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
       return res.status(400).json({ error: 'Item IDs are required' });
     }
 
-    if (!scoutName || !outingName || !processedBy) {
-      return res.status(400).json({ error: 'Outing leader name, outing name, and QM name are required' });
+    if (!scoutName || !eventId || !processedBy) {
+      return res.status(400).json({ error: 'Outing leader name, event, and QM name are required' });
     }
 
-    const formattedOutingName = formatOutingName(outingName);
+    const parsedEventId = parseInt(eventId, 10);
+    if (isNaN(parsedEventId)) {
+      return res.status(400).json({ error: 'Invalid event ID' });
+    }
 
     const results = await supabaseAPI.checkoutItems(
       itemIds,
       scoutName,
-      formattedOutingName,
+      parsedEventId,
       processedBy,
       notes
     );
@@ -49,13 +51,17 @@ router.post('/test-bulk', async (req, res) => {
   try {
     const {
       scoutName = 'Test Scout',
-      outingName = 'Test Outing',
+      eventId,
       processedBy = 'Test QM',
       notes = 'Bulk test checkout',
       targetCount = 95,
     } = req.body;
 
-    const formattedOutingName = formatOutingName(outingName);
+    if (!eventId) {
+      return res.status(400).json({ error: 'eventId is required for bulk test checkout' });
+    }
+
+    const parsedEventId = parseInt(eventId, 10);
 
     console.log(`🧪 Starting bulk test checkout of ${targetCount} items...`);
 
@@ -79,7 +85,7 @@ router.post('/test-bulk', async (req, res) => {
     const results = await supabaseAPI.checkoutItems(
       itemIds,
       scoutName,
-      formattedOutingName,
+      parsedEventId,
       processedBy,
       notes
     );

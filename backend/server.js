@@ -27,6 +27,7 @@ const { requireAuth } = require('./middleware/auth');
 app.use('/api/auth', require('./routes/auth'));
 
 // All other API routes require a valid session
+app.use('/api/events',           requireAuth, require('./routes/events'));
 app.use('/api/inventory',        requireAuth, require('./routes/inventory'));
 app.use('/api/checkout',         requireAuth, require('./routes/checkout'));
 app.use('/api/checkin',          requireAuth, require('./routes/checkin'));
