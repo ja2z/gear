@@ -1,13 +1,22 @@
 const express = require('express');
 const router  = express.Router();
+const { rateLimit } = require('express-rate-limit');
 const authService              = require('../services/auth-service');
 const { sendMagicLink }        = require('../services/email-service');
 const { COOKIE_NAME, COOKIE_OPTIONS } = require('../middleware/auth');
 
+const requestLinkLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  limit: 5,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again in a minute.' },
+});
+
 // POST /api/auth/request-link
 // Body: { email }
 // Always returns 200 to prevent user enumeration.
-router.post('/request-link', async (req, res) => {
+router.post('/request-link', requestLinkLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ error: 'Email is required' });
