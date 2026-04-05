@@ -1,5 +1,5 @@
 /**
- * Production API base must end with `/api` so paths like `getApiBaseUrl() + '/inventory/...'`
+ * Production API base URL must end with `/api` so paths like `getApiBaseUrl() + '/inventory/...'`
  * resolve correctly. If `VITE_API_URL` is the origin only (e.g. `https://gear-backend.onrender.com`),
  * we append `/api`.
  *
