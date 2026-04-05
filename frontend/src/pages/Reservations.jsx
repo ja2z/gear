@@ -27,10 +27,7 @@ const Reservations = () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
     try {
-      const apiBase = import.meta.env.PROD
-        ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api')
-        : '/api';
-      const res = await fetch(`${apiBase}/reservations/${encodeURIComponent(deleteTarget.outingName)}`, { method: 'DELETE', credentials: 'include' });
+      const res = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/reservations/${encodeURIComponent(deleteTarget.outingName)}`, { method: 'DELETE', credentials: 'include' });
       if (!res.ok) throw new Error('Delete failed');
       setReservations(prev => prev.filter(r => r.outingName !== deleteTarget.outingName));
       setDeleteTarget(null);

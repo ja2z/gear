@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-// Configure API base URL based on environment
-// In development: Vite proxy will handle /api requests to backend
-// In production: Use full backend URL since frontend and backend are on different domains
-const API_BASE_URL = import.meta.env.PROD 
-  ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api')
-  : '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Request cache to prevent duplicate API calls
 const requestCache = new Map();

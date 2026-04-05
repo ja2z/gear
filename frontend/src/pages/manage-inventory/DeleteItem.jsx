@@ -42,12 +42,7 @@ const DeleteItem = () => {
     try {
       setDeleteLoading(true);
       
-      // Use custom fetch since useInventory doesn't have a DELETE method helper
-      const API_BASE_URL = import.meta.env.PROD 
-        ? (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api')
-        : '/api';
-      
-      const response = await fetch(`${API_BASE_URL}/manage-inventory/items/${itemId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/manage-inventory/items/${itemId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
