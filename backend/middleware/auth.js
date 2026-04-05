@@ -1,10 +1,11 @@
 const authService = require('../services/auth-service');
 
 const COOKIE_NAME    = 'session';
+const isProduction   = process.env.NODE_ENV === 'production';
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure:   process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
+  secure:   isProduction,
+  sameSite: isProduction ? 'none' : 'lax',
   maxAge:   14 * 24 * 60 * 60 * 1000,
 };
 
