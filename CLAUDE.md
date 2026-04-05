@@ -184,10 +184,11 @@ scripts/pregen-images.sh
 Then commit the new `.webp` and `.lqip.webp` files. The Vite plugin copies pre-generated files at build time (fast). Falls back to generating on the fly if missing (slower). `npm run dev` skips image optimization entirely (`apply: 'build'`).
 
 ## Testing Locally
-If backend changes are made, restart servers:
+Always start or restart local servers using:
 ```bash
 scripts/restart-servers.sh
 ```
+This kills any running frontend/backend processes and restarts both. Use it any time you make backend changes or need a clean local environment. Logs are written to `backend/server.log` and `frontend/dev.log` — check them after restart to confirm clean startup.
 
 ## Direct Database Access (Supabase)
 
