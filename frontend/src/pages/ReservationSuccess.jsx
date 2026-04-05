@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { AnimateMain } from '../components/AnimateMain';
 
 const ReservationSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -14,7 +15,8 @@ const ReservationSuccess = () => {
 
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
-      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
+      <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
         <div
           className="text-7xl mb-6 inline-block"
           style={{
@@ -34,7 +36,7 @@ const ReservationSuccess = () => {
 
         <Link
           to="/home"
-          className="inline-flex items-center justify-center rounded-md bg-scout-blue text-white px-8 py-3 text-base font-medium touch-target no-underline"
+          className="inline-flex items-center justify-center rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue px-8 py-3 text-base font-medium touch-target no-underline"
         >
           Return to Home
         </Link>
@@ -42,6 +44,7 @@ const ReservationSuccess = () => {
       <div className="shrink-0 flex justify-center pb-8">
         <img src="/BSA_Logo.webp" alt="BSA Logo" className="h-10 w-auto opacity-40" />
       </div>
+      </AnimateMain>
     </div>
   );
 };

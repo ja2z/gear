@@ -4,6 +4,9 @@ import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 import { useInventory } from '../../hooks/useInventory';
 import { validateCategoryName } from '../../utils/validation';
+import { getApiBaseUrl } from '../../config/apiBaseUrl';
+import { AnimateMain } from '../../components/AnimateMain';
+import HeaderProfileMenu from '../../components/HeaderProfileMenu';
 
 const EditCategory = () => {
   const navigate = useNavigate();
@@ -82,7 +85,7 @@ const EditCategory = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/metadata/categories/${classCode}`, {
+      const response = await fetch(`${getApiBaseUrl()}/metadata/categories/${classCode}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -133,9 +136,10 @@ const EditCategory = () => {
           ←
         </Link>
         <h1>Edit Category</h1>
-        <div className="w-10 h-10"></div>
+        <HeaderProfileMenu />
       </div>
 
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
       {/* Scrollable Form */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 py-6 pb-24">
@@ -162,7 +166,7 @@ const EditCategory = () => {
               value={classDesc}
               onChange={(e) => setClassDesc(e.target.value)}
               maxLength={22}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full bg-white px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                 errors.classDesc ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Bear Can"
@@ -191,12 +195,13 @@ const EditCategory = () => {
             type="submit"
             onClick={handleSubmit}
             disabled={loading}
-            className="flex-1 px-4 py-3 bg-scout-blue text-white rounded-lg hover:bg-scout-blue/90 min-h-[44px] disabled:opacity-50"
+            className="btn-primary-pill flex-1"
           >
             {loading ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
+      </AnimateMain>
     </div>
   );
 };

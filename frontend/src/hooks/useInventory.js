@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getApiBaseUrl } from '../config/apiBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = getApiBaseUrl();
 
 // Request cache to prevent duplicate API calls
 const requestCache = new Map();
@@ -79,16 +80,71 @@ export const useInventory = () => {
         body: JSON.stringify(data),
       });
 
+      const result = await response.json().catch(() => ({}));
+
       if (response.status === 401) {
         requestCache.clear();
         _onUnauthorized?.();
         throw new Error('Unauthorized');
       }
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(result.error || `HTTP error! status: ${response.status}`);
       }
       
-      const result = await response.json();
+      return result;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const patchData = useCallback(async (endpoint, data) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        requestCache.clear();
+        _onUnauthorized?.();
+        throw new Error('Unauthorized');
+      }
+      if (!response.ok) {
+        throw new Error(result.error || `HTTP error! status: ${response.status}`);
+      }
+      return result;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const deleteData = useCallback(async (endpoint) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        requestCache.clear();
+        _onUnauthorized?.();
+        throw new Error('Unauthorized');
+      }
+      if (!response.ok) {
+        throw new Error(result.error || `HTTP error! status: ${response.status}`);
+      }
       return result;
     } catch (err) {
       setError(err.message);
@@ -126,6 +182,8 @@ export const useInventory = () => {
     error,
     getData: fetchData,
     postData,
+    patchData,
+    deleteData,
     checkHealth,
     clearCache,
   };

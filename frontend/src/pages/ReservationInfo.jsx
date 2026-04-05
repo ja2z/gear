@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useReservations } from '../hooks/useInventory';
+import { AnimateMain } from '../components/AnimateMain';
+import HeaderProfileMenu from '../components/HeaderProfileMenu';
 
 const ReservationInfo = () => {
   const navigate = useNavigate();
@@ -60,7 +62,7 @@ const ReservationInfo = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">No items in cart</h2>
           <Link
             to="/categories?mode=reserve"
-            className="inline-block bg-scout-orange text-white px-6 py-3 rounded-lg touch-target no-underline"
+            className="inline-block bg-scout-orange/12 border border-scout-orange/20 text-scout-orange px-6 py-3 rounded-lg touch-target no-underline"
           >
             Browse Categories
           </Link>
@@ -77,9 +79,10 @@ const ReservationInfo = () => {
       <div className="header header-reserve">
         <Link to="/cart?mode=reserve" className="back-button no-underline">←</Link>
         <h1 className="text-center text-truncate">Reservation Information</h1>
-        <div className="w-10 h-10" />
+        <HeaderProfileMenu />
       </div>
 
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 py-6 pb-24">
           {/* Item count summary */}
@@ -161,11 +164,12 @@ const ReservationInfo = () => {
           type="submit"
           form="reservation-form"
           disabled={!formReady || loading}
-          className="w-full h-12 text-base font-medium rounded-md bg-scout-orange text-white disabled:opacity-50"
+          className="w-full h-12 text-base font-medium rounded-md bg-scout-orange/12 border border-scout-orange/20 text-scout-orange disabled:opacity-50"
         >
           {loading ? 'Processing...' : isEditing ? 'Update Reservation' : 'Complete Reservation'}
         </button>
       </div>
+      </AnimateMain>
     </div>
   );
 };

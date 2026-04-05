@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
 import ConnectionError from '../components/ConnectionError';
-import SegmentedControl from '../components/SegmentedControl';
+import SearchableSegmentedToolbar from '../components/SearchableSegmentedToolbar';
+import { AnimateMain, SegmentSwitchAnimate } from '../components/AnimateMain';
+import HeaderProfileMenu from '../components/HeaderProfileMenu';
 
 const Checkin = () => {
   const { getData, loading, clearCache } = useInventory();
@@ -175,60 +177,23 @@ const Checkin = () => {
       <div className="header">
         <Link to="/gear" className="back-button no-underline">←</Link>
         <h1>Check In Gear</h1>
-        <div className="w-10 h-10"></div>
+        <HeaderProfileMenu />
       </div>
 
-      {/* Toggle row OR Search bar */}
-      {searchOpen ? (
-        <div className="bg-white px-4 py-2 border-b border-gray-200 flex items-center gap-2">
-          <div className="relative flex-1">
-            <input
-              autoFocus
-              type="text"
-              placeholder={searchPlaceholder}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input w-full pr-8"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 touch-target flex items-center justify-center"
-                aria-label="Clear search"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            )}
-          </div>
-          <button
-            onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
-            className="text-gray-600 font-medium text-sm whitespace-nowrap touch-target px-1"
-          >
-            Cancel
-          </button>
-        </div>
-      ) : (
-        <div className="bg-white px-5 py-2 border-b border-gray-200 flex items-center gap-2">
-          <SegmentedControl
-            tabs={tabs}
-            value={viewMode}
-            onChange={(key) => { setViewMode(key); setSearchQuery(''); }}
-          />
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="text-gray-500 touch-target flex items-center justify-center"
-            aria-label="Search"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </button>
-        </div>
-      )}
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
+      <SearchableSegmentedToolbar
+        tabs={tabs}
+        segmentValue={viewMode}
+        onSegmentChange={(key) => {
+          setViewMode(key);
+          setSearchQuery('');
+        }}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        searchOpen={searchOpen}
+        onSearchOpenChange={setSearchOpen}
+        searchPlaceholder={searchPlaceholder}
+      />
 
       {/* Active filter banners */}
       {filteredOuting && (
@@ -269,6 +234,7 @@ const Checkin = () => {
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-scout-blue"></div>
           </div>
         ) : (
+          <SegmentSwitchAnimate key={viewMode} className="min-h-0">
           <div className="px-5 py-5 pb-20">
 
             {/* Outings View */}
@@ -340,11 +306,6 @@ const Checkin = () => {
             {/* Items View */}
             {viewMode === 'items' && (
               <>
-                <div className="bg-blue-50 border border-blue-100 px-5 py-3 mb-4 rounded-lg">
-                  <p className="text-scout-blue text-sm text-center">
-                    Tap items or click condition to select
-                  </p>
-                </div>
                 <div className="space-y-3 mb-6">
                   {filteredItems.map((item) => {
                     const isSelected = selectedItems.find(i => i.itemId === item.itemId);
@@ -408,6 +369,7 @@ const Checkin = () => {
             )}
 
           </div>
+          </SegmentSwitchAnimate>
         )}
       </div>
 
@@ -416,23 +378,11 @@ const Checkin = () => {
         <button
           onClick={handleSubmit}
           disabled={loading || selectedItems.length === 0}
-          style={{
-            width: '100%',
-            height: '3rem',
-            backgroundColor: selectedItems.length > 0 ? '#1E398A' : '#9ca3af',
-            color: 'white',
-            border: 'none',
-            borderRadius: '0.75rem',
-            fontSize: '1rem',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: (loading || selectedItems.length === 0) ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.5 : 1,
-            transition: 'all 0.2s',
-            boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
-          }}
+          className={`w-full h-12 text-base font-medium rounded-xl flex items-center justify-center transition-all shadow-xs disabled:opacity-50 ${
+            selectedItems.length > 0
+              ? 'bg-scout-blue/12 border border-scout-blue/20 text-scout-blue'
+              : 'bg-gray-200 text-gray-400 border border-gray-200'
+          }`}
         >
           {loading
             ? 'Processing...'
@@ -442,6 +392,7 @@ const Checkin = () => {
           }
         </button>
       </div>
+      </AnimateMain>
     </div>
   );
 };

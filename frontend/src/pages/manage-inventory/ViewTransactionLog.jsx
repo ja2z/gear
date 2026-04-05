@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Toast from '../../components/Toast';
+import HeaderProfileMenu from '../../components/HeaderProfileMenu';
 import TransactionCard from '../../components/TransactionCard';
 import { useToast } from '../../hooks/useToast';
 import { useInventory } from '../../hooks/useInventory';
+import { AnimateMain } from '../../components/AnimateMain';
 
 const ViewTransactionLog = () => {
   const { toast, showToast, hideToast } = useToast();
@@ -178,9 +180,10 @@ const ViewTransactionLog = () => {
           ←
         </Link>
         <h1>Transaction Log</h1>
-        <div className="w-10 h-10"></div>
+        <HeaderProfileMenu />
       </div>
 
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
       {/* Date chips + filter toggle — always visible */}
       <div className="bg-white px-5 py-2 border-b border-gray-200 flex items-center justify-between">
         <div className="flex gap-2">
@@ -189,7 +192,7 @@ const ViewTransactionLog = () => {
               key={value}
               onClick={() => { setDateRange(value); setCurrentPage(1); }}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                dateRange === value ? 'bg-scout-blue text-white' : 'bg-gray-100 text-gray-600'
+                dateRange === value ? 'bg-scout-blue/12 text-scout-blue' : 'bg-gray-100 text-gray-600'
               }`}
             >
               {label}
@@ -216,7 +219,7 @@ const ViewTransactionLog = () => {
             <select
               value={selectedOuting}
               onChange={(e) => { setSelectedOuting(e.target.value); setCurrentPage(1); }}
-              className="w-full px-4 py-4 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[56px]"
+              className="w-full bg-white px-4 py-4 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[56px]"
             >
               <option value="">All outings</option>
               {outings.map((outing) => (
@@ -334,7 +337,7 @@ const ViewTransactionLog = () => {
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="px-4 py-2 bg-scout-blue text-white rounded-lg hover:bg-scout-blue/90 disabled:opacity-50 disabled:cursor-not-allowed min-h-[28px] flex-1 font-medium text-base"
+              className="px-4 py-2 bg-scout-blue/12 border border-scout-blue/20 text-scout-blue rounded-lg hover:bg-scout-blue/18 disabled:opacity-50 disabled:cursor-not-allowed min-h-[28px] flex-1 font-medium text-base"
             >
               Previous
             </button>
@@ -348,13 +351,14 @@ const ViewTransactionLog = () => {
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 bg-scout-blue text-white rounded-lg hover:bg-scout-blue/90 disabled:opacity-50 disabled:cursor-not-allowed min-h-[28px] flex-1 font-medium text-base"
+              className="px-4 py-2 bg-scout-blue/12 border border-scout-blue/20 text-scout-blue rounded-lg hover:bg-scout-blue/18 disabled:opacity-50 disabled:cursor-not-allowed min-h-[28px] flex-1 font-medium text-base"
             >
               Next
             </button>
           </div>
         </div>
       )}
+      </AnimateMain>
     </div>
   );
 };

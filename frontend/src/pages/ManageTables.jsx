@@ -1,0 +1,124 @@
+import { Link } from 'react-router-dom';
+import { AnimateMain } from '../components/AnimateMain';
+import HeaderProfileMenu from '../components/HeaderProfileMenu';
+import {
+  Backpack,
+  Users,
+  Calendar,
+  Banknote,
+  ClipboardList,
+  ChevronRight,
+} from 'lucide-react';
+
+const TABLE_OPTIONS = [
+  {
+    id: 'gear',
+    title: 'Gear inventory',
+    description: 'Items, categories, and transaction logs',
+    to: '/manage-inventory',
+    icon: Backpack,
+    comingSoon: false,
+    iconClass: 'bg-scout-blue/10 text-scout-blue/70',
+  },
+  {
+    id: 'members',
+    title: 'Members',
+    description: 'Roster, households, and roles',
+    to: '/manage/members',
+    icon: Users,
+    comingSoon: false,
+    iconClass: 'bg-scout-green/10 text-scout-green/70',
+  },
+  {
+    id: 'events',
+    title: 'Calendar & events',
+    description: 'Meetings, outings, and RSVPs',
+    icon: Calendar,
+    comingSoon: true,
+    iconClass: 'bg-gray-100 text-gray-400',
+  },
+  {
+    id: 'finances',
+    title: 'Finances',
+    description: 'Accounts, dues, and receipts',
+    icon: Banknote,
+    comingSoon: true,
+    iconClass: 'bg-gray-100 text-gray-400',
+  },
+  {
+    id: 'other',
+    title: 'Other data',
+    description: 'Additional tables you can wire up later',
+    icon: ClipboardList,
+    comingSoon: true,
+    iconClass: 'bg-gray-100 text-gray-400',
+  },
+];
+
+const ManageTables = () => {
+  return (
+    <div className="h-screen-small flex flex-col bg-gray-100">
+      <div className="header">
+        <Link to="/home" className="back-button no-underline" aria-label="Back to troop hub">
+          ←
+        </Link>
+        <h1>Manage data</h1>
+        <HeaderProfileMenu />
+      </div>
+
+      <AnimateMain className="flex-1 overflow-y-auto px-4 py-6 pb-10">
+        <p className="mb-4 text-center text-sm text-gray-600">
+          Pick a table to work on. This is separate from the gear checkout flow on the troop hub.
+        </p>
+
+        <ul className="mx-auto max-w-xl space-y-3">
+          {TABLE_OPTIONS.map((row) => {
+            const Icon = row.icon;
+            const inner = (
+              <>
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${row.iconClass}`}>
+                  <Icon className="h-6 w-6" strokeWidth={1.75} />
+                </div>
+                <div className="min-w-0 flex-1 text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-900">{row.title}</span>
+                    {row.comingSoon && (
+                      <span className="rounded bg-gray-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+                        Soon
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-sm text-gray-600">{row.description}</p>
+                </div>
+                {!row.comingSoon && (
+                  <ChevronRight className="h-5 w-5 shrink-0 text-gray-400" aria-hidden />
+                )}
+              </>
+            );
+
+            if (row.to && !row.comingSoon) {
+              return (
+                <li key={row.id}>
+                  <Link
+                    to={row.to}
+                    className="card flex items-center gap-4 no-underline transition-shadow hover:shadow-md"
+                  >
+                    {inner}
+                  </Link>
+                </li>
+              );
+            }
+
+            return (
+              <li key={row.id}>
+                <div className="card flex items-center gap-4 opacity-75">{inner}</div>
+              </li>
+            );
+          })}
+        </ul>
+      </AnimateMain>
+    </div>
+  );
+};
+
+export default ManageTables;

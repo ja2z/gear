@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LogOut, LogIn, BookMarked, ClipboardList, Loader2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { LogOut, LogIn, BookMarked, Loader2 } from 'lucide-react';
 import { useInventory } from '../hooks/useInventory';
 import { useCart } from '../context/CartContext';
 import ConnectionError from '../components/ConnectionError';
 import SlowLoadHint from '../components/SlowLoadHint';
 import { useSlowLoad } from '../hooks/useSlowLoad';
-import ImagePreloader from '../components/ImagePreloader';
-import { getRandomHomeImage } from '../utils/imageRotation';
-import { useOptimizedImage } from '../hooks/useOptimizedImage';
+import { AnimateMain } from '../components/AnimateMain';
+import HeaderProfileMenu from '../components/HeaderProfileMenu';
+
+const tileBase =
+  'flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-3xl px-3 py-3 text-gray-900 shadow-sm touch-target transition-colors disabled:opacity-50';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -18,10 +20,6 @@ const Landing = () => {
 
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkinLoading, setCheckinLoading] = useState(false);
-
-  // Get the random background image once and keep it stable
-  const [selectedImagePath] = useState(() => getRandomHomeImage());
-  const { currentImage, imageData } = useOptimizedImage(selectedImagePath);
 
   const withHealthCheck = (setLoading, onSuccess) => async (e) => {
     e.preventDefault();
@@ -58,92 +56,75 @@ const Landing = () => {
   const slowHint = useSlowLoad(anyLoading);
 
   return (
-    <>
-      {/* Preload only the selected hero image's LQIP for instant feedback */}
-      {imageData && <ImagePreloader images={[imageData]} />}
-
-      <div className="h-screen-small flex flex-col bg-gray-100">
-      {/* Header */}
-      <div className="relative z-10 bg-scout-blue text-white py-5 px-4 shrink-0">
-        <div className="flex items-center justify-center">
-          <img
-            src="/BSA_Logo.webp"
-            alt="BSA Logo"
-            className="h-10 w-auto mr-4"
-          />
-          <h1 className="text-xl font-semibold text-center">Troop 222 Gear Tracker</h1>
-          <img
-            src="/BSA_Logo.webp"
-            alt="BSA Logo"
-            className="h-10 w-auto ml-4"
-          />
+    <div className="h-screen-small flex flex-col bg-gray-100">
+      <div className="header relative z-10 shrink-0">
+        <Link to="/home" className="back-button no-underline" aria-label="Back to troop hub">
+          ←
+        </Link>
+        <div className="min-w-0 text-center">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Gear</p>
+          <h1 className="text-truncate text-base font-semibold">Checkout and inventory</h1>
         </div>
+        <HeaderProfileMenu />
       </div>
 
-      {/* Hero image — fills remaining space above bottom bar */}
-      <div
-        className="relative flex-1 overflow-hidden"
-        style={{
-          backgroundImage: currentImage
-            ? `url(${currentImage})`
-            : 'linear-gradient(to bottom, #1E398A, #0f1f5c)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          backgroundColor: '#1E398A'
-        }}
-      >
-        {/* Gradient bleed — hero fades into the button panel below */}
-        <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-b from-transparent to-white"></div>
-      </div>
+      <AnimateMain className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-4 pb-8">
+        <p className="shrink-0 text-center text-sm text-gray-600">
+          What do you want to do?
+        </p>
 
-      {/* Bottom action bar — 2×2 grid */}
-      <div className="shrink-0 bg-white px-5 pt-2 pb-7 space-y-3">
-        {/* Row 1: Check Out + Check In */}
-        <div className="flex gap-3">
+        <div className="grid shrink-0 grid-cols-2 gap-3">
           <button
+            type="button"
             onClick={handleCheckoutClick}
             disabled={anyLoading}
-            className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-blue text-white transition-all disabled:opacity-50 shadow-sm"
+            className={`${tileBase} border border-scout-blue/15 bg-scout-blue/8 hover:bg-scout-blue/12 active:bg-scout-blue/15`}
           >
-            {checkoutLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <LogOut className="h-6 w-6" />}
+            {checkoutLoading ? (
+              <Loader2 className="h-6 w-6 shrink-0 animate-spin text-scout-blue/70" />
+            ) : (
+              <LogOut className="h-6 w-6 shrink-0 text-scout-blue/70" />
+            )}
             <span className="text-base font-bold">Check Out</span>
+            <span className="text-center text-[11px] font-normal leading-snug text-gray-500">
+              Take gear for an outing or trip
+            </span>
           </button>
 
           <button
+            type="button"
             onClick={handleCheckinClick}
             disabled={anyLoading}
-            className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-green text-white transition-all disabled:opacity-50 shadow-sm"
+            className={`${tileBase} border border-scout-green/15 bg-scout-green/8 hover:bg-scout-green/12 active:bg-scout-green/15`}
           >
-            {checkinLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <LogIn className="h-6 w-6" />}
+            {checkinLoading ? (
+              <Loader2 className="h-6 w-6 shrink-0 animate-spin text-scout-green/70" />
+            ) : (
+              <LogIn className="h-6 w-6 shrink-0 text-scout-green/70" />
+            )}
             <span className="text-base font-bold">Check In</span>
+            <span className="text-center text-[11px] font-normal leading-snug text-gray-500">
+              Return gear to the shed
+            </span>
           </button>
-        </div>
 
-        {/* Row 2: Reservations + Manage Inventory */}
-        <div className="flex gap-3">
           <button
+            type="button"
             onClick={() => navigate('/reservations')}
             disabled={anyLoading}
-            className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-orange text-white transition-all disabled:opacity-50 shadow-sm"
+            className={`${tileBase} col-span-2 border border-scout-orange/15 bg-scout-orange/8 hover:bg-scout-orange/12 active:bg-scout-orange/15`}
           >
-            <BookMarked className="h-6 w-6" />
+            <BookMarked className="h-6 w-6 shrink-0 text-scout-orange/70" />
             <span className="text-base font-bold">Reservations</span>
-          </button>
-
-          <button
-            onClick={() => navigate('/manage-inventory')}
-            disabled={anyLoading}
-            className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target border-2 border-scout-red text-scout-red bg-transparent transition-all disabled:opacity-50"
-          >
-            <ClipboardList className="h-6 w-6" />
-            <span className="text-base font-bold">Manage</span>
+            <span className="text-center text-[11px] font-normal leading-snug text-gray-500">
+              Hold gear for a future outing
+            </span>
           </button>
         </div>
+
         <SlowLoadHint hint={slowHint} />
-      </div>
-      </div>
-    </>
+      </AnimateMain>
+    </div>
   );
 };
 

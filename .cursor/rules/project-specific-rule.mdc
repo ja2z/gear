@@ -1,9 +1,14 @@
 ---
-description: 
-globs: 
+description: Scouts BSA troop gear inventory — Vite/React, Express, Supabase; mobile-first checkout and QM tools
+globs:
 alwaysApply: true
 ---
 # Scout Troop Gear Management System - Project Context
+
+## Maintainer constraints (persistent)
+
+- **Frontend-only by default:** The primary maintainer for this project works in **`frontend/`** only (Vite + React). **Do not edit** `backend/**`, Supabase DDL/migrations, or server/hosting config **unless** they explicitly request that change. **Do not include backend diffs** in commits or pushes that are meant to be frontend-only. If something truly requires a backend or database change, explain what is needed and let the backend owner implement it.
+- **Rationale:** Keeps shared API and deployment ownership clear and avoids accidental backend changes on push.
 
 ## Background
 I am an assistant scout master (ASM) for a Scouts BSA troop. One of my roles is quartermaster mentor which means I am in charge of the troop gear. I have just started this position and want to implement changes. Top of mind, I want to implement a digital online tracking system for troop gear. The current system is using a paper process.
@@ -24,6 +29,22 @@ After much research and consideration of budget constraints, I have decided to b
 **Data Storage:** Supabase (PostgreSQL) — single source of truth for all reads and writes
 **Hosting:** Render (Node.js hosting)
 **Mobile Experience:** Progressive web app capabilities, touch-optimized UI
+
+## Codebase map (for agents)
+
+- **`frontend/`** — Vite + React + Tailwind. Entry: `src/main.jsx` → `src/App.jsx`. Routing uses **`HashRouter`** (URLs look like `/#/cart`, `/#/manage-inventory`).
+- **`frontend/src/pages/`** — User flows: `Landing`, `Categories`, `Items`, `Cart`, `Checkout`, `Success`; `Checkin` / `CheckinForm`; `CheckoutOptions`, `Reservations`, `ReservationInfo`, `ReservationSuccess`; `ManageTables` + `manage-members/*` (troop hub); quartermaster UI under `manage-inventory/*`.
+- **`frontend/src/context/CartContext.jsx`** — Cart state + `localStorage` (`scout_gear_cart`, 72h expiry). **`frontend/src/hooks/useInventory.js`** — `fetch`/`post` to `/api` (dev: Vite proxy to backend; prod: `VITE_API_URL`).
+- **`backend/server.js`** — Express: CORS, JSON, static `frontend/dist`, API under `/api`, SPA fallback for non-API routes. Dev-only `middleware/dev-security.js`.
+- **`backend/services/supabase-api.js`** — **Single** Supabase client; all inventory, checkout/checkin, transactions, metadata/categories, manage-inventory, and reservations logic.
+- **`backend/routes/`** — `inventory.js`, `checkout.js`, `checkin.js`, `metadata.js`, `manage-inventory.js`, `reservations.js`. Bulk test helpers on checkout/checkin `POST .../test-bulk`.
+- **`backend/services/email-service.js`** — Reservation confirmation (non-blocking).
+- **`frontend/scripts/pregenImages.js`** — Generates **`src/utils/optimizedImageList.js`** (gitignored; run via `npm run pregen` or `postinstall` in `frontend/`).
+- **Note:** `OutingSelection.jsx` exists but is **not** registered in `App.jsx` routes (legacy/unused unless wired back).
+
+## Terminology (Scouts BSA)
+
+- The app serves a **Scouts BSA** troop (youth and adults). Prefer **Scouts BSA** / **scouting** in UI and docs over legacy “Boy Scouts” branding unless quoting historical text.
 
 **Why this stack:**
 - Fast development with Vite's hot reload
@@ -51,6 +72,44 @@ The system follows an e-commerce shopping cart pattern familiar to users:
 - Clear navigation breadcrumbs and back buttons
 - Real-time availability checking
 - Responsive design that works on all mobile screen sizes
+
+## Gear UI design (mirror for new screens)
+
+Use the same visual language as the **gear flow** (`Landing.jsx` → `Categories`, `Items`, `Cart`, `Checkout`, `Checkin`, `Reservations.jsx`) and **manage inventory** so troop-hub and QM tools feel like one app.
+
+### Layout shell
+- **Page:** `h-screen-small flex flex-col bg-gray-100` (full-height column; `h-screen-small` = `100svh` in `index.css`).
+- **Header:** use the `.header` class (scout blue `#1E398A`, sticky, flex row). Center title: `<h1>` with flex spacer: back control + `h1` + `w-10 h-10` (or `h-10 w-10`) placeholder for balance.
+- **Back:** `.back-button` inside `.header` (circular light overlay on blue).
+- **Reserve mode accent:** optional `.header-reserve` (orange) when the flow is reservation-specific (see `Categories`).
+
+### Brand colors (Tailwind)
+Defined in `frontend/src/index.css` (`@theme`): **`scout-blue`** primary actions and header; **`scout-green`** check-in; **`scout-red`** destructive; **`scout-orange`** reservations / secondary CTAs. Prefer these over ad-hoc hex values.
+
+### Cards and lists
+- **List rows / panels:** `.card` — white background, `border` gray, `rounded-xl`, light shadow; hover tightens border toward scout blue (see `index.css`).
+- **Titles on cards:** `font-semibold text-gray-900`; secondary lines: `text-sm text-gray-500` or `text-gray-600` with `mt-0.5`.
+- **Empty states:** `text-center text-sm text-gray-500` with vertical padding (e.g. `py-10`).
+
+### Forms
+- **Text / search:** `.search-input` — pill shape, gray border, scout-blue focus ring (16px+ font to avoid iOS zoom).
+- **Primary full-width actions:** `w-full h-12 rounded-md bg-scout-blue text-white text-base font-medium` + `disabled:opacity-50` + `touch-target` where appropriate (matches e.g. Reservations “Create Reservation”, form saves).
+- **Segmented / tab controls:** `SegmentedControl` — active tab `bg-scout-blue text-white`; use `type="button"` on inner buttons when inside a `<form>`.
+
+### Confirmations (destructive)
+- **Do not use** `window.confirm` for flows that should match the app. Use the **bottom sheet** pattern from `Reservations.jsx` (delete reservation):
+  - Overlay: `fixed inset-0 z-50 flex items-end justify-center bg-black/40`
+  - Sheet: `w-full max-w-md bg-white rounded-t-2xl px-5 pt-5 pb-8`
+  - Title: `text-lg font-bold text-gray-900`; body: `text-sm text-gray-600` / `text-gray-500`
+  - Actions row: `flex gap-3`; **Cancel** — `flex-1 h-12 rounded-md border border-gray-300 text-sm font-medium text-gray-700`; **Confirm delete** — `flex-1 h-12 rounded-md bg-scout-red text-white text-sm font-medium`
+
+### Touch and density
+- Prefer **44px minimum** touch targets (`.touch-target` in `index.css`); large tap areas on phones first.
+
+### Reference files
+- **Hero / hub:** `frontend/src/pages/Landing.jsx`
+- **List + search + cards:** `frontend/src/pages/Categories.jsx`, `frontend/src/pages/Reservations.jsx`
+- **Destructive confirm sheet:** `frontend/src/pages/Reservations.jsx` (delete block at bottom of file)
 
 ## Data Model
 
@@ -90,53 +149,23 @@ Append-only audit trail of all checkout/checkin activities.
 
 ## Technical Implementation Plan
 
-### Frontend Structure (Vite + React):
-```
-src/
-├── components/
-│   ├── CategoryList.jsx
-│   ├── ItemCard.jsx
-│   ├── ShoppingCart.jsx
-│   ├── CheckoutForm.jsx
-│   └── Navigation.jsx
-├── pages/
-│   ├── Landing.jsx
-│   ├── Categories.jsx
-│   ├── Items.jsx
-│   ├── Cart.jsx
-│   ├── Checkout.jsx
-│   └── Success.jsx
-├── hooks/
-│   ├── useInventory.js
-│   └── useCart.js
-└── App.jsx
-```
+### Repository layout (actual)
 
-### Backend Structure (Express.js):
-```
-server/
-├── routes/
-│   ├── inventory.js
-│   ├── checkout.js
-│   ├── checkin.js
-│   ├── metadata.js
-│   └── manage-inventory.js
-├── services/
-│   └── supabase-api.js
-├── middleware/
-└── server.js
-```
+- **`frontend/src/`** — `components/` (e.g. `Toast`, `ConnectionError`), `pages/`, `hooks/`, `context/`, `utils/`, `App.jsx`.
+- **`backend/`** — `routes/`, `services/supabase-api.js`, `middleware/`, `server.js`, `utils/`.
 
-### Core API Endpoints:
-- `GET /api/categories` - Fetch available categories with item counts
-- `GET /api/items/:category` - Get items for specific category
-- `POST /api/checkout` - Process checkout transaction
-- `POST /api/checkin` - Process checkin transaction
-- `GET /api/inventory` - Get current inventory status
+### Core API surface (prefix `/api`)
+
+- **Inventory** — `GET /inventory`, `/inventory/categories`, `/inventory/items/:category`, `/inventory/outings`, `/inventory/checked-out/:outing`, `/inventory/outing-details/:outing`.
+- **Checkout / check-in** — `POST /checkout`, `POST /checkin` (body: item IDs, names, outing, etc.).
+- **Metadata** — categories CRUD for `metadata` table (used by manage UI).
+- **Manage inventory** — items and category stats under `/manage-inventory/*`.
+- **Reservations** — `GET/POST/DELETE /reservations`, `GET /reservations/:outingName`.
+- **Ops** — `GET /health`, `GET /ping`.
 
 ### Supabase Integration:
 - Use `@supabase/supabase-js` npm package for all database access
-- **Single service file** `supabase-api.js` replaces both the old `sheets-api.js` and `sqlite-api.js`
+- **Single service file** `backend/services/supabase-api.js` — no legacy sync layer
 - **No sync layer** — all reads and writes go directly to Supabase; no wipe-and-repopulate pattern
 - **Service key authentication** via `SUPABASE_URL` and `SUPABASE_SECRET_KEY` environment variables
 - **Error handling** with try/catch on all async operations
@@ -148,10 +177,11 @@ const { createClient } = require('@supabase/supabase-js');
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
 ```
 
-### Supabase Schema (three tables):
-- `items` — master inventory (one row per item)
+### Supabase schema (core tables):
+- `items` — master inventory (one row per item); `in_app` gates visibility in public checkout; soft delete via `status = 'Removed from inventory'`.
 - `transactions` — append-only audit trail
-- `metadata` — gear categories (class code + description)
+- `metadata` — gear categories (`class` + `class_desc`; class code immutable)
+- `reservations` — active reservation rows; reserved items use `items.status = 'Reserved'` and `outing_name`
 
 ## Development Approach
 - Start with basic checkout flow: Categories → Items → Cart → Checkout
@@ -180,4 +210,4 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SEC
 - App is deployed on Render (nodejs hosting site)
 
 ## Testing
-- When testing locally (such as using Cursor AI IDE), if a backend change is made, restart the servers by using utils/restart-servers.sh
+- When testing locally, after **backend** changes restart both servers: `scripts/restart-servers.sh` from the repo root (or restart `node server.js` in `backend/` and `npm run dev` in `frontend/`).

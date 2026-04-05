@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
 import ConnectionError from '../components/ConnectionError';
+import { AnimateMain } from '../components/AnimateMain';
+import HeaderProfileMenu from '../components/HeaderProfileMenu';
 
 const OutingSelection = () => {
   const { getData } = useInventory();
@@ -64,9 +66,10 @@ const OutingSelection = () => {
           ←
         </Link>
         <h1>Select Outing</h1>
-        <div className="w-10 h-10"></div>
+        <HeaderProfileMenu />
       </div>
 
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
       {/* Search */}
       <div className="bg-white px-5 py-4 border-b border-gray-200">
         <input
@@ -144,7 +147,7 @@ const OutingSelection = () => {
               <p className="text-gray-500">No items are currently checked out</p>
               <Link
                 to="/gear"
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive mt-4 px-6 py-3 bg-scout-blue text-white shadow-xs hover:bg-scout-blue rounded-lg no-underline"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive mt-4 px-6 py-3 bg-scout-blue/12 border border-scout-blue/20 text-scout-blue shadow-xs hover:bg-scout-blue/18 rounded-lg no-underline"
               >
                 Back to Home
               </Link>
@@ -154,6 +157,7 @@ const OutingSelection = () => {
       )}
 
       </div>{/* end scrollable content */}
+      </AnimateMain>
     </div>
   );
 };

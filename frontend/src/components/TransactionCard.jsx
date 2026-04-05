@@ -12,10 +12,10 @@ const TransactionCard = ({ transaction, showItemId = false }) => {
       {/* Action Badge and Timestamp */}
       <div className="flex items-center justify-between mb-3">
         <span 
-          className={`inline-block px-3 py-1 rounded-lg text-sm font-semibold text-white ${
+          className={`inline-block px-3 py-1 rounded-lg text-sm font-semibold ${
             transaction.action === 'Check out'
-              ? 'bg-scout-blue'
-              : 'bg-scout-green'
+              ? 'bg-scout-blue/10 text-scout-blue/70'
+              : 'bg-scout-green/10 text-scout-green/70'
           }`}
         >
           {transaction.action}

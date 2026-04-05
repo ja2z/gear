@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, BookMarked, Loader2, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useReservations } from '../hooks/useInventory';
+import { AnimateMain } from '../components/AnimateMain';
+import HeaderProfileMenu from '../components/HeaderProfileMenu';
 
 const CheckoutOptions = () => {
   const navigate = useNavigate();
@@ -58,9 +60,10 @@ const CheckoutOptions = () => {
       <div className="header">
         <Link to="/gear" className="back-button no-underline">←</Link>
         <h1>Check Out</h1>
-        <div className="w-10 h-10" />
+        <HeaderProfileMenu />
       </div>
 
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
       {/* Content */}
       <div className="flex-1 flex flex-col justify-end">
         <div className="shrink-0 bg-white px-5 pt-2 pb-7 space-y-3">
@@ -68,20 +71,20 @@ const CheckoutOptions = () => {
           <div className="flex gap-3">
             <button
               onClick={() => { clearCart(); navigate('/categories'); }}
-              className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-blue text-white shadow-sm"
+              className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target border border-scout-blue/15 bg-scout-blue/8 text-gray-900 shadow-sm transition-colors hover:bg-scout-blue/12"
             >
-              <LogOut className="h-6 w-6" />
+              <LogOut className="h-6 w-6 text-scout-blue/70" />
               <span className="text-base font-bold">Check Out</span>
             </button>
 
             <button
               onClick={handleReservationsClick}
               disabled={reservationsLoading}
-              className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-orange text-white shadow-sm disabled:opacity-50"
+              className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target border border-scout-orange/15 bg-scout-orange/8 text-gray-900 shadow-sm disabled:opacity-50 transition-colors hover:bg-scout-orange/12"
             >
               {reservationsLoading
-                ? <Loader2 className="h-6 w-6 animate-spin" />
-                : <BookMarked className="h-6 w-6" />}
+                ? <Loader2 className="h-6 w-6 animate-spin text-scout-orange/70" />
+                : <BookMarked className="h-6 w-6 text-scout-orange/70" />}
               <span className="text-base font-bold">Reservations</span>
             </button>
           </div>
@@ -96,6 +99,7 @@ const CheckoutOptions = () => {
           )}
         </div>
       </div>
+      </AnimateMain>
 
       {/* Reservation selection modal */}
       {showModal && (
@@ -136,7 +140,7 @@ const CheckoutOptions = () => {
             <button
               onClick={handleConfirm}
               disabled={!selectedOuting || confirmLoading}
-              className="w-full h-12 text-base font-medium rounded-md bg-scout-blue text-white disabled:opacity-50"
+              className="w-full h-12 text-base font-medium rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue disabled:opacity-50"
             >
               {confirmLoading ? 'Loading...' : 'Confirm Selection'}
             </button>

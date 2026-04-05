@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useInventory } from '../../hooks/useInventory';
+import { AnimateMain } from '../../components/AnimateMain';
+import HeaderProfileMenu from '../../components/HeaderProfileMenu';
 
 const SelectCategory = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { getData } = useInventory();
   const [categories, setCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,8 +32,8 @@ const SelectCategory = () => {
   );
 
   const handleCategorySelect = (category) => {
-    navigate('/manage-inventory/add-item', { 
-      state: { selectedCategory: category } 
+    navigate('/manage-inventory/view', {
+      state: { openAddItem: true, selectedCategory: category },
     });
   };
 
@@ -41,15 +42,17 @@ const SelectCategory = () => {
       {/* Header */}
       <div className="header">
         <Link
-          to="/manage-inventory/add-item"
+          to="/manage-inventory/view"
+          state={{ openAddItem: true }}
           className="back-button no-underline"
         >
           ←
         </Link>
         <h1>Select Category</h1>
-        <div className="w-10 h-10"></div>
+        <HeaderProfileMenu />
       </div>
 
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
       {/* Search */}
       <div className="bg-white px-5 py-4 border-b border-gray-200">
         <input
@@ -86,6 +89,7 @@ const SelectCategory = () => {
         )}
         </div>
       </div>
+      </AnimateMain>
     </div>
   );
 };

@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useInventory } from '../../hooks/useInventory';
+import { AnimateMain } from '../../components/AnimateMain';
+import SearchableSegmentedToolbar from '../../components/SearchableSegmentedToolbar';
+import HeaderProfileMenu from '../../components/HeaderProfileMenu';
 
 const ManageCategories = () => {
   const navigate = useNavigate();
   const { getData } = useInventory();
   const [categories, setCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -41,28 +45,33 @@ const ManageCategories = () => {
           ←
         </Link>
         <h1>Manage Categories</h1>
-        <Link
-          to="/manage-inventory/add-category"
-          className="cart-badge no-underline"
-          aria-label="Add category"
-        >
-          <svg class="add-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            to="/manage-inventory/add-category"
+            className="cart-badge no-underline"
+            aria-label="Add category"
+          >
+            <svg className="add-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </Link>
+          <HeaderProfileMenu />
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="bg-white px-5 py-4 border-b border-gray-200">
-        <input
-          type="text"
-          placeholder="Search categories..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="search-input"
-        />
-      </div>
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
+      <SearchableSegmentedToolbar
+        hideSegments
+        searchOnlyLabel="Categories"
+        segmentValue=""
+        onSegmentChange={() => {}}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        searchOpen={searchOpen}
+        onSearchOpenChange={setSearchOpen}
+        searchPlaceholder="Search categories..."
+      />
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto">
@@ -92,6 +101,7 @@ const ManageCategories = () => {
           )}
         </div>
       </div>
+      </AnimateMain>
     </div>
   );
 };

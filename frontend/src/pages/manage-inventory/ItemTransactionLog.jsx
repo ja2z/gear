@@ -4,6 +4,8 @@ import Toast from '../../components/Toast';
 import TransactionCard from '../../components/TransactionCard';
 import { useToast } from '../../hooks/useToast';
 import { useInventory } from '../../hooks/useInventory';
+import { AnimateMain } from '../../components/AnimateMain';
+import HeaderProfileMenu from '../../components/HeaderProfileMenu';
 
 const ItemTransactionLog = () => {
   const navigate = useNavigate();
@@ -38,15 +40,18 @@ const ItemTransactionLog = () => {
       {/* Header */}
       <div className="header">
         <Link
-          to={`/manage-inventory/edit-item/${itemId}`}
+          to="/manage-inventory/view"
+          state={{ editItemId: itemId }}
           className="back-button no-underline"
+          aria-label="Back to manage items"
         >
           ←
         </Link>
         <h1>Transaction Log</h1>
-        <div className="w-10 h-10"></div>
+        <HeaderProfileMenu />
       </div>
 
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 py-6">
@@ -76,6 +81,7 @@ const ItemTransactionLog = () => {
         )}
         </div>
       </div>
+      </AnimateMain>
     </div>
   );
 };

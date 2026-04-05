@@ -2,6 +2,8 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import SegmentedControl from '../components/SegmentedControl';
 import { useEffect, useState, useRef } from 'react';
 import { useCart } from '../context/CartContext';
+import { AnimateMain, SegmentSwitchAnimate } from '../components/AnimateMain';
+import HeaderProfileMenu from '../components/HeaderProfileMenu';
 
 const Cart = () => {
   const [searchParams] = useSearchParams();
@@ -103,9 +105,10 @@ useEffect(() => {
             ←
           </Link>
           <h1>{mode === 'reserve' ? 'Reservation Cart' : 'Your Cart'} ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'items'})</h1>
-          <div className="w-10 h-10"></div>
+          <HeaderProfileMenu />
         </div>
 
+        <AnimateMain className="flex-1 flex flex-col min-h-0">
         <div className="flex-1 overflow-y-auto">
           <div className="px-5 py-12">
             <div className="text-center">
@@ -120,13 +123,14 @@ useEffect(() => {
               <p className="text-gray-600 mb-6">Add some gear to get started!</p>
               <Link
                 to={`/categories?mode=${mode}`}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive px-6 py-3 bg-scout-blue text-white shadow-xs hover:bg-scout-blue touch-target no-underline"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive px-6 py-3 bg-scout-blue/12 border border-scout-blue/20 text-scout-blue shadow-xs hover:bg-scout-blue/18 touch-target no-underline"
               >
                 Browse Categories
               </Link>
             </div>
           </div>
         </div>
+        </AnimateMain>
       </div>
     );
   }
@@ -142,9 +146,10 @@ useEffect(() => {
           ←
         </Link>
         <h1>{mode === 'reserve' ? 'Reservation Cart' : 'Your Cart'} ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'items'})</h1>
-        <div className="w-10 h-10"></div>
+        <HeaderProfileMenu />
       </div>
 
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
       {/* Toggle Control */}
       <div className="bg-white px-5 py-3 border-b border-gray-200">
         <SegmentedControl
@@ -159,6 +164,7 @@ useEffect(() => {
 
       {/* Cart Content - Scrollable */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+        <SegmentSwitchAnimate key={viewMode} className="min-h-0">
         <div className="px-5 py-5 pb-20">
           {viewMode === 'items' ? (
             // Items View
@@ -225,6 +231,7 @@ useEffect(() => {
             </div>
           )}
         </div>
+        </SegmentSwitchAnimate>
       </div>
 
       {/* Bottom Navigation */}
@@ -232,19 +239,20 @@ useEffect(() => {
         {mode === 'reserve' ? (
           <button
             onClick={() => navigate('/reservation-info')}
-            className="w-full h-12 text-base font-medium rounded-md bg-scout-orange text-white"
+            className="w-full h-12 text-base font-medium rounded-md bg-scout-orange/12 border border-scout-orange/20 text-scout-orange"
           >
             Reserve Items →
           </button>
         ) : (
           <Link
             to="/checkout"
-            className="flex items-center justify-center w-full h-12 text-base font-medium rounded-md bg-scout-blue text-white no-underline"
+            className="flex items-center justify-center w-full h-12 text-base font-medium rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue no-underline"
           >
             Go to Checkout
           </Link>
         )}
       </div>
+      </AnimateMain>
     </div>
   );
 };

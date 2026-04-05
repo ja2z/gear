@@ -1,127 +1,165 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Package, FolderOpen, ScrollText, ChevronRight } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { Package, ScrollText } from 'lucide-react';
 import { useInventory } from '../../hooks/useInventory';
+import { AnimateMain } from '../../components/AnimateMain';
+import {
+  ManageHubSummaryStrip,
+  ManageHubLinkRow,
+  ManageHubQuickFilterCard,
+} from '../../components/manage-hub';
+import HeaderProfileMenu from '../../components/HeaderProfileMenu';
 
 const ManageInventoryDashboard = () => {
-  const navigate = useNavigate();
   const { getData } = useInventory();
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
     getData('/inventory')
-      .then(items => {
-        const active = items.filter(i => i.status !== 'Removed from inventory');
-        const checkedOut = active.filter(i => i.status === 'Checked out');
-        const activeOutings = new Set(checkedOut.map(i => i.outingName).filter(Boolean)).size;
+      .then((items) => {
+        const active = items.filter((i) => i.status !== 'Removed from inventory');
+        const checkedOut = active.filter((i) => i.status === 'Checked out');
+        const activeOutings = new Set(checkedOut.map((i) => i.outingName).filter(Boolean)).size;
         setStats({
           total: active.length,
-          inShed: active.filter(i => i.status === 'In shed').length,
+          inShed: active.filter((i) => i.status === 'In shed').length,
           checkedOut: checkedOut.length,
-          reserved: active.filter(i => i.status === 'Reserved').length,
-          missing: active.filter(i => i.status === 'Missing').length,
-          outForRepair: active.filter(i => i.status === 'Out for repair').length,
+          reserved: active.filter((i) => i.status === 'Reserved').length,
+          missing: active.filter((i) => i.status === 'Missing').length,
+          outForRepair: active.filter((i) => i.status === 'Out for repair').length,
           activeOutings,
         });
       })
-      .catch(() => {/* non-blocking */});
-  }, []);
+      .catch(() => {
+        /* non-blocking */
+      });
+  }, [getData]);
 
-  const subStats = stats ? [
-    { label: 'In Shed',       value: stats.inShed,      status: 'In shed',        color: 'text-white/90' },
-    { label: 'Checked Out',   value: stats.checkedOut,  status: 'Checked out',    color: 'text-green-300' },
-    { label: 'Reserved',      value: stats.reserved,    status: 'Reserved',       color: stats.reserved > 0 ? 'text-orange-300' : 'text-white/90' },
-    { label: 'Missing',       value: stats.missing,     status: 'Missing',        color: stats.missing > 0 ? 'text-red-300' : 'text-white/90' },
-    { label: 'Out for Repair',value: stats.outForRepair,status: 'Out for repair', color: stats.outForRepair > 0 ? 'text-yellow-300' : 'text-white/90' },
-  ] : [];
+  const quickFilterRows = useMemo(() => {
+    if (!stats) return [];
+    const statusRows = [
+      {
+        key: 'in-shed',
+        label: 'In shed',
+        value: stats.inShed,
+        status: 'In shed',
+        valueClassName: 'text-scout-green',
+      },
+      {
+        key: 'checked-out',
+        label: 'Checked out',
+        value: stats.checkedOut,
+        status: 'Checked out',
+        valueClassName: 'text-scout-red',
+      },
+      {
+        key: 'reserved',
+        label: 'Reserved',
+        value: stats.reserved,
+        status: 'Reserved',
+        valueClassName: 'text-scout-orange',
+      },
+      {
+        key: 'missing',
+        label: 'Missing',
+        value: stats.missing,
+        status: 'Missing',
+        valueClassName: 'text-orange-700',
+      },
+      {
+        key: 'repair',
+        label: 'Out for repair',
+        value: stats.outForRepair,
+        status: 'Out for repair',
+        valueClassName: 'text-amber-700',
+      },
+    ];
+    return statusRows.map((r) => ({
+      key: r.key,
+      label: r.label,
+      value: r.value,
+      to: `/manage-inventory/view?status=${encodeURIComponent(r.status)}`,
+      valueClassName: r.valueClassName,
+    }));
+  }, [stats]);
 
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
-      {/* Header */}
       <div className="header">
-        <Link to="/home" className="back-button no-underline">←</Link>
+        <Link to="/manage" className="back-button no-underline" aria-label="Back to manage data">
+          ←
+        </Link>
         <h1>Manage Inventory</h1>
-        <div className="w-10 h-10"></div>
+        <HeaderProfileMenu />
       </div>
 
-      {/* Gradient space with stats */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-scout-blue to-blue-950 px-5">
-        {stats && (
-          <div className="w-full space-y-3">
-            {/* Hierarchy card */}
-            <div className="bg-white/15 rounded-2xl overflow-hidden backdrop-blur-sm">
-              {/* Total row */}
-              <div className="px-4 py-3 border-b border-white/20 flex justify-between items-center">
-                <span className="text-white font-semibold">Total Items</span>
-                <span className="text-white font-bold text-xl">{stats.total}</span>
-              </div>
-              {/* Sub-stat rows — each is a link to filtered inventory */}
-              {subStats.map((s, i) => (
-                <Link
-                  key={s.status}
-                  to={`/manage-inventory/view?status=${encodeURIComponent(s.status)}`}
-                  className={`flex justify-between items-center px-4 py-3 no-underline transition-colors active:bg-white/10 ${
-                    i < subStats.length - 1 ? 'border-b border-white/10' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-white/40 text-xs">↳</span>
-                    <span className="text-white/80 text-sm">{s.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className={`font-semibold ${s.color}`}>{s.value}</span>
-                    <ChevronRight className="h-3.5 w-3.5 text-white/30" />
-                  </div>
-                </Link>
-              ))}
+      <AnimateMain className="flex-1 overflow-y-auto px-4 py-4 pb-8">
+        <div className="mx-auto max-w-xl space-y-3">
+          <div className="flex gap-3">
+            <div className="min-w-0 flex-1">
+              <ManageHubSummaryStrip
+                to="/manage-inventory/view?view=item"
+                label="Active inventory"
+                headline={stats?.total ?? '—'}
+                loading={!stats}
+                chips={[]}
+                compact
+              />
             </div>
-
-            {/* Active outings card */}
-            <Link
-              to="/manage-inventory/view?status=Checked+out"
-              className="block bg-white/15 rounded-2xl px-4 py-3 backdrop-blur-sm no-underline transition-colors active:bg-white/25"
-            >
-              <div className="flex justify-between items-center">
-                <span className="text-white font-semibold">Active Outings</span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-white font-bold text-xl">{stats.activeOutings}</span>
-                  <ChevronRight className="h-4 w-4 text-white/30" />
+            <div className="min-w-0 flex-1">
+              {!stats ? (
+                <div className="card animate-pulse p-3">
+                  <div className="h-3 w-24 rounded bg-gray-200" />
+                  <div className="mt-2 h-8 w-12 rounded bg-gray-200" />
                 </div>
-              </div>
-              <p className="text-white/50 text-xs mt-0.5">outings with items currently checked out</p>
-            </Link>
+              ) : (
+                <Link
+                  to="/manage-inventory/view?view=outings"
+                  className="card flex h-full min-h-[4.5rem] touch-target flex-col justify-center p-3 no-underline transition-colors hover:bg-gray-50 active:bg-gray-100"
+                >
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                    Active outings
+                  </p>
+                  <p className="mt-0.5 text-2xl font-bold tabular-nums text-gray-900">
+                    {stats.activeOutings}
+                  </p>
+                </Link>
+              )}
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Bottom action bar */}
-      <div className="shrink-0 bg-white px-5 pt-2 pb-7 space-y-3">
-        <div className="flex gap-3">
-          <button
-            onClick={() => navigate('/manage-inventory/view')}
-            className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-blue text-white transition-all shadow-sm"
-          >
-            <Package className="h-6 w-6" />
-            <span className="text-base font-bold">Manage Items</span>
-          </button>
+          <ManageHubQuickFilterCard
+            title="Browse by status"
+            rows={quickFilterRows}
+            compact
+          />
 
-          <button
-            onClick={() => navigate('/manage-inventory/categories')}
-            className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-green text-white transition-all shadow-sm"
-          >
-            <FolderOpen className="h-6 w-6" />
-            <span className="text-base font-bold">Categories</span>
-          </button>
+          <ul className="space-y-3 pt-1">
+            <li>
+              <ManageHubLinkRow
+                to="/manage-inventory/view"
+                icon={Package}
+                title="Manage items"
+                description="Categories and items — switch with the bar at the top"
+              />
+            </li>
+          </ul>
+
+          <div className="border-t border-gray-200 pt-3">
+            <ul className="space-y-3">
+              <li>
+                <ManageHubLinkRow
+                  to="/manage-inventory/view-logs"
+                  icon={ScrollText}
+                  title="Transaction log"
+                  description="Check in and check out history"
+                  iconWrapperClassName="bg-scout-red/10 text-scout-red/70"
+                />
+              </li>
+            </ul>
+          </div>
         </div>
-
-        <button
-          onClick={() => navigate('/manage-inventory/view-logs')}
-          className="w-full flex items-center justify-center gap-2 rounded-full text-sm font-medium py-3 touch-target border-2 border-scout-red text-scout-red bg-transparent transition-all"
-        >
-          <ScrollText className="h-4 w-4" />
-          View Logs
-        </button>
-      </div>
+      </AnimateMain>
     </div>
   );
 };

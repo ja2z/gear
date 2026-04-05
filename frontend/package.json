@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "postinstall": "node scripts/pregenImages.js",
     "dev": "vite",
     "pregen": "node scripts/pregenImages.js",
     "build": "vite build",

@@ -5,6 +5,10 @@
   --color-scout-green: #28a745;
   --color-scout-red: #DB364C;
   --color-scout-orange: #ff6b35;
+  /* Schedules / calendar — distinct from blue & green, still troop-outdoor friendly */
+  --color-scout-teal: #0f766e;
+  /* Admin / manage — clearly distinct from orange and red */
+  --color-scout-purple: #7c3aed;
 }
 
 /* CSS Custom Properties for consistent theming */
@@ -78,6 +82,229 @@ body.input-focused {
   min-width: 44px;
 }
 
+/* Primary submit — pill (Save / Create) shared across members + manage-inventory */
+@layer utilities {
+  .btn-primary-pill {
+    @apply flex min-h-11 h-11 min-w-11 items-center justify-center rounded-full border border-scout-blue/20 bg-scout-blue/12 px-4 text-base font-medium text-scout-blue shadow-sm disabled:opacity-50 hover:bg-scout-blue/18;
+  }
+}
+
+/* Press feedback: slight shrink while pointer/touch is down */
+button:not(:disabled):not([disabled]),
+input[type="submit"]:not(:disabled),
+input[type="button"]:not(:disabled),
+input[type="reset"]:not(:disabled) {
+  transition: transform 0.1s ease-out;
+}
+button:not(:disabled):not([disabled]):active,
+input[type="submit"]:not(:disabled):active,
+input[type="button"]:not(:disabled):active,
+input[type="reset"]:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+a.back-button {
+  transition: transform 0.1s ease-out;
+}
+a.back-button:active {
+  transform: scale(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):not([disabled]),
+  input[type="submit"]:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  a.back-button {
+    transition: none;
+  }
+  button:not(:disabled):not([disabled]):active,
+  input[type="submit"]:not(:disabled):active,
+  input[type="button"]:not(:disabled):active,
+  input[type="reset"]:not(:disabled):active,
+  a.back-button:active {
+    transform: none;
+  }
+}
+
+/* Optional: add class `touch-press` to <Link> or other tappable non-button elements */
+.touch-press {
+  transition: transform 0.1s ease-out;
+}
+.touch-press:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .touch-press {
+    transition: none;
+  }
+  .touch-press:active {
+    transform: none;
+  }
+}
+
+/* Route change: main content below headers (see AnimateMain.jsx) */
+@keyframes page-main-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-main-animate {
+  animation: page-main-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.98) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-main-animate {
+    animation: none;
+  }
+}
+
+/* Centered dialog (e.g. edit member modal) — backdrop fade + panel ease in */
+@keyframes modal-dialog-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-dialog-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-dialog-backdrop-enter {
+  animation: modal-dialog-backdrop-in 0.28s ease-out both;
+}
+
+.modal-dialog-panel-enter {
+  animation: modal-dialog-panel-in 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.98) both;
+}
+
+@keyframes modal-dialog-backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-dialog-panel-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+.modal-dialog-backdrop-exit {
+  animation: modal-dialog-backdrop-out 0.22s ease-in forwards;
+}
+
+.modal-dialog-panel-exit {
+  animation: modal-dialog-panel-out 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.98) forwards;
+}
+
+/* Category modal after “Add to cart” — lift + brief green glow, then fade (distinct from plain dismiss) */
+@keyframes modal-dialog-panel-out-added {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.03);
+    box-shadow: 0 28px 56px -12px rgba(34, 197, 94, 0.45);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-22px) scale(0.92);
+    box-shadow: 0 20px 40px -16px rgba(34, 197, 94, 0.2);
+  }
+}
+
+.modal-dialog-panel-exit-added {
+  animation: modal-dialog-panel-out-added 0.42s cubic-bezier(0.32, 0.72, 0.36, 1) forwards;
+}
+
+/* Categories: cart bumps when items are added from category modal */
+@keyframes cart-badge-bump {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.2) translateY(-3px);
+  }
+  55% {
+    transform: scale(0.95) translateY(1px);
+  }
+  75% {
+    transform: scale(1.1) translateY(-2px);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.cart-badge.cart-badge-bump-animate {
+  animation: cart-badge-bump 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  z-index: 110;
+  position: relative;
+}
+
+/* Flying “+1” / “+N” toward upper-right (cart); start point is left/top of element (card center) */
+@keyframes fly-to-cart-tag {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + min(38vw, 9.5rem)), calc(-50% - 46vh)) scale(0.35);
+  }
+}
+
+.fly-to-cart-tag-animate {
+  animation: fly-to-cart-tag 0.7s cubic-bezier(0.22, 0.8, 0.32, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-dialog-backdrop-enter,
+  .modal-dialog-panel-enter,
+  .modal-dialog-backdrop-exit,
+  .modal-dialog-panel-exit,
+  .modal-dialog-panel-exit-added {
+    animation: none;
+  }
+
+  .cart-badge.cart-badge-bump-animate {
+    animation: none;
+  }
+
+  .fly-to-cart-tag-animate {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 .h-screen-small { height: 100svh; } /* Small viewport height - prevents Safari URL bar collapse */
 
 /* Card styles */
@@ -92,7 +319,7 @@ body.input-focused {
 
 .card:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  border-color: #1E398A;
+  border-color: rgba(30, 57, 138, 0.25);
 }
 
 .card-selected {
@@ -104,53 +331,57 @@ body.input-focused {
   padding: 0.85rem 1.25rem;
 }
 
-/* Button styles */
+/* Button styles — glassy variants */
 .btn-primary {
-  background-color: #1E398A;
-  color: white;
+  background-color: rgba(30, 57, 138, 0.12);
+  color: #1E398A;
+  border: 1px solid rgba(30, 57, 138, 0.20);
   transition: all 0.2s;
   border-radius: 0.75rem;
   font-weight: 600;
 }
 
 .btn-primary:hover {
-  background-color: #1E398A;
+  background-color: rgba(30, 57, 138, 0.18);
 }
 
 .btn-secondary {
-  background-color: #6b7280;
-  color: white;
+  background-color: rgba(107, 114, 128, 0.10);
+  color: #4b5563;
+  border: 1px solid rgba(107, 114, 128, 0.18);
   transition: all 0.2s;
   border-radius: 0.75rem;
   font-weight: 600;
 }
 
 .btn-secondary:hover {
-  background-color: #4b5563;
+  background-color: rgba(107, 114, 128, 0.16);
 }
 
 .btn-success {
-  background-color: #28a745;
-  color: white;
+  background-color: rgba(40, 167, 69, 0.12);
+  color: #28a745;
+  border: 1px solid rgba(40, 167, 69, 0.20);
   transition: all 0.2s;
   border-radius: 0.75rem;
   font-weight: 600;
 }
 
 .btn-success:hover {
-  background-color: #15803d;
+  background-color: rgba(40, 167, 69, 0.18);
 }
 
 .btn-danger {
-  background-color: #DB364C;
-  color: white;
+  background-color: rgba(219, 54, 76, 0.12);
+  color: #DB364C;
+  border: 1px solid rgba(219, 54, 76, 0.20);
   transition: all 0.2s;
   border-radius: 0.75rem;
   font-weight: 600;
 }
 
 .btn-danger:hover {
-  background-color: #c22d3f;
+  background-color: rgba(219, 54, 76, 0.18);
 }
 
 /* Subtle remove item button for cart */
@@ -223,10 +454,11 @@ body.input-focused {
   outline: none;
 }
 
-/* Header styles */
+/* Header styles — glassy tint */
 .header {
-  background-color: #1E398A;
-  color: white;
+  background-color: rgba(30, 57, 138, 0.06);
+  border-bottom: 1px solid rgba(30, 57, 138, 0.10);
+  color: #111827;
   padding: 0.75rem 1rem;
   position: sticky;
   top: 0;
@@ -235,7 +467,7 @@ body.input-focused {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
 }
@@ -247,30 +479,33 @@ body.input-focused {
   flex: 1;
   text-align: center;
   margin: 0;
+  color: #111827;
 }
 
-/* Header back button styling to match sample mock */
+/* Header back button — glassy circle */
 .header .back-button {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 2.5rem;
   height: 2.5rem;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(30, 57, 138, 0.07);
   border-radius: 50%;
-  color: white;
+  color: #374151;
   text-decoration: none !important;
   transition: all 0.2s ease;
   font-size: 1.25rem;
 }
 
 .header .back-button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(30, 57, 138, 0.12);
   text-decoration: none !important;
 }
 
 .header-reserve {
-  background-color: #ff6b35;
+  background-color: rgba(255, 107, 53, 0.06);
+  border-bottom-color: rgba(255, 107, 53, 0.12);
+  color: #111827;
 }
 
 /* Search input styles */
@@ -282,10 +517,11 @@ body.input-focused {
   font-size: 1rem;
   line-height: 1.5rem;
   outline: none;
+  background-color: #ffffff;
 }
 
 .search-input:focus {
-  border-color: #1E398A;
+  border-color: rgba(30, 57, 138, 0.35);
 }
 
 /* Prevent iOS zoom on input focus - MUST be at least 16px */
@@ -312,10 +548,11 @@ input[type="date"] {
   outline: none;
   min-height: 44px;
   min-width: 44px;
+  background-color: #ffffff;
 }
 
 .form-input:focus {
-  border-color: #1E398A;
+  border-color: rgba(30, 57, 138, 0.35);
 }
 
 /* Status badges */
@@ -402,7 +639,7 @@ input[type="date"] {
   font-weight: 500;
 }
 
-/* Cart badge - Updated to match sample mock exactly */
+/* Cart badge — glassy circle */
 .cart-badge {
   position: relative;
   display: flex;
@@ -410,19 +647,19 @@ input[type="date"] {
   justify-content: center;
   width: 2.5rem;
   height: 2.5rem;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(30, 57, 138, 0.07);
   border-radius: 50%;
   text-decoration: none !important;
   transition: all 0.2s ease;
 }
 
 .cart-badge:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(30, 57, 138, 0.12);
   text-decoration: none !important;
 }
 
 .cart-badge .cart-icon {
-  color: white;
+  color: #374151;
   width: 1.25rem;
   height: 1.25rem;
   margin: 0;
@@ -447,7 +684,7 @@ input[type="date"] {
 
 /* Add styling for the plus/add icon */
 .cart-badge .add-icon {
-  stroke: white;
+  stroke: #374151;
   width: 1.25rem;
   height: 1.25rem;
   margin: 0;
@@ -507,7 +744,7 @@ input[type="date"] {
 
 .category-link {
   text-decoration: none !important;
-  color: #1E398A !important;
+  color: rgba(30, 57, 138, 0.80) !important;
 }
 
 .category-link:hover {
@@ -516,5 +753,5 @@ input[type="date"] {
 }
 
 .category-link:visited {
-  color: #1E398A !important;
+  color: rgba(30, 57, 138, 0.80) !important;
 }

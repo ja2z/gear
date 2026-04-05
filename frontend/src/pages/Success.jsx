@@ -1,4 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom';
+import { AnimateMain } from '../components/AnimateMain';
+import HeaderProfileMenu from '../components/HeaderProfileMenu';
 import { useEffect, useState, useRef } from 'react';
 
 const Success = () => {
@@ -25,12 +27,14 @@ const Success = () => {
   const isCheckin = action === 'checkin';
   
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
+    <div className="min-h-screen flex flex-col bg-gray-100">
       <div className="header">
-        <h1>{isCheckin ? 'Check-in Complete!' : 'Checkout Complete!'}</h1>
+        <div className="h-10 w-10 shrink-0" aria-hidden />
+        <h1 className="flex-1 text-center">{isCheckin ? 'Check-in Complete!' : 'Checkout Complete!'}</h1>
+        <HeaderProfileMenu />
       </div>
 
+      <AnimateMain className="flex-1">
       <div className="px-5 py-12">
         <div className="text-center">
           <div
@@ -55,7 +59,7 @@ const Success = () => {
           <div className="space-y-3">
             <Link
               to="/home"
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full p-4 text-center touch-target bg-scout-blue text-white shadow-xs hover:bg-scout-blue no-underline"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full p-4 text-center touch-target bg-scout-blue/12 border border-scout-blue/20 text-scout-blue shadow-xs hover:bg-scout-blue/18 no-underline"
             >
               🏠 Return to Home
             </Link>
@@ -72,6 +76,7 @@ const Success = () => {
           />
         </div>
       </div>
+      </AnimateMain>
     </div>
   );
 };

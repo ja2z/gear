@@ -3,14 +3,16 @@ if ('scrollRestoration' in window.history) {
   window.history.scrollRestoration = 'manual';
 }
 
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 // Context providers
 import { CartProvider } from './context/CartContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { isDevAuthBypassActive } from './config/devAuthBypass';
 import { setUnauthorizedHandler } from './hooks/useInventory';
+import { MembersMockProvider } from './context/MembersMockContext';
 
 // Shared components
 import ScrollToTop from './components/ScrollToTop';
@@ -24,9 +26,12 @@ import VerifyPage from './pages/VerifyPage';
 // App pages
 import HomePage from './pages/HomePage';
 import Landing from './pages/Landing';
-import ManagePage from './pages/ManagePage';
+import ManageTables from './pages/ManageTables';
 import OutingsPage from './pages/OutingsPage';
+import ComingSoonPage from './pages/ComingSoonPage';
 
+// Members (mock roster — session-only)
+import ManageMembers from './pages/manage-members/ManageMembers';
 // Existing pages
 import Categories from './pages/Categories';
 import Items from './pages/Items';
@@ -44,9 +49,6 @@ import Reservations from './pages/Reservations';
 // Manage Inventory
 import ManageInventoryDashboard from './pages/manage-inventory/ManageInventoryDashboard';
 import ViewInventory from './pages/manage-inventory/ViewInventory';
-import AddItem from './pages/manage-inventory/AddItem';
-import EditItem from './pages/manage-inventory/EditItem';
-import DeleteItem from './pages/manage-inventory/DeleteItem';
 import SelectCategory from './pages/manage-inventory/SelectCategory';
 import ManageCategories from './pages/manage-inventory/ManageCategories';
 import AddCategory from './pages/manage-inventory/AddCategory';
@@ -70,10 +72,27 @@ function SmartRoot() {
 
 // Wires the module-level 401 handler to the auth context's logout.
 // Must be inside AuthProvider so useAuth() works.
+function NavigateAddItemModal() {
+  return <Navigate to="/manage-inventory/view" replace state={{ openAddItem: true }} />;
+}
+
+function NavigateEditItemModal() {
+  const { itemId } = useParams();
+  return <Navigate to="/manage-inventory/view" replace state={{ editItemId: itemId }} />;
+}
+
+function NavigateDeleteItemModal() {
+  const { itemId } = useParams();
+  return <Navigate to="/manage-inventory/view" replace state={{ deleteItemId: itemId }} />;
+}
+
 function UnauthorizedWatcher() {
   const { logout } = useAuth();
   useEffect(() => {
-    setUnauthorizedHandler(() => logout());
+    setUnauthorizedHandler(() => {
+      if (isDevAuthBypassActive()) return;
+      logout();
+    });
     return () => setUnauthorizedHandler(null);
   }, [logout]);
   return null;
@@ -106,9 +125,37 @@ function App() {
                 <Route path="/outings" element={
                   <ProtectedRoute><OutingsPage /></ProtectedRoute>
                 } />
-                <Route path="/manage" element={
-                  <ProtectedRoute><ManagePage /></ProtectedRoute>
+                <Route path="/advancement" element={
+                  <ProtectedRoute><ComingSoonPage title="Advancement" /></ProtectedRoute>
                 } />
+                <Route path="/calendar" element={
+                  <ProtectedRoute><ComingSoonPage title="Calendar" /></ProtectedRoute>
+                } />
+                {/* Manage hub + members (shared mock roster context) */}
+                <Route
+                  path="/manage"
+                  element={
+                    <ProtectedRoute>
+                      <MembersMockProvider>
+                        <Outlet />
+                      </MembersMockProvider>
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<ManageTables />} />
+                  {/* Legacy URLs → roster list */}
+                  <Route
+                    path="members/roster"
+                    element={<Navigate to="/manage/members" replace />}
+                  />
+                  <Route
+                    path="members/add"
+                    element={
+                      <Navigate to="/manage/members" replace state={{ openAddMember: true }} />
+                    }
+                  />
+                  <Route path="members" element={<ManageMembers />} />
+                </Route>
 
                 {/* Gear sub-routes */}
                 <Route path="/categories" element={
@@ -158,10 +205,10 @@ function App() {
                   <ProtectedRoute><ViewInventory /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/add-item" element={
-                  <ProtectedRoute><AddItem /></ProtectedRoute>
+                  <ProtectedRoute><NavigateAddItemModal /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/edit-item/:itemId" element={
-                  <ProtectedRoute><EditItem /></ProtectedRoute>
+                  <ProtectedRoute><NavigateEditItemModal /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/item-log/:itemId" element={
                   <ProtectedRoute><ItemTransactionLog /></ProtectedRoute>
@@ -170,7 +217,7 @@ function App() {
                   <ProtectedRoute><ViewTransactionLog /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/delete-item/:itemId" element={
-                  <ProtectedRoute><DeleteItem /></ProtectedRoute>
+                  <ProtectedRoute><NavigateDeleteItemModal /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/select-category" element={
                   <ProtectedRoute><SelectCategory /></ProtectedRoute>

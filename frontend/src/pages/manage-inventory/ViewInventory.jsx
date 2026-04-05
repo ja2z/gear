@@ -1,9 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Plus } from 'lucide-react';
 import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import Toast from '../../components/Toast';
+import HeaderProfileMenu from '../../components/HeaderProfileMenu';
 import { useToast } from '../../hooks/useToast';
 import { useInventory } from '../../hooks/useInventory';
-import SegmentedControl from '../../components/SegmentedControl';
+import SearchableSegmentedToolbar from '../../components/SearchableSegmentedToolbar';
+import { AnimateMain, SegmentSwitchAnimate } from '../../components/AnimateMain';
+import AddItemForm from './AddItemForm';
+import EditItemForm from './EditItemForm';
+import { getApiBaseUrl } from '../../config/apiBaseUrl';
+
+const VIEW_TABS = [
+  { key: 'category', label: 'Categories' },
+  { key: 'item', label: 'Items' },
+  { key: 'outing', label: 'Outings' },
+];
 
 const ViewInventory = () => {
   const navigate = useNavigate();
@@ -12,11 +24,13 @@ const ViewInventory = () => {
   const { toast, showToast, hideToast } = useToast();
   const { getData } = useInventory();
 
-  const [viewMode, setViewMode] = useState('category'); // 'category' or 'item'
+  const [viewMode, setViewMode] = useState('category'); // 'category' | 'item' | 'outing'
   const [categoryStats, setCategoryStats] = useState([]);
   const [items, setItems] = useState([]);
+  const [outings, setOutings] = useState([]);
   const [filteredCategory, setFilteredCategory] = useState(null);
   const [filteredStatus, setFilteredStatus] = useState(null);
+  const [filteredOuting, setFilteredOuting] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -24,32 +38,137 @@ const ViewInventory = () => {
   const [pendingScrollTop, setPendingScrollTop] = useState(null);
   const scrollContainerRef = useRef(null);
 
-  // Handle ?status= param from dashboard — switch to item view with status filter
+  const [addingItem, setAddingItem] = useState(false);
+  const [addItemCategory, setAddItemCategory] = useState(null);
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [pendingDeleteItemId, setPendingDeleteItemId] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const buildReturnState = useCallback(
+    () => ({
+      viewMode,
+      filteredCategory,
+      filteredStatus,
+      filteredOuting,
+      searchQuery,
+      searchOpen,
+      scrollTop: scrollContainerRef.current?.scrollTop ?? 0,
+    }),
+    [viewMode, filteredCategory, filteredStatus, filteredOuting, searchQuery, searchOpen]
+  );
+
+  // Handle ?status= / ?view= from dashboard — outings tab, item list, optional status filter
   useEffect(() => {
     const status = searchParams.get('status');
-    if (status) {
+    const view = searchParams.get('view');
+    if (view === 'outings') {
+      setViewMode('outing');
+    } else if (status) {
       setViewMode('item');
       setFilteredStatus(status);
+    } else if (view === 'item') {
+      setViewMode('item');
+      setFilteredStatus(null);
     }
   }, []);
 
-  // Restore state when returning from edit/delete
+  // Restore list state / open modals from navigation state
   useEffect(() => {
-    if (location.state?.returnState) {
-      const { viewMode: vm, filteredCategory: fc, filteredStatus: fs, searchQuery: sq, searchOpen: so, scrollTop: st } = location.state.returnState;
+    const s = location.state;
+    if (!s) return;
+
+    if (s.returnState) {
+      const {
+        viewMode: vm,
+        filteredCategory: fc,
+        filteredStatus: fs,
+        filteredOuting: fo,
+        searchQuery: sq,
+        searchOpen: so,
+        scrollTop: st,
+      } = s.returnState;
       setViewMode(vm ?? 'category');
       setFilteredCategory(fc ?? null);
       setFilteredStatus(fs ?? null);
+      setFilteredOuting(fo ?? null);
       setSearchQuery(sq ?? '');
       setSearchOpen(so ?? false);
       if (st) setPendingScrollTop(st);
-      window.history.replaceState({}, document.title);
-    } else if (location.state?.category) {
-      setViewMode('item');
-      setFilteredCategory(location.state.category);
-      window.history.replaceState({}, document.title);
+      navigate(location.pathname, { replace: true, state: {} });
+      return;
     }
-  }, [location.state]);
+    if (s.category) {
+      setViewMode('item');
+      setFilteredCategory(s.category);
+      navigate(location.pathname, { replace: true, state: {} });
+      return;
+    }
+
+    let consumed = false;
+    if (s.openAddItem) {
+      setAddingItem(true);
+      if (s.selectedCategory) setAddItemCategory(s.selectedCategory);
+      consumed = true;
+    }
+    if (s.editItemId) {
+      setEditingItemId(s.editItemId);
+      consumed = true;
+    }
+    if (s.deleteItemId) {
+      setPendingDeleteItemId(s.deleteItemId);
+      consumed = true;
+    }
+    if (consumed) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!pendingDeleteItemId) return;
+    const found = items.find((i) => i.itemId === pendingDeleteItemId);
+    if (found) {
+      setDeleteTarget(found);
+      setPendingDeleteItemId(null);
+      return;
+    }
+    if (loading) return;
+    getData(`/manage-inventory/items/${pendingDeleteItemId}`)
+      .then((data) => {
+        setDeleteTarget(data);
+        setPendingDeleteItemId(null);
+      })
+      .catch(() => {
+        showToast('Could not load item', 'error');
+        setPendingDeleteItemId(null);
+      });
+  }, [pendingDeleteItemId, items, loading, getData, showToast]);
+
+  useEffect(() => {
+    const open = Boolean(addingItem || editingItemId || deleteTarget);
+    if (!open) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [addingItem, editingItemId, deleteTarget]);
+
+  useEffect(() => {
+    if (!editingItemId && !addingItem && !deleteTarget) return undefined;
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      if (deleteTarget) setDeleteTarget(null);
+      else if (editingItemId) setEditingItemId(null);
+      else if (addingItem) {
+        setAddingItem(false);
+        setAddItemCategory(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editingItemId, addingItem, deleteTarget]);
 
   // Scroll to top when switching to category view
   useEffect(() => {
@@ -91,12 +210,28 @@ const ViewInventory = () => {
     }
   };
 
+  const fetchOutings = async () => {
+    try {
+      setLoading(true);
+      const data = await getData('/inventory/outings');
+      setOutings(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching outings:', error);
+      showToast('Failed to load outings', 'error');
+      setOutings([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (viewMode === 'category') {
       fetchCategoryStats();
       if (filteredStatus) fetchItems(); // need items to derive filtered category rows
-    } else {
+    } else if (viewMode === 'item') {
       fetchItems();
+    } else if (viewMode === 'outing') {
+      fetchOutings();
     }
   }, [viewMode, filteredStatus]);
 
@@ -211,10 +346,30 @@ const ViewInventory = () => {
       ).sort((a, b) => a.class_desc.localeCompare(b.class_desc))
     : filteredCategories;
 
-  // Count of items matching the active status filter (for chip display)
-  const filteredStatusCount = filteredStatus
-    ? items.filter(i => i.status === filteredStatus).length
-    : null;
+  // Count of items matching active status / outing filters (for banner)
+  const filteredStatusCount =
+    filteredStatus || filteredOuting
+      ? items.filter((i) => {
+          const okStatus = !filteredStatus || i.status === filteredStatus;
+          const okOuting = !filteredOuting || i.outingName === filteredOuting;
+          return okStatus && okOuting;
+        }).length
+      : null;
+
+  const filteredOutingsList = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return outings;
+    return outings.filter((o) => o.outingName.toLowerCase().includes(q));
+  }, [outings, searchQuery]);
+
+  const handleOutingSelect = (outingName) => {
+    setViewMode('item');
+    setFilteredStatus('Checked out');
+    setFilteredOuting(outingName);
+    setFilteredCategory(null);
+    setSearchQuery('');
+    setSearchOpen(false);
+  };
 
   // Group items by category (always show all items)
   const groupedItems = items.reduce((groups, item) => {
@@ -237,7 +392,8 @@ const ViewInventory = () => {
         (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesCategory = !filteredCategory || item.itemClass === filteredCategory;
       const matchesStatus = !filteredStatus || item.status === filteredStatus;
-      return matchesSearch && matchesCategory && matchesStatus;
+      const matchesOuting = !filteredOuting || item.outingName === filteredOuting;
+      return matchesSearch && matchesCategory && matchesStatus && matchesOuting;
     });
 
     if (filteredGroupItems.length > 0) {
@@ -257,8 +413,37 @@ const ViewInventory = () => {
     setPendingScrollToCategory(classCode);
   };
 
-  const handleDeleteClick = (itemId) => {
-    navigate(`/manage-inventory/delete-item/${itemId}`);
+  const handleDeleteClick = (item, e) => {
+    if (e) e.stopPropagation();
+    setDeleteTarget(item);
+    setDeleteConfirmText('');
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget || deleteConfirmText.toLowerCase() !== 'delete item') return;
+    try {
+      setDeleteLoading(true);
+      const response = await fetch(`${getApiBaseUrl()}/manage-inventory/items/${deleteTarget.itemId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to delete');
+      showToast('Item removed successfully', 'success');
+      setDeleteTarget(null);
+      setDeleteConfirmText('');
+      await fetchItems();
+      if (viewMode === 'category') await fetchCategoryStats();
+    } catch (err) {
+      showToast(err.message || 'Failed to remove item. Please try again.', 'error');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const refreshAfterMutation = async () => {
+    await fetchItems();
+    if (viewMode === 'category') await fetchCategoryStats();
+    if (viewMode === 'outing') await fetchOutings();
   };
 
   const getStatusBadgeClass = (status) => {
@@ -293,102 +478,94 @@ const ViewInventory = () => {
           ←
         </Link>
         <h1>Manage Items</h1>
-        <Link
-          to="/manage-inventory/add-item"
-          className="cart-badge no-underline"
-          aria-label="Add item"
-        >
-          <svg className="add-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-        </Link>
+        <HeaderProfileMenu />
       </div>
 
-      {/* Toggle row OR Search bar — mutually exclusive */}
-      {searchOpen ? (
-        <div className="bg-white px-4 py-2 border-b border-gray-200 flex items-center gap-2">
-          <div className="relative flex-1">
-            <input
-              autoFocus
-              type="text"
-              placeholder={viewMode === 'category' ? 'Search categories...' : 'Search items...'}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input w-full pr-8"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 touch-target flex items-center justify-center"
-                aria-label="Clear search"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            )}
-          </div>
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
+      <SearchableSegmentedToolbar
+        tabs={VIEW_TABS}
+        segmentValue={viewMode}
+        onSegmentChange={(key) => {
+          setViewMode(key);
+          setFilteredCategory(null);
+          setFilteredOuting(null);
+          setSearchQuery('');
+          setPendingScrollToCategory(null);
+          if (key === 'outing') {
+            setFilteredStatus(null);
+          }
+        }}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        searchOpen={searchOpen}
+        onSearchOpenChange={setSearchOpen}
+        searchPlaceholder={
+          viewMode === 'category'
+            ? 'Search categories...'
+            : viewMode === 'outing'
+              ? 'Search outings...'
+              : 'Search items...'
+        }
+        toolbarAccessory={
           <button
-            onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
-            className="text-gray-600 font-medium text-sm whitespace-nowrap touch-target px-1"
-          >
-            Cancel
-          </button>
-        </div>
-      ) : (
-        <div className="bg-white px-5 py-2 border-b border-gray-200 flex items-center gap-2">
-          <SegmentedControl
-            tabs={[
-              { key: 'category', label: 'Categories' },
-              { key: 'item', label: 'Items' },
-            ]}
-            value={viewMode}
-            onChange={(key) => {
-              setViewMode(key);
-              setFilteredCategory(null);
-              setSearchQuery('');
-              setPendingScrollToCategory(null);
+            type="button"
+            onClick={() => {
+              setAddingItem(true);
+              setAddItemCategory(null);
             }}
-          />
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="text-gray-500 touch-target flex items-center justify-center"
-            aria-label="Search"
+            className="inline-flex shrink-0 items-center justify-center gap-1 rounded-full border border-scout-blue/20 bg-scout-blue/12 px-2.5 py-2 text-xs font-medium text-scout-blue touch-target transition-colors hover:bg-scout-blue/18 active:bg-scout-blue/22 sm:gap-1.5 sm:px-3 sm:text-sm"
+            aria-label="Add item"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
+            <Plus className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+            <span>Add</span>
           </button>
-        </div>
-      )}
+        }
+      />
 
       {/* Filter banner — full-width, below toggle/search */}
-      {filteredStatus && (
-        <div className="bg-scout-blue/8 border-b border-scout-blue/15 px-5 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-scout-blue/60 shrink-0"></div>
-            <span className="text-scout-blue text-sm font-medium">
-              {filteredStatus}
+      {(filteredStatus || filteredOuting) && (
+        <div
+          className={`bg-scout-blue/8 border-b border-scout-blue/15 px-5 py-2 flex items-center ${
+            filteredStatus === 'Checked out' && !filteredOuting ? 'justify-start' : 'justify-between'
+          }`}
+        >
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="h-2 w-2 shrink-0 rounded-full bg-scout-blue/60"></div>
+            <span className="min-w-0 text-sm font-medium text-scout-blue">
+              {filteredOuting && (
+                <>
+                  Outing: <span className="font-semibold">{filteredOuting}</span>
+                </>
+              )}
+              {filteredOuting && filteredStatus && (
+                <span className="font-normal text-scout-blue/70"> · </span>
+              )}
+              {filteredStatus && <span>{filteredStatus}</span>}
               {filteredStatusCount !== null && (
                 <span className="font-normal text-scout-blue/70"> · {filteredStatusCount} items</span>
               )}
             </span>
           </div>
-          <button
-            onClick={() => { setFilteredStatus(null); setFilteredCategory(null); }}
-            className="text-scout-blue/50 hover:text-scout-blue text-xs font-medium touch-target"
-            aria-label="Clear filter"
-          >
-            Clear
-          </button>
+          {!(filteredStatus === 'Checked out' && !filteredOuting) && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilteredStatus(null);
+                setFilteredCategory(null);
+                setFilteredOuting(null);
+              }}
+              className="touch-target shrink-0 text-xs font-medium text-scout-blue/50 hover:text-scout-blue"
+              aria-label="Clear filter"
+            >
+              Clear
+            </button>
+          )}
         </div>
       )}
 
       {/* Scrollable Content */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+        <SegmentSwitchAnimate key={viewMode} className="min-h-0">
         <div className="px-5 py-5 pb-20">
         {loading ? (
           <div className="flex justify-center items-center py-12">
@@ -418,6 +595,40 @@ const ViewInventory = () => {
               </div>
             ))}
           </div>
+        ) : viewMode === 'outing' ? (
+          <div className="space-y-3">
+            {filteredOutingsList.length === 0 ? (
+              <p className="py-10 text-center text-sm text-gray-500">
+                {searchQuery.trim()
+                  ? 'No outings match your search.'
+                  : 'No active outings with checked-out gear.'}
+              </p>
+            ) : (
+              filteredOutingsList.map((o) => (
+                <button
+                  key={o.outingName}
+                  type="button"
+                  onClick={() => handleOutingSelect(o.outingName)}
+                  className="card touch-target block w-full cursor-pointer text-left transition-colors hover:bg-gray-50 active:bg-gray-100"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-gray-900">{o.outingName}</h3>
+                      <p className="mt-1 text-sm text-gray-600">
+                        {o.itemCount} {o.itemCount === 1 ? 'item' : 'items'} out
+                        {o.checkedOutDate ? (
+                          <span className="text-gray-500"> · Out {o.checkedOutDate}</span>
+                        ) : null}
+                      </p>
+                    </div>
+                    <span className="text-xl text-gray-400" aria-hidden>
+                      ›
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
         ) : (
           /* Item View */
           <div className="space-y-3">
@@ -440,18 +651,7 @@ const ViewInventory = () => {
                         <div className="flex justify-between items-start">
                         <div
                             className="flex-1 cursor-pointer"
-                            onClick={() => navigate(`/manage-inventory/edit-item/${item.itemId}`, {
-                              state: {
-                                returnState: {
-                                  viewMode,
-                                  filteredCategory,
-                                  filteredStatus,
-                                  searchQuery,
-                                  searchOpen,
-                                  scrollTop: scrollContainerRef.current?.scrollTop ?? 0
-                                }
-                              }
-                            })}
+                            onClick={() => setEditingItemId(item.itemId)}
                           >
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-gray-900">{item.itemId}</span>
@@ -481,7 +681,8 @@ const ViewInventory = () => {
                             )}
                           </div>
                           <button
-                            onClick={() => handleDeleteClick(item.itemId)}
+                            type="button"
+                            onClick={(e) => handleDeleteClick(item, e)}
                             className="remove-item-btn-clean ml-3 touch-target"
                             title="Remove item"
                           >
@@ -503,7 +704,157 @@ const ViewInventory = () => {
           </div>
         )}
         </div>
+        </SegmentSwitchAnimate>
       </div>
+      </AnimateMain>
+
+      {addingItem && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-item-modal-title"
+        >
+          <button
+            type="button"
+            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
+            aria-label="Close add item"
+            onClick={() => {
+              setAddingItem(false);
+              setAddItemCategory(null);
+            }}
+          />
+          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-gray-100 shadow-2xl">
+            <div className="header shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setAddingItem(false);
+                  setAddItemCategory(null);
+                }}
+                className="back-button"
+                aria-label="Close"
+              >
+                ←
+              </button>
+              <h1 id="add-item-modal-title">Add New Item</h1>
+              <HeaderProfileMenu />
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <AddItemForm
+              isModal
+              initialCategory={addItemCategory}
+              onClose={() => {
+                setAddingItem(false);
+                setAddItemCategory(null);
+              }}
+              onSuccess={async () => {
+                await refreshAfterMutation();
+                setAddingItem(false);
+                setAddItemCategory(null);
+              }}
+              onOpenCategoryPicker={() =>
+                navigate('/manage-inventory/select-category', { state: { fromAddFlow: true } })
+              }
+            />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingItemId && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
+            aria-label="Close editor"
+            onClick={() => setEditingItemId(null)}
+          />
+          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-gray-100 shadow-2xl">
+            <div className="header shrink-0">
+              <button
+                type="button"
+                onClick={() => setEditingItemId(null)}
+                className="back-button"
+                aria-label="Close"
+              >
+                ←
+              </button>
+              <h1>Edit Item</h1>
+              <HeaderProfileMenu />
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <EditItemForm
+                key={editingItemId}
+                itemId={editingItemId}
+                isModal
+                returnState={{ returnState: buildReturnState() }}
+                onClose={() => setEditingItemId(null)}
+                onSuccess={async () => {
+                  await refreshAfterMutation();
+                  setEditingItemId(null);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div
+          className={`fixed inset-0 flex items-end justify-center bg-black/40 ${
+            editingItemId || addingItem ? 'z-[120]' : 'z-50'
+          }`}
+        >
+          <div className="w-full max-w-md rounded-t-2xl bg-white px-5 pt-5 pb-8">
+            <h2 className="mb-1 text-lg font-bold text-gray-900">Remove item?</h2>
+            <p className="mb-1 text-sm text-gray-600">
+              <span className="font-medium">{deleteTarget.itemId}</span>
+            </p>
+            <p className="mb-2 text-sm text-gray-500">{deleteTarget.description}</p>
+            <p className="mb-4 text-sm text-gray-500">
+              This marks the item as &quot;Removed from inventory&quot; and hides it from the app. History is
+              preserved.
+            </p>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Type &quot;delete item&quot; to confirm:
+            </label>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              className="mb-4 w-full rounded-lg border border-gray-300 px-4 py-3"
+              placeholder="delete item"
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteTarget(null);
+                  setDeleteConfirmText('');
+                }}
+                disabled={deleteLoading}
+                className="touch-target h-12 flex-1 rounded-md border border-gray-300 text-sm font-medium text-gray-700 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={deleteLoading || deleteConfirmText.toLowerCase() !== 'delete item'}
+                className="touch-target h-12 flex-1 rounded-md bg-scout-red/12 border border-scout-red/20 text-sm font-medium text-scout-red disabled:opacity-50"
+              >
+                {deleteLoading ? 'Removing…' : 'Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
+import { AnimateMain } from '../components/AnimateMain';
+import HeaderProfileMenu from '../components/HeaderProfileMenu';
 
 const CheckinForm = () => {
   const { postData, loading } = useInventory();
@@ -68,7 +70,7 @@ const CheckinForm = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">No items selected</h2>
           <Link
             to="/checkin"
-            className="inline-block bg-scout-blue text-white px-6 py-3 rounded-lg hover:bg-scout-blue transition-colors touch-target no-underline"
+            className="inline-block bg-scout-blue/12 border border-scout-blue/20 text-scout-blue px-6 py-3 rounded-lg hover:bg-scout-blue/18 transition-colors touch-target no-underline"
           >
             Select Items
           </Link>
@@ -88,9 +90,10 @@ const CheckinForm = () => {
           ←
         </Link>
         <h1 className="text-center text-truncate">Check In Information</h1>
-        <div className="w-10 h-10"></div>
+        <HeaderProfileMenu />
       </div>
 
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 py-6 pb-20">
@@ -136,11 +139,12 @@ const CheckinForm = () => {
           form="checkin-form"
           disabled={loading || !formData.qmName.trim()}
           onClick={handleSubmit}
-          className="w-full h-12 text-base font-medium rounded-md bg-scout-blue text-white disabled:opacity-50"
+          className="w-full h-12 text-base font-medium rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue disabled:opacity-50"
         >
           {loading ? 'Processing...' : `Complete Check In (${selectedItems.length} item${selectedItems.length > 1 ? 's' : ''})`}
         </button>
       </div>
+      </AnimateMain>
     </div>
   );
 };

@@ -2,6 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useInventory } from '../hooks/useInventory';
+import { getApiBaseUrl } from '../config/apiBaseUrl';
+import { AnimateMain } from '../components/AnimateMain';
+import HeaderProfileMenu from '../components/HeaderProfileMenu';
 
 const defaultDate = () =>
   new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -94,7 +97,10 @@ const Checkout = () => {
         const itemCount = getTotalItems();
         if (fromReservation && reservationMeta?.outingName) {
           try {
-            await fetch(`${import.meta.env.VITE_API_URL || '/api'}/reservations/${encodeURIComponent(reservationMeta.outingName)}`, { method: 'DELETE', credentials: 'include' });
+            await fetch(
+              `${getApiBaseUrl()}/reservations/${encodeURIComponent(reservationMeta.outingName)}`,
+              { method: 'DELETE', credentials: 'include' }
+            );
           } catch (err) {
             console.error('Failed to clean up reservation:', err);
           }
@@ -210,7 +216,7 @@ const Checkout = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">No items in cart</h2>
           <Link
             to="/categories"
-            className="inline-block bg-scout-blue text-white px-6 py-3 rounded-lg hover:bg-scout-blue transition-colors touch-target no-underline"
+            className="inline-block bg-scout-blue/12 border border-scout-blue/20 text-scout-blue px-6 py-3 rounded-lg hover:bg-scout-blue/18 transition-colors touch-target no-underline"
           >
             Browse Categories
           </Link>
@@ -226,27 +232,31 @@ const Checkout = () => {
           ←
         </Link>
         <h1 className="text-center text-truncate">Checkout Information</h1>
-        <Link to="/cart" className="cart-badge no-underline">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="cart-icon"
-          >
-            <circle cx="8" cy="21" r="1"></circle>
-            <circle cx="19" cy="21" r="1"></circle>
-            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
-          </svg>
-          <span className="cart-count">{getTotalItems()}</span>
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link to="/cart" className="cart-badge no-underline">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="cart-icon"
+            >
+              <circle cx="8" cy="21" r="1"></circle>
+              <circle cx="19" cy="21" r="1"></circle>
+              <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
+            </svg>
+            <span className="cart-count">{getTotalItems()}</span>
+          </Link>
+          <HeaderProfileMenu />
+        </div>
       </div>
 
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 py-6 pb-20">
           {fromReservation && (
@@ -464,11 +474,12 @@ const Checkout = () => {
           type="submit"
           form="checkout-form"
           disabled={!outingNameReady || loading}
-          className="w-full h-12 text-base font-medium rounded-md bg-scout-blue text-white disabled:opacity-50"
+          className="w-full h-12 text-base font-medium rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue disabled:opacity-50"
         >
           {loading ? 'Processing...' : 'Complete Checkout'}
         </button>
       </div>
+      </AnimateMain>
 
       {/* Removed items warning modal */}
       {removedItemsWarning && (
@@ -495,7 +506,7 @@ const Checkout = () => {
               <button
                 onClick={() => { setRemovedItemsWarning(null); doCheckout(); }}
                 disabled={loading}
-                className="flex-1 h-11 rounded-md bg-scout-blue text-white text-sm font-medium disabled:opacity-50"
+                className="flex-1 h-11 rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue text-sm font-medium disabled:opacity-50"
               >
                 {loading ? 'Processing...' : 'Confirm Checkout'}
               </button>

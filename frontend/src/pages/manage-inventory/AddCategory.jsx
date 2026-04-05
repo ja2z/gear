@@ -4,6 +4,8 @@ import Toast from '../../components/Toast';
 import { useToast } from '../../hooks/useToast';
 import { useInventory } from '../../hooks/useInventory';
 import { validateCategoryCode, validateCategoryName } from '../../utils/validation';
+import { AnimateMain } from '../../components/AnimateMain';
+import HeaderProfileMenu from '../../components/HeaderProfileMenu';
 
 const AddCategory = () => {
   const navigate = useNavigate();
@@ -99,9 +101,10 @@ const AddCategory = () => {
           ←
         </Link>
         <h1>Add New Category</h1>
-        <div className="w-10 h-10"></div>
+        <HeaderProfileMenu />
       </div>
 
+      <AnimateMain className="flex flex-1 flex-col min-h-0">
       {/* Scrollable Form */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 py-6 pb-24">
@@ -117,7 +120,7 @@ const AddCategory = () => {
               value={formData.class}
               onChange={(e) => setFormData({ ...formData, class: e.target.value.toUpperCase() })}
               maxLength={5}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase ${
+              className={`w-full bg-white px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase ${
                 errors.class ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="BRCAN"
@@ -138,7 +141,7 @@ const AddCategory = () => {
               value={formData.classDesc}
               onChange={(e) => setFormData({ ...formData, classDesc: e.target.value })}
               maxLength={22}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full bg-white px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                 errors.classDesc ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Bear Can"
@@ -167,12 +170,13 @@ const AddCategory = () => {
             type="submit"
             onClick={handleSubmit}
             disabled={loading || !isFormValid}
-            className="flex-1 px-4 py-3 bg-scout-blue text-white rounded-lg hover:bg-scout-blue/90 min-h-[44px] disabled:opacity-50"
+            className="btn-primary-pill flex-1"
           >
             {loading ? 'Creating...' : 'Create Category'}
           </button>
         </div>
       </div>
+      </AnimateMain>
     </div>
   );
 };
