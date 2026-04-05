@@ -24,7 +24,7 @@ export function getApiBaseUrl() {
     }
     return withApi;
   }
-  const raw = (import.meta.env.VITE_API_URL || 'https://gear-backend.onrender.com/api').trim();
+  const raw = (import.meta.env.VITE_API_URL || '/api').trim();
   const noTrailingSlash = raw.replace(/\/+$/, '');
   if (/\/api$/i.test(noTrailingSlash)) return noTrailingSlash;
   return `${noTrailingSlash}/api`;
