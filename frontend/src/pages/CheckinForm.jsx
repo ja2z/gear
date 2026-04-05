@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
+import { useAuth } from '../context/AuthContext';
 import { AnimateMain } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
 
@@ -8,12 +9,15 @@ const CheckinForm = () => {
   const { postData, loading } = useInventory();
   const navigate = useNavigate();
   const location = useLocation();
-  
+  const { user } = useAuth();
+
   // Get selected items and outing from location state
   const { selectedItems, selectedOuting } = location.state || {};
-  
+
+  const userFullName = user ? `${user.first_name} ${user.last_name}` : '';
+
   const [formData, setFormData] = useState({
-    qmName: ''
+    qmName: userFullName
   });
   const [submitError, setSubmitError] = useState(null);
 
@@ -117,7 +121,8 @@ const CheckinForm = () => {
                 value={formData.qmName}
                 onChange={handleChange}
                 required
-                className="form-input"
+                disabled={!!user}
+                className={`form-input${user ? ' bg-gray-50 text-gray-500 cursor-not-allowed opacity-60' : ''}`}
                 placeholder="Enter quartermaster name"
               />
             </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useInventory } from '../hooks/useInventory';
+import { useAuth } from '../context/AuthContext';
 import { getApiBaseUrl } from '../config/apiBaseUrl';
 import { AnimateMain } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
@@ -12,12 +13,14 @@ const defaultDate = () =>
 const Checkout = () => {
   const { items, clearCart, getTotalItems, reservationMeta } = useCart();
   const { postData, getData, loading } = useInventory();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { state: locationState } = useLocation();
   const fromReservation = reservationMeta?.fromReservation === true || locationState?.fromReservation === true;
+  const userFullName = user ? `${user.first_name} ${user.last_name}` : '';
   const [formData, setFormData] = useState({
     scoutName: reservationMeta?.scoutName || locationState?.scoutName || '',
-    qmName: '',
+    qmName: userFullName,
     outingName: reservationMeta?.outingName || locationState?.outingName || '',
     date: defaultDate(),
     notes: ''
@@ -411,7 +414,7 @@ const Checkout = () => {
               </div>
 
               <div>
-                <label htmlFor="qmName" className={secondaryLabelClass}>
+                <label htmlFor="qmName" className={user ? 'block text-sm font-semibold text-gray-700 mb-2' : secondaryLabelClass}>
                   Checked out by (QM name) *
                 </label>
                 <input
@@ -420,9 +423,9 @@ const Checkout = () => {
                   name="qmName"
                   value={formData.qmName}
                   onChange={handleChange}
-                  disabled={secondaryLocked}
+                  disabled={user ? true : secondaryLocked}
                   required={outingNameReady}
-                  className={secondaryFieldClass}
+                  className={user ? 'form-input bg-gray-50 text-gray-500 cursor-not-allowed opacity-60' : secondaryFieldClass}
                   placeholder="Enter quartermaster name"
                 />
               </div>

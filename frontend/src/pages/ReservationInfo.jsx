@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useReservations } from '../hooks/useInventory';
+import { useAuth } from '../context/AuthContext';
 import { AnimateMain } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
 
@@ -9,13 +10,15 @@ const ReservationInfo = () => {
   const navigate = useNavigate();
   const { items, clearCart, getTotalItems, reservationMeta } = useCart();
   const { postReservation, loading } = useReservations();
+  const { user } = useAuth();
 
   const isEditing = reservationMeta?.isEditing === true;
+  const userFullName = user ? `${user.first_name} ${user.last_name}` : '';
 
   const [formData, setFormData] = useState({
     outingName: reservationMeta?.outingName || '',
-    reservedBy: reservationMeta?.reservedBy || '',
-    reservedEmail: reservationMeta?.reservedEmail || '',
+    reservedBy: reservationMeta?.reservedBy || userFullName,
+    reservedEmail: reservationMeta?.reservedEmail || user?.email || '',
   });
   const [emailError, setEmailError] = useState('');
   const [submitError, setSubmitError] = useState(null);
@@ -125,7 +128,8 @@ const ReservationInfo = () => {
                 value={formData.reservedBy}
                 onChange={handleChange}
                 required
-                className="form-input w-full"
+                disabled={!!user}
+                className={`form-input w-full ${user ? 'bg-gray-50 text-gray-500 cursor-not-allowed opacity-60' : ''}`}
                 placeholder="Outing leader name"
               />
             </div>
@@ -141,7 +145,8 @@ const ReservationInfo = () => {
                 value={formData.reservedEmail}
                 onChange={handleChange}
                 required
-                className={`form-input w-full ${emailError ? 'border-red-400' : ''}`}
+                disabled={!!user}
+                className={`form-input w-full ${user ? 'bg-gray-50 text-gray-500 cursor-not-allowed opacity-60' : ''}${emailError ? ' border-red-400' : ''}`}
                 placeholder="e.g. leader@t222.org"
                 autoComplete="email"
               />
