@@ -13,6 +13,28 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/events/types/list — list event types
+router.get('/types/list', async (req, res) => {
+  try {
+    const types = await supabaseAPI.getEventTypes();
+    res.json(types);
+  } catch (error) {
+    console.error('Error fetching event types:', error);
+    res.status(500).json({ error: 'Failed to fetch event types' });
+  }
+});
+
+// GET /api/events/users/list — list all users for leader dropdowns
+router.get('/users/list', async (req, res) => {
+  try {
+    const users = await supabaseAPI.getUsers();
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
 // GET /api/events/:id — get a single event
 router.get('/:id', async (req, res) => {
   try {
@@ -30,7 +52,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/events — create a new event
 router.post('/', async (req, res) => {
   try {
-    const { name, eventTypeId, startDate, endDate, eventSplId, eventAsplId } = req.body;
+    const { name, eventTypeId, startDate, endDate, eventSplId, eventAsplId, adultLeaderId } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Event name is required' });
@@ -38,14 +60,18 @@ router.post('/', async (req, res) => {
     if (!eventTypeId) {
       return res.status(400).json({ error: 'Event type is required' });
     }
+    if (!startDate) {
+      return res.status(400).json({ error: 'Start date is required' });
+    }
 
     const event = await supabaseAPI.createEvent({
       name: name.trim(),
       eventTypeId,
-      startDate: startDate || null,
+      startDate,
       endDate: endDate || null,
       eventSplId: eventSplId || null,
       eventAsplId: eventAsplId || null,
+      adultLeaderId: adultLeaderId || null,
     });
 
     res.json(event);
@@ -55,14 +81,56 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /api/events/types — list event types
-router.get('/types/list', async (req, res) => {
+// PUT /api/events/:id — update an event
+router.put('/:id', async (req, res) => {
   try {
-    const types = await supabaseAPI.getEventTypes();
-    res.json(types);
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid event ID' });
+
+    const { name, eventTypeId, startDate, endDate, eventSplId, eventAsplId, adultLeaderId } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Event name is required' });
+    }
+    if (!eventTypeId) {
+      return res.status(400).json({ error: 'Event type is required' });
+    }
+    if (!startDate) {
+      return res.status(400).json({ error: 'Start date is required' });
+    }
+
+    const event = await supabaseAPI.updateEvent(id, {
+      name: name.trim(),
+      eventTypeId,
+      startDate,
+      endDate: endDate || null,
+      eventSplId: eventSplId || null,
+      eventAsplId: eventAsplId || null,
+      adultLeaderId: adultLeaderId || null,
+    });
+
+    res.json(event);
   } catch (error) {
-    console.error('Error fetching event types:', error);
-    res.status(500).json({ error: 'Failed to fetch event types' });
+    console.error('Error updating event:', error);
+    res.status(500).json({ error: 'Failed to update event' });
+  }
+});
+
+// DELETE /api/events/:id — delete an event
+router.delete('/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid event ID' });
+
+    await supabaseAPI.deleteEvent(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    // FK violation: event has associated items/transactions
+    if (error.code === '23503') {
+      return res.status(409).json({ error: 'Cannot delete event with associated gear or transactions' });
+    }
+    res.status(500).json({ error: 'Failed to delete event' });
   }
 });
 

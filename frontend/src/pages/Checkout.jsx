@@ -36,8 +36,9 @@ const Checkout = () => {
 
   // New-event modal state
   const [showNewEventModal, setShowNewEventModal] = useState(false);
-  const [newEventForm, setNewEventForm] = useState({ name: '', eventTypeId: 1, startDate: '' });
+  const [newEventForm, setNewEventForm] = useState({ name: '', eventTypeId: 1, startDate: '', endDate: '', eventSplId: '', eventAsplId: '', adultLeaderId: '' });
   const [eventTypes, setEventTypes] = useState([]);
+  const [users, setUsers] = useState([]);
   const [newEventLoading, setNewEventLoading] = useState(false);
   const [newEventError, setNewEventError] = useState(null);
 
@@ -45,12 +46,14 @@ const Checkout = () => {
     const fetchData = async () => {
       try {
         setEventsLoading(true);
-        const [eventsData, typesData] = await Promise.all([
+        const [eventsData, typesData, usersData] = await Promise.all([
           getData('/events'),
           getData('/events/types/list'),
+          getData('/events/users/list'),
         ]);
         setEvents(eventsData);
         setEventTypes(typesData);
+        setUsers(usersData);
         if (typesData.length > 0) {
           setNewEventForm(prev => ({ ...prev, eventTypeId: typesData[0].id }));
         }
@@ -150,6 +153,10 @@ const Checkout = () => {
     await doCheckout();
   };
 
+  const scouts = users.filter(u => !u.isAdult);
+  const adults = users.filter(u => u.isAdult);
+  const newEventIsOvernight = eventTypes.find(t => t.id === parseInt(newEventForm.eventTypeId, 10))?.type === 'Overnight Outing';
+
   const handleCreateEvent = async (e) => {
     e.preventDefault();
     setNewEventError(null);
@@ -157,18 +164,38 @@ const Checkout = () => {
       setNewEventError('Event name is required');
       return;
     }
+    if (!newEventForm.startDate) {
+      setNewEventError('Start date is required');
+      return;
+    }
+    if (newEventIsOvernight && !newEventForm.endDate) {
+      setNewEventError('End date is required for overnight outings');
+      return;
+    }
+    if (!newEventForm.eventSplId) {
+      setNewEventError('SPL is required');
+      return;
+    }
+    if (!newEventForm.adultLeaderId) {
+      setNewEventError('Adult leader is required');
+      return;
+    }
     try {
       setNewEventLoading(true);
       const created = await postData('/events', {
         name: newEventForm.name.trim(),
         eventTypeId: newEventForm.eventTypeId,
-        startDate: newEventForm.startDate || null,
+        startDate: newEventForm.startDate,
+        endDate: newEventIsOvernight ? (newEventForm.endDate || null) : null,
+        eventSplId: newEventForm.eventSplId || null,
+        eventAsplId: newEventForm.eventAsplId || null,
+        adultLeaderId: newEventForm.adultLeaderId || null,
       });
       setEvents(prev => [created, ...prev]);
       setFormData(prev => ({ ...prev, eventId: String(created.id), scoutName: created.eventSplName || prev.scoutName }));
       setSelectedEventName(created.name);
       setShowNewEventModal(false);
-      setNewEventForm({ name: '', eventTypeId: eventTypes[0]?.id || 1, startDate: '' });
+      setNewEventForm({ name: '', eventTypeId: eventTypes[0]?.id || 1, startDate: '', endDate: '', eventSplId: '', eventAsplId: '', adultLeaderId: '' });
     } catch (err) {
       setNewEventError(err.message || 'Failed to create event');
     } finally {
@@ -385,8 +412,8 @@ const Checkout = () => {
 
       {/* New event modal */}
       {showNewEventModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md bg-white rounded-2xl p-6">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-0 sm:px-4">
+          <div className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Add New Event</h2>
             <form onSubmit={handleCreateEvent} className="space-y-4">
               <div>
@@ -395,7 +422,6 @@ const Checkout = () => {
                   type="text"
                   value={newEventForm.name}
                   onChange={e => setNewEventForm(prev => ({ ...prev, name: e.target.value }))}
-                  required
                   autoFocus
                   className="form-input w-full"
                   placeholder="e.g. Spring Campout 2026"
@@ -405,7 +431,7 @@ const Checkout = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Event Type *</label>
                 <select
                   value={newEventForm.eventTypeId}
-                  onChange={e => setNewEventForm(prev => ({ ...prev, eventTypeId: parseInt(e.target.value, 10) }))}
+                  onChange={e => setNewEventForm(prev => ({ ...prev, eventTypeId: parseInt(e.target.value, 10), endDate: '' }))}
                   className="form-input w-full"
                 >
                   {eventTypes.map(t => (
@@ -414,13 +440,64 @@ const Checkout = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Start Date (Optional)</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Start Date *</label>
                 <input
                   type="date"
                   value={newEventForm.startDate}
                   onChange={e => setNewEventForm(prev => ({ ...prev, startDate: e.target.value }))}
                   className="form-input w-full"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  End Date {newEventIsOvernight ? '*' : '(Optional)'}
+                </label>
+                <input
+                  type="date"
+                  value={newEventForm.endDate}
+                  min={newEventForm.startDate || undefined}
+                  onChange={e => setNewEventForm(prev => ({ ...prev, endDate: e.target.value }))}
+                  className="form-input w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">SPL (Senior Patrol Leader) *</label>
+                <select
+                  value={newEventForm.eventSplId}
+                  onChange={e => setNewEventForm(prev => ({ ...prev, eventSplId: e.target.value }))}
+                  className="form-input w-full"
+                >
+                  <option value="">— Select SPL —</option>
+                  {scouts.map(u => (
+                    <option key={u.id} value={u.id}>{u.fullName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">ASPL (Assistant SPL)</label>
+                <select
+                  value={newEventForm.eventAsplId}
+                  onChange={e => setNewEventForm(prev => ({ ...prev, eventAsplId: e.target.value }))}
+                  className="form-input w-full"
+                >
+                  <option value="">— None —</option>
+                  {scouts.map(u => (
+                    <option key={u.id} value={u.id}>{u.fullName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Adult Leader *</label>
+                <select
+                  value={newEventForm.adultLeaderId}
+                  onChange={e => setNewEventForm(prev => ({ ...prev, adultLeaderId: e.target.value }))}
+                  className="form-input w-full"
+                >
+                  <option value="">— Select Adult Leader —</option>
+                  {adults.map(u => (
+                    <option key={u.id} value={u.id}>{u.fullName}</option>
+                  ))}
+                </select>
               </div>
               {newEventError && (
                 <p className="text-sm text-red-600">{newEventError}</p>

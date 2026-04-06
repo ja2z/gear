@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS events (
   end_date       DATE,
   event_spl      INTEGER      REFERENCES users(id),
   event_aspl     INTEGER      REFERENCES users(id),
+  adult_leader   INTEGER      REFERENCES users(id),
   created_at     TIMESTAMPTZ  DEFAULT NOW()
 );
 
@@ -90,3 +91,4 @@ CREATE INDEX IF NOT EXISTS idx_transactions_item_id ON transactions(item_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_timestamp ON transactions(timestamp);
 CREATE INDEX IF NOT EXISTS idx_transactions_event_id ON transactions(event_id);
 CREATE INDEX IF NOT EXISTS idx_metadata_class_desc  ON metadata(class_desc);
+CREATE INDEX IF NOT EXISTS idx_events_adult_leader   ON events(adult_leader);

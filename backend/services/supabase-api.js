@@ -31,6 +31,7 @@ function mapRowToItem(row) {
 function mapRowToEvent(row) {
   const splUser = Array.isArray(row.spl_user) ? row.spl_user[0] : row.spl_user;
   const asplUser = Array.isArray(row.aspl_user) ? row.aspl_user[0] : row.aspl_user;
+  const adultLeaderUser = Array.isArray(row.adult_leader_user) ? row.adult_leader_user[0] : row.adult_leader_user;
   return {
     id: row.id,
     name: row.name,
@@ -42,9 +43,19 @@ function mapRowToEvent(row) {
     eventSplName: splUser ? `${splUser.first_name} ${splUser.last_name}` : null,
     eventAsplId: row.event_aspl,
     eventAsplName: asplUser ? `${asplUser.first_name} ${asplUser.last_name}` : null,
+    adultLeaderId: row.adult_leader,
+    adultLeaderName: adultLeaderUser ? `${adultLeaderUser.first_name} ${adultLeaderUser.last_name}` : null,
     createdAt: row.created_at,
   };
 }
+
+const EVENT_SELECT = `
+  id, name, event_type_id, start_date, end_date, event_spl, event_aspl, adult_leader, created_at,
+  event_types(type),
+  spl_user:users!events_event_spl_fkey(first_name, last_name),
+  aspl_user:users!events_event_aspl_fkey(first_name, last_name),
+  adult_leader_user:users!events_adult_leader_fkey(first_name, last_name)
+`;
 
 const supabaseAPI = {
   // ========== INVENTORY ==========
@@ -391,15 +402,39 @@ const supabaseAPI = {
     return data;
   },
 
+  async getUsers() {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, first_name, last_name, role_id, dob')
+      .order('last_name')
+      .order('first_name');
+    if (error) throw error;
+
+    const today = new Date();
+    return data
+      .filter(u => u.dob !== null)
+      .map(u => {
+        const dob = new Date(u.dob);
+        let age = today.getFullYear() - dob.getFullYear();
+        const hadBirthday =
+          today.getMonth() > dob.getMonth() ||
+          (today.getMonth() === dob.getMonth() && today.getDate() >= dob.getDate());
+        if (!hadBirthday) age--;
+        return {
+          id: u.id,
+          firstName: u.first_name,
+          lastName: u.last_name,
+          roleId: u.role_id,
+          fullName: `${u.first_name} ${u.last_name}`,
+          isAdult: age >= 18,
+        };
+      });
+  },
+
   async getEvents() {
     const { data, error } = await supabase
       .from('events')
-      .select(`
-        id, name, event_type_id, start_date, end_date, event_spl, event_aspl, created_at,
-        event_types(type),
-        spl_user:users!events_event_spl_fkey(first_name, last_name),
-        aspl_user:users!events_event_aspl_fkey(first_name, last_name)
-      `)
+      .select(EVENT_SELECT)
       .order('start_date', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -409,12 +444,7 @@ const supabaseAPI = {
   async getEventById(id) {
     const { data, error } = await supabase
       .from('events')
-      .select(`
-        id, name, event_type_id, start_date, end_date, event_spl, event_aspl, created_at,
-        event_types(type),
-        spl_user:users!events_event_spl_fkey(first_name, last_name),
-        aspl_user:users!events_event_aspl_fkey(first_name, last_name)
-      `)
+      .select(EVENT_SELECT)
       .eq('id', id)
       .maybeSingle();
     if (error) throw error;
@@ -431,16 +461,45 @@ const supabaseAPI = {
         end_date: eventData.endDate || null,
         event_spl: eventData.eventSplId || null,
         event_aspl: eventData.eventAsplId || null,
+        adult_leader: eventData.adultLeaderId || null,
       })
-      .select(`
-        id, name, event_type_id, start_date, end_date, event_spl, event_aspl, created_at,
-        event_types(type),
-        spl_user:users!events_event_spl_fkey(first_name, last_name),
-        aspl_user:users!events_event_aspl_fkey(first_name, last_name)
-      `)
+      .select(EVENT_SELECT)
       .single();
     if (error) throw error;
     return mapRowToEvent(data);
+  },
+
+  async updateEvent(id, eventData) {
+    const { data, error } = await supabase
+      .from('events')
+      .update({
+        name: eventData.name,
+        event_type_id: eventData.eventTypeId,
+        start_date: eventData.startDate || null,
+        end_date: eventData.endDate || null,
+        event_spl: eventData.eventSplId || null,
+        event_aspl: eventData.eventAsplId || null,
+        adult_leader: eventData.adultLeaderId || null,
+      })
+      .eq('id', id)
+      .select(EVENT_SELECT)
+      .single();
+    if (error) throw error;
+    return mapRowToEvent(data);
+  },
+
+  async deleteEvent(id) {
+    // Return any checked-out or reserved items to "In shed" before deleting the event.
+    // (items.event_id is SET NULL on delete, but status would be left as "Checked out")
+    const { error: itemsError } = await supabase
+      .from('items')
+      .update({ status: 'In shed', checked_out_to: '', checked_out_by: '', check_out_date: null, updated_at: new Date().toISOString() })
+      .eq('event_id', id)
+      .in('status', ['Checked out', 'Reserved']);
+    if (itemsError) throw itemsError;
+
+    const { error } = await supabase.from('events').delete().eq('id', id);
+    if (error) throw error;
   },
 
   // ========== TRANSACTIONS ==========
