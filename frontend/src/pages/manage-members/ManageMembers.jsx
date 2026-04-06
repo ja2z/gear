@@ -25,19 +25,7 @@ function roleBadgeClass(role) {
   }
 }
 
-function emailBadgeClass(hasEmail) {
-  return hasEmail
-    ? 'inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-800'
-    : 'inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600';
-}
-
-function MemberCard({
-  m,
-  canEdit,
-  onEdit,
-  onDelete,
-  formatAdded,
-}) {
+function MemberCard({ m, canEdit, onEdit, onDelete, formatAdded }) {
   const hasEmail = Boolean((m.email || '').trim());
   const isYouth = m.memberKind === 'youth';
 
@@ -50,10 +38,7 @@ function MemberCard({
             type="button"
             className="shrink-0 rounded p-0.5 text-lg leading-none text-scout-blue hover:bg-scout-blue/10"
             aria-label={`Edit ${m.fullName}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(m);
-            }}
+            onClick={(e) => { e.stopPropagation(); onEdit(m); }}
           >
             ✏️
           </button>
@@ -62,21 +47,13 @@ function MemberCard({
       <p className="mt-1 text-sm text-gray-700">{hasEmail ? m.email : 'No email on file'}</p>
       <div className="mt-2 flex flex-wrap gap-2">
         <span className={roleBadgeClass(m.role || 'Basic')}>{m.role || 'Basic'}</span>
-        <span className={emailBadgeClass(hasEmail)}>{hasEmail ? 'Email on file' : 'No email'}</span>
-        {isYouth ? (
-          <>
-            <span className="inline-flex rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-900">
-              {m.patrol === 'Unassigned' || !m.patrol ? 'Unassigned' : `${m.patrol} Patrol`}
-            </span>
-            <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-900">
-              {m.rank || 'Scout'}
-            </span>
-          </>
-        ) : (
-          <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800">
-            {m.adultLabel || 'Adult'}
-          </span>
-        )}
+        <span className={
+          isYouth
+            ? 'inline-flex rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-900'
+            : 'inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800'
+        }>
+          {isYouth ? 'Youth' : 'Adult'}
+        </span>
       </div>
       {formatAdded(m.createdAt) && (
         <p className="mt-1 text-xs text-gray-600">Added {formatAdded(m.createdAt)}</p>
@@ -104,10 +81,7 @@ function MemberCard({
         {canEdit && (
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(m);
-            }}
+            onClick={(e) => { e.stopPropagation(); onDelete(m); }}
             className="remove-item-btn-clean ml-1 shrink-0 touch-target"
             title="Remove member"
             aria-label={`Remove ${m.fullName}`}
@@ -123,7 +97,7 @@ function MemberCard({
 const ManageMembers = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { listMembers, deleteMember, canEditRoster } = useMembersMock();
+  const { listMembers, deleteMember, canEditRoster, loading } = useMembersMock();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [viewMode, setViewMode] = useState('grouped');
@@ -137,11 +111,11 @@ const ManageMembers = () => {
   const totalCount = useMemo(() => listMembers('').length, [listMembers]);
   const groupedSections = useMemo(() => buildGroupedSections(members), [members]);
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
     try {
-      deleteMember(deleteTarget.id);
+      await deleteMember(deleteTarget.id);
       setDeleteTarget(null);
     } catch (err) {
       console.error(err);
@@ -207,57 +181,72 @@ const ManageMembers = () => {
         <div className="flex min-w-0 flex-1 flex-col items-center justify-center px-1">
           <h1 className="!flex-none text-center text-truncate">Members</h1>
           <span className="text-xs font-medium text-gray-400">
-            {totalCount} {totalCount === 1 ? 'member' : 'members'}
+            {loading ? '…' : `${totalCount} ${totalCount === 1 ? 'member' : 'members'}`}
           </span>
         </div>
         <HeaderProfileMenu />
       </div>
 
       <AnimateMain className="flex flex-1 flex-col min-h-0">
-      <SearchableSegmentedToolbar
-        tabs={VIEW_TABS}
-        segmentValue={viewMode}
-        onSegmentChange={(key) => {
-          setViewMode(key);
-          setSearchQuery('');
-        }}
-        searchQuery={searchQuery}
-        onSearchQueryChange={setSearchQuery}
-        searchOpen={searchOpen}
-        onSearchOpenChange={setSearchOpen}
-        searchPlaceholder="Search name, email, patrol, rank…"
-      />
+        <SearchableSegmentedToolbar
+          tabs={VIEW_TABS}
+          segmentValue={viewMode}
+          onSegmentChange={(key) => {
+            setViewMode(key);
+            setSearchQuery('');
+          }}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          searchOpen={searchOpen}
+          onSearchOpenChange={setSearchOpen}
+          searchPlaceholder="Search name, email…"
+        />
 
-      {canEditRoster && (
-        <div className="shrink-0 border-b border-gray-200 bg-white px-5 py-3">
-          <button
-            type="button"
-            onClick={openAddMemberModal}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-scout-green/20 bg-scout-green/12 text-base font-medium text-scout-green touch-target transition-colors hover:bg-scout-green/18 active:bg-scout-green/22"
-          >
-            <UserPlus className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
-            Add member
-          </button>
-        </div>
-      )}
+        {canEditRoster && (
+          <div className="shrink-0 border-b border-gray-200 bg-white px-5 py-3">
+            <button
+              type="button"
+              onClick={openAddMemberModal}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-scout-green/20 bg-scout-green/12 text-base font-medium text-scout-green touch-target transition-colors hover:bg-scout-green/18 active:bg-scout-green/22"
+            >
+              <UserPlus className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
+              Add member
+            </button>
+          </div>
+        )}
 
-      <div className="flex-1 overflow-y-auto">
-        <SegmentSwitchAnimate key={viewMode} className="min-h-0">
-        <div className="space-y-3 px-5 py-5 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))]">
-          {members.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-500">
-              {searchQuery.trim()
-                ? 'No members match your search.'
-                : 'No members in the roster.'}
-            </p>
-          ) : viewMode === 'grouped' ? (
-            groupedSections.map((section) => (
-              <section key={section.key} className="space-y-3">
-                <h2 className="text-base font-semibold text-gray-900">
-                  {section.title}{' '}
-                  <span className="text-sm font-normal text-gray-500">({section.members.length})</span>
-                </h2>
-                {section.members.map((m) => (
+        <div className="flex-1 overflow-y-auto">
+          <SegmentSwitchAnimate key={viewMode} className="min-h-0">
+            <div className="space-y-3 px-5 py-5 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))]">
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-scout-blue" />
+                </div>
+              ) : members.length === 0 ? (
+                <p className="py-10 text-center text-sm text-gray-500">
+                  {searchQuery.trim() ? 'No members match your search.' : 'No members in the roster.'}
+                </p>
+              ) : viewMode === 'grouped' ? (
+                groupedSections.map((section) => (
+                  <section key={section.key} className="space-y-3">
+                    <h2 className="text-base font-semibold text-gray-900">
+                      {section.title}{' '}
+                      <span className="text-sm font-normal text-gray-500">({section.members.length})</span>
+                    </h2>
+                    {section.members.map((m) => (
+                      <MemberCard
+                        key={m.id}
+                        m={m}
+                        canEdit={canEditRoster}
+                        onEdit={handleEdit}
+                        onDelete={setDeleteTarget}
+                        formatAdded={formatAdded}
+                      />
+                    ))}
+                  </section>
+                ))
+              ) : (
+                members.map((m) => (
                   <MemberCard
                     key={m.id}
                     m={m}
@@ -266,24 +255,11 @@ const ManageMembers = () => {
                     onDelete={setDeleteTarget}
                     formatAdded={formatAdded}
                   />
-                ))}
-              </section>
-            ))
-          ) : (
-            members.map((m) => (
-              <MemberCard
-                key={m.id}
-                m={m}
-                canEdit={canEditRoster}
-                onEdit={handleEdit}
-                onDelete={setDeleteTarget}
-                formatAdded={formatAdded}
-              />
-            ))
-          )}
+                ))
+              )}
+            </div>
+          </SegmentSwitchAnimate>
         </div>
-        </SegmentSwitchAnimate>
-      </div>
       </AnimateMain>
 
       {deleteTarget && (

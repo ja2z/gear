@@ -4,14 +4,6 @@ import Toast from '../../components/Toast';
 import SegmentedControl from '../../components/SegmentedControl';
 import { useToast } from '../../hooks/useToast';
 import { useMembersMock } from '../../context/MembersMockContext';
-import {
-  PATROLS,
-  BSA_RANKS,
-  ADULT_LABELS,
-  defaultPatrolForYouth,
-  defaultRankForYouth,
-  defaultAdultLabel,
-} from '../../data/membersMockData';
 import { AnimateMain, SegmentSwitchAnimate } from '../../components/AnimateMain';
 import HeaderProfileMenu from '../../components/HeaderProfileMenu';
 
@@ -26,24 +18,18 @@ const KIND_TABS = [
   { key: 'adult', label: 'Adult' },
 ];
 
-const selectClass =
-  'w-full rounded-full border-2 border-[#d1d5db] bg-white px-4 py-3 text-base text-gray-900 focus:border-scout-blue focus:outline-none';
-
-const selectClassModal =
-  'w-full rounded-full border-2 border-[#d1d5db] bg-white px-3 py-2 text-base text-gray-900 focus:border-scout-blue focus:outline-none';
-
 const AddMember = ({ onClose }) => {
   const navigate = useNavigate();
   const isModal = Boolean(onClose);
   const { toast, showToast, hideToast } = useToast();
   const { addMember, canEditRoster } = useMembersMock();
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('Basic');
   const [memberKind, setMemberKind] = useState('youth');
-  const [patrol, setPatrol] = useState(defaultPatrolForYouth());
-  const [rank, setRank] = useState(defaultRankForYouth());
-  const [adultLabel, setAdultLabel] = useState(defaultAdultLabel());
+  const [dob, setDob] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!canEditRoster) {
@@ -53,22 +39,31 @@ const AddMember = ({ onClose }) => {
     }
   }, [canEditRoster, navigate, showToast, onClose]);
 
-  const handleSubmit = (e) => {
+  const isValid =
+    firstName.trim() &&
+    lastName.trim() &&
+    email.trim() &&
+    (memberKind === 'adult' || dob);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const name = fullName.trim();
-    if (!name) {
-      showToast('Please enter a name', 'error');
+    if (!isValid) {
+      if (!firstName.trim() || !lastName.trim() || !email.trim()) {
+        showToast('First name, last name, and email are required', 'error');
+      } else if (memberKind === 'youth' && !dob) {
+        showToast('Date of birth is required for youth', 'error');
+      }
       return;
     }
+    setSaving(true);
     try {
-      addMember({
-        fullName: name,
+      await addMember({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         email: email.trim(),
         role,
         memberKind,
-        patrol: memberKind === 'youth' ? patrol : null,
-        rank: memberKind === 'youth' ? rank : null,
-        adultLabel: memberKind === 'adult' ? adultLabel : null,
+        dob: memberKind === 'adult' ? '1970-01-01' : dob,
       });
       showToast('Member added', 'success');
       setTimeout(() => {
@@ -78,18 +73,16 @@ const AddMember = ({ onClose }) => {
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Could not add member', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (!canEditRoster) {
-    return null;
-  }
+  if (!canEditRoster) return null;
 
   const rootClass = isModal
     ? 'flex flex-col bg-gray-100'
     : 'h-screen-small flex flex-col bg-gray-100';
-
-  const sel = isModal ? selectClassModal : selectClass;
 
   return (
     <div className={rootClass}>
@@ -108,143 +101,124 @@ const AddMember = ({ onClose }) => {
         <h1 id={isModal ? 'add-member-modal-title' : undefined}>Add member</h1>
         <HeaderProfileMenu />
       </div>
+
       <AnimateMain className={isModal ? 'flex flex-col overflow-visible' : 'flex flex-1 flex-col min-h-0'}>
-      <div className={isModal ? '' : 'flex-1 overflow-y-auto'}>
-        <form
-          onSubmit={handleSubmit}
-          className={`mx-auto w-full max-w-xl ${
-            isModal ? 'space-y-3 px-4 py-3 pb-4' : 'space-y-6 px-5 py-6'
-          }`}
-        >
-          <div>
-            <label
-              htmlFor={isModal ? 'add-fullName' : 'fullName'}
-              className={`${isModal ? 'mb-1' : 'mb-2'} block text-sm font-medium text-gray-700`}
-            >
-              Full name
-            </label>
-            <input
-              id={isModal ? 'add-fullName' : 'fullName'}
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className={isModal ? 'search-input !py-2' : 'search-input'}
-              placeholder="e.g. Alex Smith"
-              autoComplete="name"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor={isModal ? 'add-email' : 'email'}
-              className={`${isModal ? 'mb-1' : 'mb-2'} block text-sm font-medium text-gray-700`}
-            >
-              Email
-            </label>
-            <input
-              id={isModal ? 'add-email' : 'email'}
-              type="email"
-              inputMode="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={isModal ? 'search-input !py-2' : 'search-input'}
-              placeholder="optional"
-              autoComplete="email"
-            />
-          </div>
-          <div>
-            <span
-              className={`${isModal ? 'mb-1' : 'mb-2'} block text-sm font-medium text-gray-700`}
-            >
-              Youth or adult
-            </span>
-            <SegmentedControl tabs={KIND_TABS} value={memberKind} onChange={setMemberKind} />
-          </div>
-          <SegmentSwitchAnimate key={memberKind} className={isModal ? 'space-y-3' : 'space-y-6'}>
-          {memberKind === 'youth' ? (
-            <>
-              <div>
+        <div className={isModal ? '' : 'flex-1 overflow-y-auto'}>
+          <form
+            onSubmit={handleSubmit}
+            className={`mx-auto w-full max-w-xl ${
+              isModal ? 'space-y-3 px-4 py-3 pb-4' : 'space-y-6 px-5 py-6'
+            }`}
+          >
+            <div className={`flex gap-3 ${isModal ? '' : ''}`}>
+              <div className="flex-1">
                 <label
-                  htmlFor={isModal ? 'add-patrol' : 'patrol'}
+                  htmlFor="add-firstName"
                   className={`${isModal ? 'mb-1' : 'mb-2'} block text-sm font-medium text-gray-700`}
                 >
-                  Patrol
+                  First name <span className="text-scout-red">*</span>
                 </label>
-                <select
-                  id={isModal ? 'add-patrol' : 'patrol'}
-                  value={patrol}
-                  onChange={(e) => setPatrol(e.target.value)}
-                  className={sel}
-                >
-                  {PATROLS.map((p) => (
-                    <option key={p} value={p}>
-                      {p === 'Unassigned' ? 'Unassigned' : `${p} Patrol`}
-                    </option>
-                  ))}
-                </select>
+                <input
+                  id="add-firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className={isModal ? 'search-input !py-2' : 'search-input'}
+                  placeholder="First"
+                  autoComplete="given-name"
+                  disabled={saving}
+                  required
+                />
               </div>
-              <div>
+              <div className="flex-1">
                 <label
-                  htmlFor={isModal ? 'add-rank' : 'rank'}
+                  htmlFor="add-lastName"
                   className={`${isModal ? 'mb-1' : 'mb-2'} block text-sm font-medium text-gray-700`}
                 >
-                  Rank (Scouts BSA)
+                  Last name <span className="text-scout-red">*</span>
                 </label>
-                <select
-                  id={isModal ? 'add-rank' : 'rank'}
-                  value={rank}
-                  onChange={(e) => setRank(e.target.value)}
-                  className={sel}
-                >
-                  {BSA_RANKS.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
+                <input
+                  id="add-lastName"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className={isModal ? 'search-input !py-2' : 'search-input'}
+                  placeholder="Last"
+                  autoComplete="family-name"
+                  disabled={saving}
+                  required
+                />
               </div>
-            </>
-          ) : (
+            </div>
+
             <div>
               <label
-                htmlFor={isModal ? 'add-adultLabel' : 'adultLabel'}
+                htmlFor="add-email"
                 className={`${isModal ? 'mb-1' : 'mb-2'} block text-sm font-medium text-gray-700`}
               >
-                Adult category
+                Email <span className="text-scout-red">*</span>
               </label>
-              <select
-                id={isModal ? 'add-adultLabel' : 'adultLabel'}
-                value={adultLabel}
-                onChange={(e) => setAdultLabel(e.target.value)}
-                className={sel}
-              >
-                {ADULT_LABELS.map((l) => (
-                  <option key={l} value={l}>
-                    {l}
-                  </option>
-                ))}
-              </select>
+              <input
+                id="add-email"
+                type="email"
+                inputMode="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={isModal ? 'search-input !py-2' : 'search-input'}
+                placeholder="email@example.com"
+                autoComplete="email"
+                disabled={saving}
+                required
+              />
             </div>
-          )}
-          </SegmentSwitchAnimate>
-          <div>
-            <span
-              className={`${isModal ? 'mb-1' : 'mb-2'} block text-sm font-medium text-gray-700`}
-            >
-              App permission
-            </span>
-            <SegmentedControl tabs={ROLE_TABS} value={role} onChange={setRole} />
-          </div>
-          <div className={isModal ? 'pt-3' : ''}>
-            <button
-              type="submit"
-              disabled={!fullName.trim()}
-              className="btn-primary-pill w-full"
-            >
-              Save
-            </button>
-          </div>
-        </form>
-      </div>
+
+            <div>
+              <span className={`${isModal ? 'mb-1' : 'mb-2'} block text-sm font-medium text-gray-700`}>
+                Youth or adult
+              </span>
+              <SegmentedControl tabs={KIND_TABS} value={memberKind} onChange={setMemberKind} />
+            </div>
+
+            <SegmentSwitchAnimate key={memberKind} className={isModal ? 'space-y-3' : 'space-y-6'}>
+              {memberKind === 'youth' && (
+                <div>
+                  <label
+                    htmlFor="add-dob"
+                    className={`${isModal ? 'mb-1' : 'mb-2'} block text-sm font-medium text-gray-700`}
+                  >
+                    Date of birth <span className="text-scout-red">*</span>
+                  </label>
+                  <input
+                    id="add-dob"
+                    type="date"
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
+                    className={isModal ? 'search-input !py-2' : 'search-input'}
+                    disabled={saving}
+                    required
+                  />
+                </div>
+              )}
+            </SegmentSwitchAnimate>
+
+            <div>
+              <span className={`${isModal ? 'mb-1' : 'mb-2'} block text-sm font-medium text-gray-700`}>
+                App permission
+              </span>
+              <SegmentedControl tabs={ROLE_TABS} value={role} onChange={setRole} />
+            </div>
+
+            <div className={isModal ? 'pt-3' : ''}>
+              <button
+                type="submit"
+                disabled={saving || !isValid}
+                className="btn-primary-pill w-full"
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </form>
+        </div>
       </AnimateMain>
     </div>
   );

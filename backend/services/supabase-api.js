@@ -6,6 +6,39 @@ const supabase = createClient(
   process.env.SUPABASE_SECRET_KEY
 );
 
+function roleIdToName(roleId) {
+  if (roleId === 1) return 'Admin';
+  if (roleId === 2) return 'QM';
+  return 'Basic';
+}
+
+function computeMemberKind(dob) {
+  if (!dob || dob === '1970-01-01') return 'adult';
+  const today = new Date();
+  const d = new Date(dob);
+  let age = today.getFullYear() - d.getFullYear();
+  const hadBirthday =
+    today.getMonth() > d.getMonth() ||
+    (today.getMonth() === d.getMonth() && today.getDate() >= d.getDate());
+  if (!hadBirthday) age--;
+  return age >= 18 ? 'adult' : 'youth';
+}
+
+function mapMemberRow(row) {
+  const dob = row.dob || null;
+  return {
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    fullName: `${row.first_name} ${row.last_name}`,
+    email: row.email || '',
+    role: roleIdToName(row.role_id),
+    dob,
+    memberKind: computeMemberKind(dob),
+    createdAt: row.created_at || null,
+  };
+}
+
 function mapRowToItem(row) {
   return {
     itemClass: row.item_class,
@@ -1005,6 +1038,44 @@ const supabaseAPI = {
       .delete()
       .eq('event_id', eventId);
     if (resError) throw resError;
+  },
+
+  // ========== MEMBERS ==========
+
+  async getMembers() {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, first_name, last_name, email, role_id, dob, created_at')
+      .order('last_name')
+      .order('first_name');
+    if (error) throw error;
+    return data.map(mapMemberRow);
+  },
+
+  async createMember({ firstName, lastName, email, roleId, dob }) {
+    const { data, error } = await supabase
+      .from('users')
+      .insert({ first_name: firstName, last_name: lastName, email, role_id: roleId, dob: dob || '1970-01-01' })
+      .select('id, first_name, last_name, email, role_id, dob, created_at')
+      .single();
+    if (error) throw error;
+    return mapMemberRow(data);
+  },
+
+  async updateMember(id, { firstName, lastName, email, roleId, dob }) {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ first_name: firstName, last_name: lastName, email, role_id: roleId, dob: dob || '1970-01-01' })
+      .eq('id', id)
+      .select('id, first_name, last_name, email, role_id, dob, created_at')
+      .single();
+    if (error) throw error;
+    return mapMemberRow(data);
+  },
+
+  async deleteMember(id) {
+    const { error } = await supabase.from('users').delete().eq('id', id);
+    if (error) throw error;
   },
 
   // Expose the raw client for keep-alive ping in server.js

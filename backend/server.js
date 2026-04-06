@@ -33,6 +33,7 @@ app.use('/api/checkout',         requireAuth, require('./routes/checkout'));
 app.use('/api/checkin',          requireAuth, require('./routes/checkin'));
 app.use('/api/metadata',         requireAuth, require('./routes/metadata'));
 app.use('/api/manage-inventory', requireAuth, require('./routes/manage-inventory'));
+app.use('/api/manage/members',   requireAuth, require('./routes/manage-members'));
 app.use('/api/reservations',     requireAuth, require('./routes/reservations'));
 
 // Lightweight ping endpoint for keep-alive (also touches Supabase to prevent cold connections)
