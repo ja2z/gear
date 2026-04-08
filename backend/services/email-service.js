@@ -7,7 +7,14 @@ const BSA_LOGO_PATH = path.join(__dirname, '../assets/BSA_Logo.png');
 const BSA_LOGO_BASE64 = fs.readFileSync(BSA_LOGO_PATH).toString('base64');
 const BSA_LOGO_URL = 'https://gear.t222.org/BSA_Logo_blue.png';
 
-function buildPDF(outingName, reservedBy, reservationDate, items) {
+function formatOutingDates(startDate, endDate) {
+  if (!startDate) return null;
+  const fmt = d => new Date(d).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' });
+  if (!endDate || endDate === startDate) return fmt(startDate);
+  return `${fmt(startDate)} – ${fmt(endDate)}`;
+}
+
+function buildPDF(outingName, reservedBy, reservationDate, items, { outingStartDate, outingEndDate, outingLeader, adultLeader } = {}) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, size: 'LETTER' });
     const chunks = [];
@@ -45,13 +52,14 @@ function buildPDF(outingName, reservedBy, reservationDate, items) {
     doc.y = titleY + logoSize + 14;
 
     // Reservation details — left aligned
-    doc
-      .fontSize(12)
-      .font('Helvetica')
-      .fillColor('#444444')
-      .text(`Outing: ${outingName}`)
-      .text(`Reserved by: ${reservedBy}`)
-      .text(`Reservation Date: ${reservationDate}`);
+    doc.fontSize(12).font('Helvetica').fillColor('#444444');
+    doc.text(`Outing: ${outingName}`);
+    const outingDates = formatOutingDates(outingStartDate, outingEndDate);
+    if (outingDates) doc.text(`Outing Date: ${outingDates}`);
+    if (outingLeader) doc.text(`Outing Leader: ${outingLeader}`);
+    if (adultLeader) doc.text(`Adult Leader: ${adultLeader}`);
+    doc.text(`Reserved by: ${reservedBy}`);
+    doc.text(`Reservation Date: ${reservationDate}`);
 
     doc.moveDown(1);
     doc
@@ -113,7 +121,7 @@ function buildPDF(outingName, reservedBy, reservationDate, items) {
   });
 }
 
-async function sendReservationConfirmation({ outingName, reservedBy, reservedEmail, loggedInEmail, items, reservationDate }) {
+async function sendReservationConfirmation({ outingName, reservedBy, reservedEmail, loggedInEmail, items, reservationDate, outingStartDate, outingEndDate, outingLeader, adultLeader }) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️  RESEND_API_KEY not configured — skipping reservation confirmation email');
     return { skipped: true };
@@ -122,16 +130,18 @@ async function sendReservationConfirmation({ outingName, reservedBy, reservedEma
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   // Build recipient list: logged-in user, outing leader (reservedEmail), and QM — deduplicated.
-  // In dev mode (EMAIL_DEV_ONLY=true), send only to the logged-in user.
+  // EMAIL_DEV_ONLY=true  → send only to the logged-in user (overrides everything else)
+  // EMAIL_SKIP_QM=true   → omit qm@t222.org from the list
   let recipients;
   if (process.env.EMAIL_DEV_ONLY === 'true') {
     recipients = [loggedInEmail || reservedEmail];
   } else {
+    const includeQM = process.env.EMAIL_SKIP_QM !== 'true';
     const seen = new Set();
-    recipients = [loggedInEmail, reservedEmail, 'qm@t222.org']
+    recipients = [loggedInEmail, reservedEmail, includeQM ? 'qm@t222.org' : null]
       .filter(e => e && !seen.has(e.toLowerCase()) && seen.add(e.toLowerCase()));
   }
-  const pdfBuffer = await buildPDF(outingName, reservedBy, reservationDate, items);
+  const pdfBuffer = await buildPDF(outingName, reservedBy, reservationDate, items, { outingStartDate, outingEndDate, outingLeader, adultLeader });
 
   const itemListHtml = items
     .map(i => `<tr><td style="padding:6px 8px;border-bottom:1px solid #eee;">${i.itemId}</td><td style="padding:6px 8px;border-bottom:1px solid #eee;">${i.itemDesc || ''}</td><td style="padding:6px 8px;border-bottom:1px solid #eee;">${i.description || ''}</td></tr>`)
@@ -155,6 +165,11 @@ async function sendReservationConfirmation({ outingName, reservedBy, reservedEma
       <div style="background:#f9f9f9;padding:20px;border:1px solid #ddd;border-top:none;">
         <p>Hi ${reservedBy},</p>
         <p>Your gear reservation for <strong>${outingName}</strong> has been confirmed on ${reservationDate}.</p>
+        ${[
+          formatOutingDates(outingStartDate, outingEndDate) ? `<p><strong>Outing Date:</strong> ${formatOutingDates(outingStartDate, outingEndDate)}</p>` : '',
+          outingLeader ? `<p><strong>Outing Leader:</strong> ${outingLeader}</p>` : '',
+          adultLeader ? `<p><strong>Adult Leader:</strong> ${adultLeader}</p>` : '',
+        ].join('')}
         <table style="width:100%;border-collapse:collapse;margin-top:12px;">
           <thead>
             <tr style="background:#1E398A;color:white;">

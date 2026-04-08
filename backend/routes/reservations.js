@@ -90,6 +90,10 @@ router.post('/', async (req, res) => {
       loggedInEmail: req.user?.email,
       items: successful,
       reservationDate,
+      outingStartDate: event.startDate,
+      outingEndDate: event.endDate,
+      outingLeader: event.eventSplName,
+      adultLeader: event.adultLeaderName,
     }).catch(err => console.error('Email send failed (non-fatal):', err.message));
 
     res.json({
