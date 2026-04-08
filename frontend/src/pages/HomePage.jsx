@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import TroopBrandHeader from '../components/TroopBrandHeader';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
-import HomeImageCycle from '../components/HomeImageCycle';
+import HomeHeroCarousel from '../components/HomeHeroCarousel';
 import UpcomingEvents from '../components/UpcomingEvents';
 import { AnimateMain } from '../components/AnimateMain';
 import HomeDashboard from './home/HomeDashboard';
@@ -29,12 +29,15 @@ const HomePage = () => {
 
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
-      <TroopBrandHeader center={headerCenter} cornerRight={headerCorner} wide />
+      <TroopBrandHeader center={headerCenter} cornerRight={headerCorner} />
 
       <AnimateMain className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] [-webkit-overflow-scrolling:touch] sm:gap-4 sm:px-5 sm:pt-4 sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]">
           <div className="relative w-full flex-1 overflow-hidden rounded-2xl shadow-md min-h-[min(26svh,8.5rem)]">
-            <HomeImageCycle className="absolute inset-0 min-h-0 h-full w-full rounded-2xl shadow-none" />
+            <HomeHeroCarousel
+              variant="hub"
+              className="absolute inset-0 z-0 min-h-0 h-full w-full rounded-2xl"
+            />
             <UpcomingEvents variant="floating" />
           </div>
 

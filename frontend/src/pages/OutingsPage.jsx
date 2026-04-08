@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { Plus, X } from 'lucide-react';
+import { Loader2, Plus, X } from 'lucide-react';
 import { AnimateMain } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
 import { useInventory } from '../hooks/useInventory';
@@ -9,6 +9,15 @@ import { getApiBaseUrl } from '../config/apiBaseUrl';
 import useIsDesktop from '../hooks/useIsDesktop';
 import { useDesktopHeader } from '../context/DesktopHeaderContext';
 import RosterSearchField from '../components/RosterSearchField';
+import OutingDatePicker from '../components/OutingDatePicker';
+import OutingListCard from '../components/OutingListCard';
+import SegmentedControl from '../components/SegmentedControl';
+import { filterAndSortOutings, UPCOMING_BUFFER_DAYS } from '../utils/outingFilters';
+
+const OUTING_LIST_TABS = [
+  { key: 'upcoming', label: 'Upcoming' },
+  { key: 'past', label: 'Past' },
+];
 
 const defaultForm = {
   name: '',
@@ -18,19 +27,6 @@ const defaultForm = {
   eventSplId: '',
   adultLeaderId: '',
 };
-
-const TYPE_BADGES = {
-  'Day Outing':       'bg-green-100 text-green-800',
-  'Overnight Outing': 'bg-blue-100 text-blue-800',
-  'Meeting':          'bg-gray-100 text-gray-700',
-};
-
-function formatDate(dateStr) {
-  if (!dateStr) return null;
-  const [y, m, d] = dateStr.split('-');
-  return new Date(parseInt(y), parseInt(m) - 1, parseInt(d))
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
 
 const OutingsPage = () => {
   const { getData } = useInventory();
@@ -57,6 +53,14 @@ const OutingsPage = () => {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+
+  /** Upcoming = ending on/after (today − buffer); Past = older. Default tab: upcoming. */
+  const [outingListFilter, setOutingListFilter] = useState('upcoming');
+
+  const filteredSortedEvents = useMemo(
+    () => filterAndSortOutings(events, outingListFilter, UPCOMING_BUFFER_DAYS),
+    [events, outingListFilter],
+  );
 
   const fetchAll = useCallback(async () => {
     try {
@@ -162,8 +166,10 @@ const OutingsPage = () => {
       eventSplId: ev.eventSplId || '',
       adultLeaderId: ev.adultLeaderId || '',
     });
-    setOutingLeaderSearch(ev.eventSplName || '');
-    setAdultLeaderSearch(ev.adultLeaderName || '');
+    const splUser = users.find((u) => String(u.id) === String(ev.eventSplId));
+    const adultUser = users.find((u) => String(u.id) === String(ev.adultLeaderId));
+    setOutingLeaderSearch(splUser?.fullName ?? ev.eventSplName ?? '');
+    setAdultLeaderSearch(adultUser?.fullName ?? ev.adultLeaderName ?? '');
     setModalError(null);
     setShowModal(true);
   };
@@ -273,58 +279,58 @@ const OutingsPage = () => {
     headerRight: newOutingBtn,
   });
 
-  const eventCard = (ev) => (
-    <div key={ev.id} className="bg-white rounded-xl border border-gray-200 px-4 py-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className="font-semibold text-gray-900 text-sm leading-snug">{ev.name}</span>
-            {ev.eventType && (
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${TYPE_BADGES[ev.eventType] || 'bg-gray-100 text-gray-700'}`}>
-                {ev.eventType}
-              </span>
-            )}
-          </div>
-          <div className="text-xs text-gray-500 space-y-0.5">
-            {ev.startDate && (
-              <p>
-                {formatDate(ev.startDate)}
-                {ev.endDate ? ` – ${formatDate(ev.endDate)}` : ''}
-              </p>
-            )}
-            {ev.eventSplName && <p>Outing leader: {ev.eventSplName}</p>}
-            {ev.adultLeaderName && <p>Adult Leader: {ev.adultLeaderName}</p>}
-          </div>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <button
-            onClick={() => openEdit(ev)}
-            className="h-8 px-3 rounded-md border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => { setDeletingEvent(ev); setDeleteConfirmText(''); setDeleteError(null); }}
-            className="h-8 px-3 rounded-md border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
   const loadingOrError = (
     <>
-      {pageLoading && <p className="text-center text-gray-400 mt-12">Loading outings…</p>}
+      {pageLoading && (
+        <div className="flex flex-col items-center justify-center gap-3 py-16" role="status" aria-live="polite">
+          <Loader2 className="h-9 w-9 animate-spin text-scout-blue/50" aria-hidden />
+          <p className="text-sm text-gray-500">Loading outings…</p>
+        </div>
+      )}
       {pageError && (
         <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800">{pageError}</div>
       )}
       {!pageLoading && !pageError && events.length === 0 && (
-        <p className="text-center text-gray-400 mt-12">No outings yet.</p>
+        <div className="mx-auto max-w-sm rounded-2xl border border-dashed border-gray-200 bg-white/80 px-6 py-10 text-center shadow-sm">
+          <p className="text-base font-semibold text-gray-900">No outings yet</p>
+          <p className="mt-2 text-sm text-gray-600">
+            Add campouts, hikes, and meetings so scouts and adults can plan gear and dates in one place.
+          </p>
+          <button
+            type="button"
+            onClick={openCreate}
+            className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-scout-blue px-5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-scout-blue/90 touch-target"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2} aria-hidden />
+            Create your first outing
+          </button>
+        </div>
       )}
     </>
   );
+
+  const outingListToolbar =
+    !pageLoading &&
+    !pageError &&
+    events.length > 0 && (
+      <div className="mb-4 w-full">
+        <SegmentedControl tabs={OUTING_LIST_TABS} value={outingListFilter} onChange={setOutingListFilter} />
+      </div>
+    );
+
+  const filterEmptyMessage =
+    !pageLoading &&
+    !pageError &&
+    events.length > 0 &&
+    filteredSortedEvents.length === 0 && (
+      <div className="rounded-xl border border-gray-200/80 bg-white px-4 py-8 text-center shadow-sm">
+        <p className="text-sm text-gray-600">
+          {outingListFilter === 'upcoming'
+            ? 'No outings in this window. Try Past for earlier trips, or create a new outing.'
+            : 'No past outings to show yet. Switch to Upcoming for current and future trips.'}
+        </p>
+      </div>
+    );
 
   const formModal = showModal && (
     <div
@@ -374,33 +380,39 @@ const OutingsPage = () => {
           {isOvernight ? (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Start date *</label>
-                <input
-                  type="date"
+                <label htmlFor="outing-start-date" className="block text-sm font-semibold text-gray-700 mb-1">
+                  Start date *
+                </label>
+                <OutingDatePicker
+                  id="outing-start-date"
                   value={form.startDate}
-                  onChange={e => handleFormChange('startDate', e.target.value)}
-                  className="form-input w-full"
+                  onChange={(v) => handleFormChange('startDate', v)}
+                  disabled={modalLoading}
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">End date *</label>
-                <input
-                  type="date"
+                <label htmlFor="outing-end-date" className="block text-sm font-semibold text-gray-700 mb-1">
+                  End date *
+                </label>
+                <OutingDatePicker
+                  id="outing-end-date"
                   value={form.endDate}
-                  min={form.startDate || undefined}
-                  onChange={e => handleFormChange('endDate', e.target.value)}
-                  className="form-input w-full"
+                  onChange={(v) => handleFormChange('endDate', v)}
+                  minDate={form.startDate || undefined}
+                  disabled={modalLoading}
                 />
               </div>
             </div>
           ) : (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Date *</label>
-              <input
-                type="date"
+              <label htmlFor="outing-single-date" className="block text-sm font-semibold text-gray-700 mb-1">
+                Date *
+              </label>
+              <OutingDatePicker
+                id="outing-single-date"
                 value={form.startDate}
-                onChange={e => handleFormChange('startDate', e.target.value)}
-                className="form-input w-full"
+                onChange={(v) => handleFormChange('startDate', v)}
+                disabled={modalLoading}
               />
             </div>
           )}
@@ -493,15 +505,35 @@ const OutingsPage = () => {
     </div>
   );
 
+  const outingsList =
+    !pageLoading &&
+    !pageError &&
+    events.length > 0 &&
+    filteredSortedEvents.length > 0 && (
+      <ul className="grid list-none grid-cols-1 gap-3 p-0 lg:grid-cols-2 xl:grid-cols-3 lg:items-stretch">
+        {filteredSortedEvents.map((ev) => (
+          <li key={ev.id} className="flex min-h-0 h-full">
+            <OutingListCard
+              ev={ev}
+              onEdit={() => openEdit(ev)}
+              onDelete={() => {
+                setDeletingEvent(ev);
+                setDeleteConfirmText('');
+                setDeleteError(null);
+              }}
+            />
+          </li>
+        ))}
+      </ul>
+    );
+
   if (isDesktop) {
     return (
       <>
         {loadingOrError}
-        {!pageLoading && !pageError && events.length > 0 && (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-            {events.map(eventCard)}
-          </div>
-        )}
+        {outingListToolbar}
+        {filterEmptyMessage}
+        {outingsList}
         {formModal ? createPortal(formModal, document.body) : null}
         {deleteModal ? createPortal(deleteModal, document.body) : null}
       </>
@@ -522,11 +554,9 @@ const OutingsPage = () => {
         <div className="flex-1 overflow-y-auto">
           <div className="px-5 py-5 pb-24">
             {loadingOrError}
-            {!pageLoading && !pageError && (
-              <div className="space-y-3">
-                {events.map(eventCard)}
-              </div>
-            )}
+            {outingListToolbar}
+            {filterEmptyMessage}
+            {outingsList}
           </div>
         </div>
         {!pageLoading && (

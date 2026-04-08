@@ -549,12 +549,15 @@ a.back-button:active {
   outline: none;
 }
 
-/* Header styles — glassy tint */
+/* Header styles — glassy tint (horizontal padding matches TroopBrandHeader / home gutters) */
 .header {
   background-color: rgba(30, 57, 138, 0.06);
   border-bottom: 1px solid rgba(30, 57, 138, 0.10);
   color: #111827;
-  padding: 0.75rem 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
   position: sticky;
   top: 0;
   z-index: 50;
@@ -565,6 +568,15 @@ a.back-button:active {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
+}
+
+@media (min-width: 640px) {
+  .header {
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+    padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+  }
 }
 
 .header h1 {
@@ -630,6 +642,14 @@ input[type="date"] {
   appearance: none;
   min-width: 0;
   max-width: 100%;
+}
+
+/* react-day-picker — troop hub outing modal (scoped) */
+.outing-date-popover .rdp-root {
+  --rdp-accent-color: #1e398a;
+  --rdp-accent-background-color: rgba(30, 57, 138, 0.12);
+  --rdp-day_button-border-radius: 9999px;
+  --rdp-today-color: #1e398a;
 }
 
 /* Form input styles */
