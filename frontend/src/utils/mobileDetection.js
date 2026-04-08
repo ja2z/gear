@@ -75,7 +75,7 @@ export const getImageLoadingStrategy = () => {
   const isSlow = isSlowConnection();
   
   return {
-    useWebP: isMobile && supportsWebPFormat,
+    useWebP: supportsWebPFormat,
     useLQIP: isMobile || isSlow,
     preloadLQIP: isMobile || isSlow,
     lazyLoad: !isMobile && !isSlow

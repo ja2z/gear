@@ -44,13 +44,19 @@ export const useOptimizedImage = (originalImagePath) => {
         // Determine loading strategy based on device capabilities
         const strategy = getImageLoadingStrategy();
         
+        // HEIC/HEIF originals can't be displayed by browsers — always use webp as fallback
+        const browserExt = optimizedData.original?.split('.').pop()?.toLowerCase();
+        const browserSafeOriginal = (browserExt === 'heic' || browserExt === 'heif')
+          ? optimizedData.webp
+          : optimizedData.original;
+
         if (strategy.useLQIP && optimizedData.lqip) {
           // Load LQIP first for instant feedback
           setCurrentImage(optimizedData.lqip);
-          
+
           // Then load the full quality image
-          const fullImage = strategy.useWebP ? optimizedData.webp : optimizedData.original;
-          
+          const fullImage = strategy.useWebP ? optimizedData.webp : browserSafeOriginal;
+
           // Preload the full image
           const img = new Image();
           img.onload = () => {
@@ -58,18 +64,17 @@ export const useOptimizedImage = (originalImagePath) => {
             setIsLoading(false);
           };
           img.onerror = () => {
-            // Fallback to original if WebP fails
-            if (strategy.useWebP) {
+            if (fullImage !== browserSafeOriginal) {
               const fallbackImg = new Image();
               fallbackImg.onload = () => {
-                setCurrentImage(optimizedData.original);
+                setCurrentImage(browserSafeOriginal);
                 setIsLoading(false);
               };
               fallbackImg.onerror = () => {
                 setError('Failed to load image');
                 setIsLoading(false);
               };
-              fallbackImg.src = optimizedData.original;
+              fallbackImg.src = browserSafeOriginal;
             } else {
               setError('Failed to load image');
               setIsLoading(false);
@@ -78,25 +83,24 @@ export const useOptimizedImage = (originalImagePath) => {
           img.src = fullImage;
         } else {
           // Load directly without LQIP
-          const imageToLoad = strategy.useWebP ? optimizedData.webp : optimizedData.original;
+          const imageToLoad = strategy.useWebP ? optimizedData.webp : browserSafeOriginal;
           const img = new Image();
           img.onload = () => {
             setCurrentImage(imageToLoad);
             setIsLoading(false);
           };
           img.onerror = () => {
-            // Fallback to original if WebP fails
-            if (strategy.useWebP) {
+            if (imageToLoad !== browserSafeOriginal) {
               const fallbackImg = new Image();
               fallbackImg.onload = () => {
-                setCurrentImage(optimizedData.original);
+                setCurrentImage(browserSafeOriginal);
                 setIsLoading(false);
               };
               fallbackImg.onerror = () => {
                 setError('Failed to load image');
                 setIsLoading(false);
               };
-              fallbackImg.src = optimizedData.original;
+              fallbackImg.src = browserSafeOriginal;
             } else {
               setError('Failed to load image');
               setIsLoading(false);

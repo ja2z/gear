@@ -1,44 +1,110 @@
 /**
- * Pre-generate WebP and LQIP images from source PNGs, then rebuild optimizedImageList.js.
+ * Pre-generate WebP and LQIP images from source images, then rebuild optimizedImageList.js.
+ * Supported input formats: PNG, JPG/JPEG, HEIC/HEIF
  * Run manually when images are added or changed, then commit the output.
  * Usage: npm run pregen (from frontend/)
  */
 import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { fileURLToPath } from 'url';
+
+const execFileAsync = promisify(execFile);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const imagesDir = path.join(__dirname, '../public/images');
 
+const SUPPORTED_EXTS = new Set(['.png', '.jpg', '.jpeg', '.heic', '.heif']);
+
 const files = fs.readdirSync(imagesDir);
-const pngFiles = files.filter(f => path.extname(f).toLowerCase() === '.png');
+const sourceFiles = files.filter(f => {
+  const ext = path.extname(f).toLowerCase();
+  return SUPPORTED_EXTS.has(ext) && !f.endsWith('.lqip.webp');
+});
 
-console.log(`Found ${pngFiles.length} PNG files`);
+// Warn about any unrecognized file types (excluding already-generated webp and metadata files)
+const SKIP_EXTS = new Set(['.webp', '.md', '.txt', '.json', '.js']);
+const unknownFiles = files.filter(f => {
+  const ext = path.extname(f).toLowerCase();
+  return !SUPPORTED_EXTS.has(ext) && !SKIP_EXTS.has(ext) && ext !== '';
+});
+if (unknownFiles.length > 0) {
+  console.warn(`WARNING: Unrecognized file types (not processed):\n  ${unknownFiles.join('\n  ')}`);
+}
 
-for (const file of pngFiles) {
+const CONCURRENCY = os.cpus().length;
+console.log(`Found ${sourceFiles.length} source image files (concurrency: ${CONCURRENCY})`);
+
+// macOS sips fallback for HEIC files that sharp's libheif can't decode (HEVC compression)
+async function heicToTempJpeg(inputPath) {
+  const tmpPath = path.join(os.tmpdir(), `pregen-${path.parse(inputPath).name}-${Date.now()}.jpg`);
+  await execFileAsync('sips', ['-s', 'format', 'jpeg', inputPath, '--out', tmpPath]);
+  return tmpPath;
+}
+
+async function processFile(file) {
   const inputPath = path.join(imagesDir, file);
   const baseName = path.parse(file).name;
+  const ext = path.extname(file).toLowerCase();
   const webpPath = path.join(imagesDir, `${baseName}.webp`);
   const lqipPath = path.join(imagesDir, `${baseName}.lqip.webp`);
 
   const srcMtime = fs.statSync(inputPath).mtimeMs;
   if (fs.existsSync(webpPath) && fs.statSync(webpPath).mtimeMs > srcMtime) {
     console.log(`Skipping (up to date): ${file}`);
-    continue;
+    return;
   }
 
+  let sharpInput = inputPath;
+  let tmpFile = null;
+
   try {
-    await sharp(inputPath).webp({ quality: 85, effort: 6 }).toFile(webpPath);
-    await sharp(inputPath)
-      .resize(20, null, { withoutEnlargement: true, fit: 'inside' })
-      .webp({ quality: 20, effort: 1 })
-      .blur(0.5)
-      .toFile(lqipPath);
+    if (ext === '.heic' || ext === '.heif') {
+      // Sharp's libheif can't always decode HEVC-compressed HEIC — try it, fall back to sips
+      try {
+        await sharp(inputPath).webp({ quality: 85, effort: 6 }).toFile(webpPath);
+        await sharp(inputPath)
+          .resize(20, null, { withoutEnlargement: true, fit: 'inside' })
+          .webp({ quality: 20, effort: 1 })
+          .blur(0.5)
+          .toFile(lqipPath);
+      } catch {
+        tmpFile = await heicToTempJpeg(inputPath);
+        sharpInput = tmpFile;
+        console.log(`  (used sips fallback for ${file})`);
+        await Promise.all([
+          sharp(sharpInput).webp({ quality: 85, effort: 6 }).toFile(webpPath),
+          sharp(sharpInput)
+            .resize(20, null, { withoutEnlargement: true, fit: 'inside' })
+            .webp({ quality: 20, effort: 1 })
+            .blur(0.5)
+            .toFile(lqipPath),
+        ]);
+      }
+    } else {
+      await Promise.all([
+        sharp(sharpInput).webp({ quality: 85, effort: 6 }).toFile(webpPath),
+        sharp(sharpInput)
+          .resize(20, null, { withoutEnlargement: true, fit: 'inside' })
+          .webp({ quality: 20, effort: 1 })
+          .blur(0.5)
+          .toFile(lqipPath),
+      ]);
+    }
     console.log(`Generated: ${baseName}.webp + ${baseName}.lqip.webp`);
   } catch (err) {
     console.error(`Error processing ${file}:`, err.message);
+  } finally {
+    if (tmpFile) fs.rmSync(tmpFile, { force: true });
   }
+}
+
+// Process files in parallel, CONCURRENCY at a time
+for (let i = 0; i < sourceFiles.length; i += CONCURRENCY) {
+  await Promise.all(sourceFiles.slice(i, i + CONCURRENCY).map(processFile));
 }
 
 // Regenerate optimizedImageList.js from whatever WebPs now exist in public/images/
@@ -48,8 +114,13 @@ const webpFiles = updatedFiles.filter(f => f.endsWith('.webp') && !f.endsWith('.
 const imageData = webpFiles.map(f => {
   const baseName = path.parse(f).name;
   const lqipFile = `${baseName}.lqip.webp`;
+
+  // Find the original source file (any supported extension, case-insensitive)
+  const sourceFile = sourceFiles.find(s => path.parse(s).name === baseName);
+  const originalExt = sourceFile ? path.extname(sourceFile) : '.png';
+
   return {
-    original: `/images/${baseName}.png`,
+    original: `/images/${baseName}${originalExt}`,
     webp: `/images/${f}`,
     lqip: updatedFiles.includes(lqipFile) ? `/images/${lqipFile}` : null,
   };
