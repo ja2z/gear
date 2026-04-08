@@ -7,21 +7,10 @@ import { useMembersMock } from '../../context/MembersMockContext';
 import { AnimateMain, SegmentSwitchAnimate } from '../../components/AnimateMain';
 import HeaderProfileMenu from '../../components/HeaderProfileMenu';
 
-const ROLE_TABS = [
-  { key: 'Admin', label: 'Admin' },
-  { key: 'QM', label: 'QM' },
-  { key: 'Basic', label: 'Basic' },
-];
-
 const KIND_TABS = [
   { key: 'youth', label: 'Youth' },
   { key: 'adult', label: 'Adult' },
 ];
-
-const normalizeRole = (r) => {
-  const allowed = ['Admin', 'QM', 'Basic'];
-  return allowed.includes(r) ? r : 'Basic';
-};
 
 const EditMember = ({ memberId: memberIdProp, onClose }) => {
   const params = useParams();
@@ -29,7 +18,8 @@ const EditMember = ({ memberId: memberIdProp, onClose }) => {
   const navigate = useNavigate();
   const isModal = Boolean(onClose);
   const { toast, showToast, hideToast } = useToast();
-  const { getMember, updateMember, canEditRoster } = useMembersMock();
+  const { getMember, updateMember, canEditRoster, roles } = useMembersMock();
+  const roleTabs = roles.map((r) => ({ key: r.name, label: r.name }));
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -60,7 +50,8 @@ const EditMember = ({ memberId: memberIdProp, onClose }) => {
     setFirstName(m.firstName || '');
     setLastName(m.lastName || '');
     setEmail(m.email || '');
-    setRole(normalizeRole(m.role));
+    const validRoles = roles.map((r) => r.name);
+    setRole(validRoles.includes(m.role) ? m.role : (validRoles.at(-1) ?? 'Basic'));
     const kind = m.memberKind === 'youth' ? 'youth' : 'adult';
     setMemberKind(kind);
     // For youth: show actual dob; for adult: leave dob empty (will send 1970-01-01)
@@ -252,7 +243,7 @@ const EditMember = ({ memberId: memberIdProp, onClose }) => {
               <span className={`${isModal ? 'mb-1' : 'mb-2'} block text-sm font-medium text-gray-700`}>
                 App permission
               </span>
-              <SegmentedControl tabs={ROLE_TABS} value={role} onChange={setRole} />
+              <SegmentedControl tabs={roleTabs} value={role} onChange={setRole} />
             </div>
 
             <div className={isModal ? 'pt-3' : ''}>

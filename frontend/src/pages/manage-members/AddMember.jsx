@@ -7,12 +7,6 @@ import { useMembersMock } from '../../context/MembersMockContext';
 import { AnimateMain, SegmentSwitchAnimate } from '../../components/AnimateMain';
 import HeaderProfileMenu from '../../components/HeaderProfileMenu';
 
-const ROLE_TABS = [
-  { key: 'Admin', label: 'Admin' },
-  { key: 'QM', label: 'QM' },
-  { key: 'Basic', label: 'Basic' },
-];
-
 const KIND_TABS = [
   { key: 'youth', label: 'Youth' },
   { key: 'adult', label: 'Adult' },
@@ -22,11 +16,16 @@ const AddMember = ({ onClose }) => {
   const navigate = useNavigate();
   const isModal = Boolean(onClose);
   const { toast, showToast, hideToast } = useToast();
-  const { addMember, canEditRoster } = useMembersMock();
+  const { addMember, canEditRoster, roles } = useMembersMock();
+  const roleTabs = roles.map((r) => ({ key: r.name, label: r.name }));
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('Basic');
+  const [role, setRole] = useState('');
+
+  useEffect(() => {
+    if (roles.length > 0 && !role) setRole(roles.at(-1).name);
+  }, [roles, role]);
   const [memberKind, setMemberKind] = useState('youth');
   const [dob, setDob] = useState('');
   const [saving, setSaving] = useState(false);
@@ -39,11 +38,22 @@ const AddMember = ({ onClose }) => {
     }
   }, [canEditRoster, navigate, showToast, onClose]);
 
+  const youthTooOld = memberKind === 'youth' && dob
+    ? (() => {
+        const today = new Date();
+        const birth = new Date(dob);
+        const age = today.getFullYear() - birth.getFullYear()
+          - (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
+        return age >= 18;
+      })()
+    : false;
+
   const isValid =
     firstName.trim() &&
     lastName.trim() &&
     email.trim() &&
-    (memberKind === 'adult' || dob);
+    (memberKind === 'adult' || dob) &&
+    !youthTooOld;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -197,6 +207,11 @@ const AddMember = ({ onClose }) => {
                     disabled={saving}
                     required
                   />
+                  {youthTooOld && (
+                    <p className="mt-1.5 text-sm text-scout-red">
+                      Youth members must be under 18. Use "Adult" for members 18 or older.
+                    </p>
+                  )}
                 </div>
               )}
             </SegmentSwitchAnimate>
@@ -205,7 +220,7 @@ const AddMember = ({ onClose }) => {
               <span className={`${isModal ? 'mb-1' : 'mb-2'} block text-sm font-medium text-gray-700`}>
                 App permission
               </span>
-              <SegmentedControl tabs={ROLE_TABS} value={role} onChange={setRole} />
+              <SegmentedControl tabs={roleTabs} value={role} onChange={setRole} />
             </div>
 
             <div className={isModal ? 'pt-3' : ''}>

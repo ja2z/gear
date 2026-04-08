@@ -10,6 +10,7 @@ const MembersMockContext = createContext(null);
 
 export function MembersMockProvider({ children }) {
   const [members, setMembers] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const { user } = useAuth();
@@ -18,11 +19,14 @@ export function MembersMockProvider({ children }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`${API_BASE}/manage/members`, { credentials: 'include' })
-      .then((r) => r.json())
-      .then((data) => {
+    Promise.all([
+      fetch(`${API_BASE}/manage/members`, { credentials: 'include' }).then((r) => r.json()),
+      fetch(`${API_BASE}/manage/members/roles`, { credentials: 'include' }).then((r) => r.json()),
+    ])
+      .then(([membersData, rolesData]) => {
         if (!cancelled) {
-          setMembers(Array.isArray(data) ? data : []);
+          setMembers(Array.isArray(membersData) ? membersData : []);
+          setRoles(Array.isArray(rolesData) ? rolesData : []);
           setLoading(false);
         }
       })
@@ -100,8 +104,8 @@ export function MembersMockProvider({ children }) {
   }, []);
 
   const value = useMemo(
-    () => ({ listMembers, getMember, addMember, updateMember, deleteMember, canEditRoster, loading }),
-    [listMembers, getMember, addMember, updateMember, deleteMember, canEditRoster, loading]
+    () => ({ listMembers, getMember, addMember, updateMember, deleteMember, canEditRoster, loading, roles }),
+    [listMembers, getMember, addMember, updateMember, deleteMember, canEditRoster, loading, roles]
   );
 
   return <MembersMockContext.Provider value={value}>{children}</MembersMockContext.Provider>;

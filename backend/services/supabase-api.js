@@ -1040,6 +1040,14 @@ const supabaseAPI = {
     if (resError) throw resError;
   },
 
+  // ========== ROLES ==========
+
+  async getRoles() {
+    const { data, error } = await supabase.from('roles').select('id, name').order('id');
+    if (error) throw error;
+    return data;
+  },
+
   // ========== MEMBERS ==========
 
   async getMembers() {

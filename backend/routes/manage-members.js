@@ -4,6 +4,17 @@ const supabaseAPI = require('../services/supabase-api');
 
 const ROLE_NAME_TO_ID = { Admin: 1, QM: 2, Basic: 3 };
 
+// GET /api/manage/members/roles — list roles ordered by id
+router.get('/roles', async (req, res) => {
+  try {
+    const roles = await supabaseAPI.getRoles();
+    res.json(roles);
+  } catch (err) {
+    console.error('Error fetching roles:', err);
+    res.status(500).json({ error: 'Failed to fetch roles' });
+  }
+});
+
 // GET /api/manage/members — list all members
 router.get('/', async (req, res) => {
   try {

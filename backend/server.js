@@ -33,12 +33,12 @@ app.use('/api/metadata',         requireAuth, require('./routes/metadata'));
 app.use('/api/reservations',     requireAuth, require('./routes/reservations'));
 
 // QM + Admin only
-app.use('/api/checkout',         requireAuth, requireRole('admin', 'qm'), require('./routes/checkout'));
-app.use('/api/checkin',          requireAuth, requireRole('admin', 'qm'), require('./routes/checkin'));
-app.use('/api/manage-inventory', requireAuth, requireRole('admin', 'qm'), require('./routes/manage-inventory'));
+app.use('/api/checkout',         requireAuth, requireRole('Admin', 'QM'), require('./routes/checkout'));
+app.use('/api/checkin',          requireAuth, requireRole('Admin', 'QM'), require('./routes/checkin'));
+app.use('/api/manage-inventory', requireAuth, requireRole('Admin', 'QM'), require('./routes/manage-inventory'));
 
 // Admin only
-app.use('/api/manage/members',   requireAuth, requireRole('admin'), require('./routes/manage-members'));
+app.use('/api/manage/members',   requireAuth, requireRole('Admin'), require('./routes/manage-members'));
 
 // Lightweight ping endpoint for keep-alive (also touches Supabase to prevent cold connections)
 app.get('/api/ping', async (req, res) => {
