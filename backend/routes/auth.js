@@ -7,13 +7,12 @@ const { COOKIE_NAME, COOKIE_OPTIONS } = require('../middleware/auth');
 
 function getAppUrl(req) {
   if (process.env.NODE_ENV === 'production') return process.env.APP_URL;
-  // In dev, reflect the host the request came in on so magic links work
-  // from any device on the local network (phone, tablet, etc.)
-  const proto = req.protocol;
-  const host = req.hostname; // e.g. "192.168.1.84" or "localhost"
-  const port = process.env.PORT || 3001;
-  // Frontend runs on 5173; backend is the request target — use frontend port
-  return `${proto}://${host}:5173`;
+  // In dev, use the Origin header — the browser sets this to the frontend URL
+  // (e.g. http://192.168.1.84:5173) and Vite's proxy forwards it. This survives
+  // the Vite proxy hop, unlike req.hostname which always resolves to localhost.
+  const origin = req.headers.origin;
+  if (origin) return origin;
+  return process.env.APP_URL;
 }
 
 const requestLinkLimiter = rateLimit({
