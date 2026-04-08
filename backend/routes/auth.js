@@ -5,6 +5,17 @@ const authService              = require('../services/auth-service');
 const { sendMagicLink }        = require('../services/email-service');
 const { COOKIE_NAME, COOKIE_OPTIONS } = require('../middleware/auth');
 
+function getAppUrl(req) {
+  if (process.env.NODE_ENV === 'production') return process.env.APP_URL;
+  // In dev, reflect the host the request came in on so magic links work
+  // from any device on the local network (phone, tablet, etc.)
+  const proto = req.protocol;
+  const host = req.hostname; // e.g. "192.168.1.84" or "localhost"
+  const port = process.env.PORT || 3001;
+  // Frontend runs on 5173; backend is the request target — use frontend port
+  return `${proto}://${host}:5173`;
+}
+
 const requestLinkLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   limit: 5,
@@ -26,7 +37,7 @@ router.post('/request-link', requestLinkLimiter, async (req, res) => {
     const user = await authService.getUserByEmail(email);
     if (user) {
       const rawToken = await authService.createMagicLink(user.id);
-      const magicLink = `${process.env.APP_URL}/#/auth/verify?token=${rawToken}`;
+      const magicLink = `${getAppUrl(req)}/#/auth/verify?token=${rawToken}`;
       await sendMagicLink({ to: user.email, first_name: user.first_name, magicLink });
     }
     res.json({ message: 'If that email is registered, a login link has been sent.' });
