@@ -121,7 +121,7 @@ function buildPDF(outingName, reservedBy, reservationDate, items, { outingStartD
   });
 }
 
-async function sendReservationConfirmation({ outingName, reservedBy, reservedEmail, loggedInEmail, items, reservationDate, outingStartDate, outingEndDate, outingLeader, adultLeader }) {
+async function sendReservationConfirmation({ outingName, reservedBy, reservedEmail, loggedInEmail, outingLeaderEmail, adultLeaderEmail, items, reservationDate, outingStartDate, outingEndDate, outingLeader, adultLeader }) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️  RESEND_API_KEY not configured — skipping reservation confirmation email');
     return { skipped: true };
@@ -138,7 +138,7 @@ async function sendReservationConfirmation({ outingName, reservedBy, reservedEma
   } else {
     const includeQM = process.env.EMAIL_SKIP_QM !== 'true';
     const seen = new Set();
-    recipients = [loggedInEmail, reservedEmail, includeQM ? 'qm@t222.org' : null]
+    recipients = [loggedInEmail, outingLeaderEmail, adultLeaderEmail, reservedEmail, includeQM ? 'qm@t222.org' : null]
       .filter(e => e && !seen.has(e.toLowerCase()) && seen.add(e.toLowerCase()));
   }
   const pdfBuffer = await buildPDF(outingName, reservedBy, reservationDate, items, { outingStartDate, outingEndDate, outingLeader, adultLeader });

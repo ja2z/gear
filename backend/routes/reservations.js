@@ -88,6 +88,8 @@ router.post('/', async (req, res) => {
       reservedBy,
       reservedEmail,
       loggedInEmail: req.user?.email,
+      outingLeaderEmail: event.eventSplEmail,
+      adultLeaderEmail: event.adultLeaderEmail,
       items: successful,
       reservationDate,
       outingStartDate: event.startDate,

@@ -74,10 +74,12 @@ function mapRowToEvent(row) {
     endDate: row.end_date,
     eventSplId: row.event_spl,
     eventSplName: splUser ? `${splUser.first_name} ${splUser.last_name}` : null,
+    eventSplEmail: splUser?.email || null,
     eventAsplId: row.event_aspl,
     eventAsplName: asplUser ? `${asplUser.first_name} ${asplUser.last_name}` : null,
     adultLeaderId: row.adult_leader,
     adultLeaderName: adultLeaderUser ? `${adultLeaderUser.first_name} ${adultLeaderUser.last_name}` : null,
+    adultLeaderEmail: adultLeaderUser?.email || null,
     createdAt: row.created_at,
   };
 }
@@ -85,9 +87,9 @@ function mapRowToEvent(row) {
 const EVENT_SELECT = `
   id, name, event_type_id, start_date, end_date, event_spl, event_aspl, adult_leader, created_at,
   event_types(type),
-  spl_user:users!events_event_spl_fkey(first_name, last_name),
+  spl_user:users!events_event_spl_fkey(first_name, last_name, email),
   aspl_user:users!events_event_aspl_fkey(first_name, last_name),
-  adult_leader_user:users!events_adult_leader_fkey(first_name, last_name)
+  adult_leader_user:users!events_adult_leader_fkey(first_name, last_name, email)
 `;
 
 const supabaseAPI = {
