@@ -186,7 +186,7 @@ const ReservationInfo = () => {
                     </option>
                     {events.map(ev => (
                       <option key={ev.id} value={ev.id}>
-                        {ev.name}{ev.startDate ? ` — ${new Date(ev.startDate).toLocaleDateString()}` : ''}
+                        {ev.name}{ev.startDate ? ` — ${new Date(ev.startDate + 'T00:00:00').toLocaleDateString()}` : ''}
                       </option>
                     ))}
                   </select>
