@@ -47,7 +47,7 @@ async function requireAuth(req, res, next) {
 
 function requireRole(...allowedRoles) {
   return function (req, res, next) {
-    const role = req.user?.role ?? 'Admin'; // null = treat as Admin (safety valve)
+    const role = req.user?.role ?? 'admin'; // null = treat as admin (safety valve)
     if (!allowedRoles.includes(role)) {
       return res.status(403).json({ error: 'Forbidden: insufficient role' });
     }
