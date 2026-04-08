@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, ScrollText } from 'lucide-react';
+import { Package, ScrollText, Tag } from 'lucide-react';
 import { useInventory } from '../../hooks/useInventory';
 import { AnimateMain } from '../../components/AnimateMain';
 import {
@@ -147,7 +147,15 @@ const ManageInventoryDashboard = () => {
                 to="/manage-inventory/view"
                 icon={Package}
                 title="Manage items"
-                description="Categories and items — switch with the bar at the top"
+                description="Add, edit, or remove items — browse by category or item"
+              />
+            </li>
+            <li>
+              <ManageHubLinkRow
+                to="/manage-inventory/categories"
+                icon={Tag}
+                title="Manage categories"
+                description="Add or edit gear categories"
               />
             </li>
           </ul>
