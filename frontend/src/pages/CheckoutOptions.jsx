@@ -5,6 +5,8 @@ import { useCart } from '../context/CartContext';
 import { useReservations } from '../hooks/useInventory';
 import { AnimateMain } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
+import useIsDesktop from '../hooks/useIsDesktop';
+import { useDesktopHeader } from '../context/DesktopHeaderContext';
 
 const CheckoutOptions = () => {
   const navigate = useNavigate();
@@ -17,6 +19,9 @@ const CheckoutOptions = () => {
   const [selectedOuting, setSelectedOuting] = useState(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const isDesktop = useIsDesktop();
+  useDesktopHeader({ title: 'Checkout Options' });
 
   const handleReservationsClick = async () => {
     setReservationsLoading(true);
@@ -55,13 +60,14 @@ const CheckoutOptions = () => {
   };
 
   return (
-    <div className="h-screen-small flex flex-col bg-gray-100">
-      {/* Header */}
-      <div className="header">
-        <Link to="/gear" className="back-button no-underline">←</Link>
-        <h1>Check Out</h1>
-        <HeaderProfileMenu />
-      </div>
+    <div className={`${isDesktop ? 'min-h-0' : 'h-screen-small'} flex flex-col bg-gray-100`}>
+      {!isDesktop && (
+        <div className="header">
+          <Link to="/gear" className="back-button no-underline">←</Link>
+          <h1>Check Out</h1>
+          <HeaderProfileMenu />
+        </div>
+      )}
 
       <AnimateMain className="flex flex-1 flex-col min-h-0">
       {/* Content */}
@@ -103,11 +109,18 @@ const CheckoutOptions = () => {
 
       {/* Reservation selection modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
-          <div className="w-full max-w-md bg-white rounded-t-2xl px-5 pt-5 pb-8 max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+          <button
+            type="button"
+            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
+            aria-label="Close"
+            onClick={() => { setShowModal(false); setSelectedOuting(null); setError(null); }}
+          />
+          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[min(80dvh,32rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white px-5 pt-5 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">Select Reservation</h2>
               <button
+                type="button"
                 onClick={() => { setShowModal(false); setSelectedOuting(null); setError(null); }}
                 className="p-2 rounded-full text-gray-500"
               >
@@ -115,7 +128,7 @@ const CheckoutOptions = () => {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto mb-4">
               {reservations.map(res => (
                 <button
                   key={res.outingName}

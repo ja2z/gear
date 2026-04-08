@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AnimateMain } from '../components/AnimateMain';
+import { useDesktopHeader } from '../context/DesktopHeaderContext';
 
 const ReservationSuccess = () => {
   const [searchParams] = useSearchParams();
   const count = parseInt(searchParams.get('count') || '0', 10);
   const outing = searchParams.get('outing') || '';
   const [animate, setAnimate] = useState(false);
+
+  useDesktopHeader({ title: 'Reservation Confirmed' });
 
   useEffect(() => {
     const t = setTimeout(() => setAnimate(true), 100);
@@ -16,7 +19,7 @@ const ReservationSuccess = () => {
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
       <AnimateMain className="flex flex-1 flex-col min-h-0">
-      <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center px-6 text-center lg:max-w-lg lg:mx-auto lg:mt-8">
         <div
           className="text-7xl mb-6 inline-block"
           style={{

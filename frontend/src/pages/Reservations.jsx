@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -6,9 +6,12 @@ import { useReservations } from '../hooks/useInventory';
 import { getApiBaseUrl } from '../config/apiBaseUrl';
 import { AnimateMain } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
+import useIsDesktop from '../hooks/useIsDesktop';
+import { useDesktopHeader } from '../context/DesktopHeaderContext';
 
 const Reservations = () => {
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const { clearCart, setReservationMeta, addMultipleItems } = useCart();
   const { fetchReservations, fetchReservationItems } = useReservations();
 
@@ -18,6 +21,20 @@ const Reservations = () => {
   const [actionLoading, setActionLoading] = useState(null); // { eventId, type: 'edit'|'checkout' }
   const [deleteTarget, setDeleteTarget] = useState(null); // reservation pending delete confirmation
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleCreate = () => { clearCart(); navigate('/categories?mode=reserve'); };
+
+  const desktopHeaderRight = useMemo(() => (
+    <button
+      onClick={handleCreate}
+      className="h-9 px-4 text-sm font-medium rounded-md bg-scout-orange text-white"
+    >
+      + Create Reservation
+    </button>
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [navigate]);
+
+  useDesktopHeader({ title: 'Reservations', headerRight: isDesktop ? desktopHeaderRight : null });
 
   useEffect(() => {
     fetchReservations()
@@ -44,8 +61,6 @@ const Reservations = () => {
     }
   };
 
-  // Fix: _dest is stored on meta but shouldn't be passed to setReservationMeta
-  // Rewrite loadAndNavigate to be cleaner
   const handleCheckOutClean = async (res) => {
     setActionLoading({ eventId: res.eventId, type: 'checkout' });
     try {
@@ -88,6 +103,127 @@ const Reservations = () => {
     }
   };
 
+  const content = (
+    <>
+      {/* Create button — mobile only */}
+      {!isDesktop && (
+        <button
+          onClick={handleCreate}
+          className="w-full h-12 text-base font-medium rounded-md bg-scout-orange/12 border border-scout-orange/20 text-scout-orange"
+        >
+          + Create Reservation
+        </button>
+      )}
+
+      {loading && (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+        </div>
+      )}
+
+      {error && (
+        <p className="text-center text-sm text-scout-red py-4">{error}</p>
+      )}
+
+      {!loading && !error && reservations.length === 0 && (
+        <p className="text-center text-sm text-gray-500 py-10">No active reservations.</p>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {reservations.map(res => {
+          const isEditLoading = actionLoading?.eventId === res.eventId && actionLoading?.type === 'edit';
+          const isCheckoutLoading = actionLoading?.eventId === res.eventId && actionLoading?.type === 'checkout';
+          const anyLoading = !!actionLoading;
+          return (
+            <div key={res.eventId} className="card">
+              <div className="mb-3">
+                <div className="font-semibold text-gray-900">{res.outingName}</div>
+                <div className="text-sm text-gray-500 mt-0.5">
+                  {res.reservedBy} · {res.itemCount} {res.itemCount === 1 ? 'item' : 'items'}
+                </div>
+                <div className="text-xs text-gray-400 mt-0.5">
+                  Reserved {new Date(res.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleEditClean(res)}
+                  disabled={anyLoading}
+                  className="flex-1 h-9 text-sm font-medium rounded-md bg-scout-orange/12 border border-scout-orange/20 text-scout-orange disabled:opacity-50"
+                >
+                  {isEditLoading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Edit'}
+                </button>
+                <button
+                  onClick={() => handleCheckOutClean(res)}
+                  disabled={anyLoading}
+                  className="flex-1 h-9 text-sm font-medium rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue disabled:opacity-50"
+                >
+                  {isCheckoutLoading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Check Out'}
+                </button>
+                <button
+                  onClick={() => setDeleteTarget(res)}
+                  disabled={!!actionLoading}
+                  className="flex-1 h-9 text-sm font-medium rounded-md border border-scout-red text-scout-red disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+
+  /* ── Delete confirmation modal ── */
+  const deleteModal = deleteTarget && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+      <button
+        type="button"
+        className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
+        aria-label="Close"
+        disabled={deleteLoading}
+        onClick={() => !deleteLoading && setDeleteTarget(null)}
+      />
+      <div className="modal-dialog-panel-enter relative z-[101] w-full max-w-md rounded-2xl bg-white px-5 pt-5 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
+        <h2 className="text-lg font-bold text-gray-900 mb-1">Delete Reservation?</h2>
+        <p className="text-sm text-gray-600 mb-1">
+          <span className="font-medium">{deleteTarget.outingName}</span>
+        </p>
+        <p className="text-sm text-gray-500 mb-6">
+          {deleteTarget.itemCount === 1 ? 'The 1 reserved item' : `All ${deleteTarget.itemCount} reserved items`} will be returned to available inventory.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setDeleteTarget(null)}
+            disabled={deleteLoading}
+            className="flex-1 h-12 rounded-md border border-gray-300 text-sm font-medium text-gray-700 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDeleteConfirm}
+            disabled={deleteLoading}
+            className="flex-1 h-12 rounded-md bg-scout-red/12 border border-scout-red/20 text-scout-red text-sm font-medium disabled:opacity-50"
+          >
+            {deleteLoading ? 'Deleting...' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ── Desktop: no shell wrapper, just content ── */
+  if (isDesktop) {
+    return (
+      <div className="px-6 py-6 space-y-4">
+        {content}
+        {deleteModal}
+      </div>
+    );
+  }
+
+  /* ── Mobile: original layout ── */
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
       {/* Header */}
@@ -101,103 +237,12 @@ const Reservations = () => {
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 py-5 space-y-3">
-          {/* Create button */}
-          <button
-            onClick={() => { clearCart(); navigate('/categories?mode=reserve'); }}
-            className="w-full h-12 text-base font-medium rounded-md bg-scout-orange/12 border border-scout-orange/20 text-scout-orange"
-          >
-            + Create Reservation
-          </button>
-
-          {loading && (
-            <div className="flex justify-center py-10">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-            </div>
-          )}
-
-          {error && (
-            <p className="text-center text-sm text-scout-red py-4">{error}</p>
-          )}
-
-          {!loading && !error && reservations.length === 0 && (
-            <p className="text-center text-sm text-gray-500 py-10">No active reservations.</p>
-          )}
-
-          {reservations.map(res => {
-            const isEditLoading = actionLoading?.eventId === res.eventId && actionLoading?.type === 'edit';
-            const isCheckoutLoading = actionLoading?.eventId === res.eventId && actionLoading?.type === 'checkout';
-            const anyLoading = !!actionLoading;
-            return (
-              <div key={res.eventId} className="card">
-                <div className="mb-3">
-                  <div className="font-semibold text-gray-900">{res.outingName}</div>
-                  <div className="text-sm text-gray-500 mt-0.5">
-                    {res.reservedBy} · {res.itemCount} {res.itemCount === 1 ? 'item' : 'items'}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-0.5">
-                    Reserved {new Date(res.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEditClean(res)}
-                    disabled={anyLoading}
-                    className="flex-1 h-9 text-sm font-medium rounded-md bg-scout-orange/12 border border-scout-orange/20 text-scout-orange disabled:opacity-50"
-                  >
-                    {isEditLoading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Edit'}
-                  </button>
-                  <button
-                    onClick={() => handleCheckOutClean(res)}
-                    disabled={anyLoading}
-                    className="flex-1 h-9 text-sm font-medium rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue disabled:opacity-50"
-                  >
-                    {isCheckoutLoading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Check Out'}
-                  </button>
-                  <button
-                    onClick={() => setDeleteTarget(res)}
-                    disabled={!!actionLoading}
-                    className="flex-1 h-9 text-sm font-medium rounded-md border border-scout-red text-scout-red disabled:opacity-50"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {content}
         </div>
       </div>
       </AnimateMain>
 
-      {/* Delete confirmation — bottom sheet */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
-          <div className="w-full max-w-md bg-white rounded-t-2xl px-5 pt-5 pb-8">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Delete Reservation?</h2>
-            <p className="text-sm text-gray-600 mb-1">
-              <span className="font-medium">{deleteTarget.outingName}</span>
-            </p>
-            <p className="text-sm text-gray-500 mb-6">
-              {deleteTarget.itemCount === 1 ? 'The 1 reserved item' : `All ${deleteTarget.itemCount} reserved items`} will be returned to available inventory.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteTarget(null)}
-                disabled={deleteLoading}
-                className="flex-1 h-12 rounded-md border border-gray-300 text-sm font-medium text-gray-700 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={deleteLoading}
-                className="flex-1 h-12 rounded-md bg-scout-red/12 border border-scout-red/20 text-scout-red text-sm font-medium disabled:opacity-50"
-              >
-                {deleteLoading ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {deleteModal}
     </div>
   );
 };

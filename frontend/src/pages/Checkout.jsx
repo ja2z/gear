@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useInventory } from '../hooks/useInventory';
@@ -6,6 +6,9 @@ import { useAuth } from '../context/AuthContext';
 import { getApiBaseUrl } from '../config/apiBaseUrl';
 import { AnimateMain } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
+import useIsDesktop from '../hooks/useIsDesktop';
+import { useDesktopHeader } from '../context/DesktopHeaderContext';
+import RosterSearchField from '../components/RosterSearchField';
 
 const defaultDate = () =>
   new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -16,8 +19,11 @@ const Checkout = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { state: locationState } = useLocation();
+  const isDesktop = useIsDesktop();
   const fromReservation = reservationMeta?.fromReservation === true || locationState?.fromReservation === true;
   const userFullName = user ? `${user.first_name} ${user.last_name}` : '';
+
+  useDesktopHeader({ title: 'Checkout Information' });
 
   const [formData, setFormData] = useState({
     eventId: reservationMeta?.eventId || locationState?.eventId || '',
@@ -36,11 +42,13 @@ const Checkout = () => {
 
   // New-event modal state
   const [showNewEventModal, setShowNewEventModal] = useState(false);
-  const [newEventForm, setNewEventForm] = useState({ name: '', eventTypeId: 1, startDate: '', endDate: '', eventSplId: '', eventAsplId: '', adultLeaderId: '' });
+  const [newEventForm, setNewEventForm] = useState({ name: '', eventTypeId: 1, startDate: '', endDate: '', eventSplId: '', adultLeaderId: '' });
   const [eventTypes, setEventTypes] = useState([]);
   const [users, setUsers] = useState([]);
   const [newEventLoading, setNewEventLoading] = useState(false);
   const [newEventError, setNewEventError] = useState(null);
+  const [newEventLeaderSearch, setNewEventLeaderSearch] = useState('');
+  const [newEventAdultLeaderSearch, setNewEventAdultLeaderSearch] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -153,6 +161,21 @@ const Checkout = () => {
     await doCheckout();
   };
 
+  const groupedItems = useMemo(() => {
+    const grouped = {};
+    items.forEach(item => {
+      const key = item.itemClass || 'Other';
+      if (!grouped[key]) {
+        grouped[key] = { description: item.itemDesc || key, items: [] };
+      }
+      grouped[key].items.push(item);
+    });
+    Object.values(grouped).forEach(cat =>
+      cat.items.sort((a, b) => (a.itemNum || 0) - (b.itemNum || 0))
+    );
+    return grouped;
+  }, [items]);
+
   const scouts = users.filter(u => !u.isAdult);
   const adults = users.filter(u => u.isAdult);
   const newEventIsOvernight = eventTypes.find(t => t.id === parseInt(newEventForm.eventTypeId, 10))?.type === 'Overnight Outing';
@@ -173,7 +196,7 @@ const Checkout = () => {
       return;
     }
     if (!newEventForm.eventSplId) {
-      setNewEventError('SPL is required');
+      setNewEventError('Outing leader is required');
       return;
     }
     if (!newEventForm.adultLeaderId) {
@@ -188,14 +211,16 @@ const Checkout = () => {
         startDate: newEventForm.startDate,
         endDate: newEventIsOvernight ? (newEventForm.endDate || null) : null,
         eventSplId: newEventForm.eventSplId || null,
-        eventAsplId: newEventForm.eventAsplId || null,
+        eventAsplId: null,
         adultLeaderId: newEventForm.adultLeaderId || null,
       });
       setEvents(prev => [created, ...prev]);
       setFormData(prev => ({ ...prev, eventId: String(created.id), scoutName: created.eventSplName || prev.scoutName }));
       setSelectedEventName(created.name);
       setShowNewEventModal(false);
-      setNewEventForm({ name: '', eventTypeId: eventTypes[0]?.id || 1, startDate: '', endDate: '', eventSplId: '', eventAsplId: '', adultLeaderId: '' });
+      setNewEventLeaderSearch('');
+      setNewEventAdultLeaderSearch('');
+      setNewEventForm({ name: '', eventTypeId: eventTypes[0]?.id || 1, startDate: '', endDate: '', eventSplId: '', adultLeaderId: '' });
     } catch (err) {
       setNewEventError(err.message || 'Failed to create event');
     } finally {
@@ -219,6 +244,344 @@ const Checkout = () => {
     );
   }
 
+  const formContent = (
+    <>
+      {fromReservation && (
+        <div className="mb-5 bg-orange-50 border border-orange-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-orange-800 font-medium">
+            Checking out reserved gear for <span className="font-bold">{selectedEventName}</span>
+          </p>
+        </div>
+      )}
+
+      <form id="checkout-form" onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-5">
+          {/* Event selector */}
+          <div>
+            <label htmlFor="eventId" className="block text-sm font-semibold text-gray-700 mb-2">
+              Outing / Event *
+            </label>
+            <div className="flex gap-2">
+              <select
+                id="eventId"
+                name="eventId"
+                value={formData.eventId}
+                onChange={handleEventSelect}
+                required
+                disabled={fromReservation}
+                className={`form-input flex-1 ${fromReservation ? 'bg-gray-50 text-gray-500 cursor-not-allowed opacity-60' : ''}`}
+              >
+                <option value="">
+                  {eventsLoading ? 'Loading events…' : 'Select an event'}
+                </option>
+                {events.map(ev => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name}{ev.startDate ? ` — ${new Date(ev.startDate).toLocaleDateString()}` : ''}
+                  </option>
+                ))}
+              </select>
+              {!fromReservation && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewEventLeaderSearch('');
+                    setNewEventAdultLeaderSearch('');
+                    setShowNewEventModal(true);
+                  }}
+                  className="shrink-0 h-12 px-3 rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue text-sm font-medium"
+                  aria-label="Add new event"
+                >
+                  + New
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="scoutName" className={secondaryLabelClass}>
+              Checked out to (Outing Leader Name) *
+            </label>
+            <input
+              type="text"
+              id="scoutName"
+              name="scoutName"
+              value={formData.scoutName}
+              onChange={handleChange}
+              disabled={secondaryLocked}
+              required={eventReady}
+              className={secondaryFieldClass}
+              placeholder="Enter outing leader name"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="qmName" className={user ? 'block text-sm font-semibold text-gray-700 mb-2' : secondaryLabelClass}>
+              Checked out by (QM name) *
+            </label>
+            <input
+              type="text"
+              id="qmName"
+              name="qmName"
+              value={formData.qmName}
+              onChange={handleChange}
+              disabled={user ? true : secondaryLocked}
+              required={eventReady}
+              className={user ? 'form-input bg-gray-50 text-gray-500 cursor-not-allowed opacity-60' : secondaryFieldClass}
+              placeholder="Enter quartermaster name"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="date" className={secondaryLabelClass}>
+              Checkout Date *
+            </label>
+            <input
+              type="date"
+              id="date"
+              name="date"
+              value={formData.date}
+              onChange={handleChange}
+              disabled={secondaryLocked}
+              required={eventReady}
+              className={secondaryFieldClass}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="notes" className={secondaryLabelClass}>
+              Notes (Optional)
+            </label>
+            <textarea
+              id="notes"
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              disabled={secondaryLocked}
+              rows={3}
+              className={secondaryFieldClass}
+              placeholder="Any special notes or instructions..."
+            />
+          </div>
+        </div>
+
+        {submitError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800 text-sm">{submitError}</p>
+          </div>
+        )}
+
+        {isDesktop && (
+          <button
+            type="submit"
+            disabled={!eventReady || loading}
+            className="w-full h-12 text-base font-medium rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue disabled:opacity-50"
+          >
+            {loading ? 'Processing...' : 'Complete Checkout'}
+          </button>
+        )}
+      </form>
+    </>
+  );
+
+  const cartSummaryCard = (
+    <div className="sticky top-6">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-900">
+            Cart Summary
+            <span className="ml-2 text-sm font-normal text-gray-500">
+              {getTotalItems()} {getTotalItems() === 1 ? 'item' : 'items'}
+            </span>
+          </h2>
+        </div>
+        <div className="px-5 py-3 max-h-[calc(100vh-16rem)] overflow-y-auto">
+          {Object.entries(groupedItems).map(([classCode, group]) => (
+            <div key={classCode} className="py-2 first:pt-0 last:pb-0">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                {group.description}
+                <span className="ml-1 text-gray-400">({group.items.length})</span>
+              </p>
+              <ul className="space-y-0.5">
+                {group.items.map(item => (
+                  <li key={item.itemId} className="text-sm text-gray-700 flex items-baseline gap-2">
+                    <span className="font-medium text-scout-blue shrink-0">{item.itemId}</span>
+                    {item.description && (
+                      <span className="text-gray-500 truncate">{item.description}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ---- Desktop layout ---- */
+  if (isDesktop) {
+    return (
+      <>
+        <AnimateMain className="flex flex-1 flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto">
+            <div className="px-6 py-6 lg:grid lg:grid-cols-[1fr_22rem] lg:gap-6">
+              <div>{formContent}</div>
+              {cartSummaryCard}
+            </div>
+          </div>
+        </AnimateMain>
+
+        {/* Removed items warning modal */}
+        {removedItemsWarning && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+            <button
+              type="button"
+              className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
+              aria-label="Close"
+              onClick={() => setRemovedItemsWarning(null)}
+            />
+            <div className="modal-dialog-panel-enter relative z-[101] w-full max-w-md rounded-2xl bg-white px-6 pt-6 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
+              <h2 className="text-lg font-bold text-gray-900 mb-2">Items Not Being Checked Out</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                The following {removedItemsWarning.length === 1 ? 'item was' : 'items were'} in your reservation but removed from the cart.{' '}
+                {removedItemsWarning.length === 1 ? 'It' : 'They'} will be returned to available inventory:
+              </p>
+              <ul className="mb-5 space-y-1">
+                {removedItemsWarning.map(item => (
+                  <li key={item.itemId} className="text-sm font-medium text-gray-800">
+                    {item.itemId} — {item.description}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setRemovedItemsWarning(null)}
+                  className="flex-1 h-11 rounded-md border border-gray-300 text-sm font-medium text-gray-700"
+                >
+                  Go Back
+                </button>
+                <button
+                  onClick={() => { setRemovedItemsWarning(null); doCheckout(); }}
+                  disabled={loading}
+                  className="flex-1 h-11 rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue text-sm font-medium disabled:opacity-50"
+                >
+                  {loading ? 'Processing...' : 'Confirm Checkout'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* New event modal */}
+        {showNewEventModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+            <button
+              type="button"
+              className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
+              aria-label="Close"
+            onClick={() => { setShowNewEventModal(false); setNewEventError(null); setNewEventLeaderSearch(''); setNewEventAdultLeaderSearch(''); }}
+          />
+            <div className="modal-dialog-panel-enter relative z-[101] max-h-[min(90dvh,42rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white px-6 pt-6 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Add New Event</h2>
+              <form onSubmit={handleCreateEvent} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Event Name *</label>
+                  <input
+                    type="text"
+                    value={newEventForm.name}
+                    onChange={e => setNewEventForm(prev => ({ ...prev, name: e.target.value }))}
+                    autoFocus
+                    className="form-input w-full"
+                    placeholder="e.g. Spring Campout 2026"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Event Type *</label>
+                  <select
+                    value={newEventForm.eventTypeId}
+                    onChange={e => setNewEventForm(prev => ({ ...prev, eventTypeId: parseInt(e.target.value, 10), endDate: '' }))}
+                    className="form-input w-full"
+                  >
+                    {eventTypes.map(t => (
+                      <option key={t.id} value={t.id}>{t.type}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Start Date *</label>
+                  <input
+                    type="date"
+                    value={newEventForm.startDate}
+                    onChange={e => setNewEventForm(prev => ({ ...prev, startDate: e.target.value }))}
+                    className="form-input w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    End Date {newEventIsOvernight ? '*' : '(Optional)'}
+                  </label>
+                  <input
+                    type="date"
+                    value={newEventForm.endDate}
+                    min={newEventForm.startDate || undefined}
+                    onChange={e => setNewEventForm(prev => ({ ...prev, endDate: e.target.value }))}
+                    className="form-input w-full"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="outing-leader-checkout-desktop" className="block text-sm font-semibold text-gray-700 mb-1">
+                    Outing leader *
+                  </label>
+                  <RosterSearchField
+                    fieldId="outing-leader-checkout-desktop"
+                    users={scouts}
+                    value={newEventForm.eventSplId}
+                    onChange={(id) => setNewEventForm((prev) => ({ ...prev, eventSplId: id }))}
+                    searchText={newEventLeaderSearch}
+                    onSearchTextChange={setNewEventLeaderSearch}
+                    disabled={newEventLoading}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="adult-leader-checkout-desktop" className="block text-sm font-semibold text-gray-700 mb-1">Adult Leader *</label>
+                  <RosterSearchField
+                    fieldId="adult-leader-checkout-desktop"
+                    users={adults}
+                    value={newEventForm.adultLeaderId}
+                    onChange={(id) => setNewEventForm((prev) => ({ ...prev, adultLeaderId: id }))}
+                    searchText={newEventAdultLeaderSearch}
+                    onSearchTextChange={setNewEventAdultLeaderSearch}
+                    disabled={newEventLoading}
+                  />
+                </div>
+                {newEventError && (
+                  <p className="text-sm text-red-600">{newEventError}</p>
+                )}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowNewEventModal(false); setNewEventError(null); setNewEventLeaderSearch(''); setNewEventAdultLeaderSearch(''); }}
+                    className="flex-1 h-11 rounded-md border border-gray-300 text-sm font-medium text-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={newEventLoading}
+                    className="flex-1 h-11 rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue text-sm font-medium disabled:opacity-50"
+                  >
+                    {newEventLoading ? 'Creating…' : 'Create Event'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  /* ---- Mobile layout (unchanged) ---- */
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
       <div className="header">
@@ -240,126 +603,7 @@ const Checkout = () => {
       <AnimateMain className="flex flex-1 flex-col min-h-0">
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 py-6 pb-20">
-          {fromReservation && (
-            <div className="mb-5 bg-orange-50 border border-orange-200 rounded-lg px-4 py-3">
-              <p className="text-sm text-orange-800 font-medium">
-                Checking out reserved gear for <span className="font-bold">{selectedEventName}</span>
-              </p>
-            </div>
-          )}
-
-          <form id="checkout-form" onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-5">
-              {/* Event selector */}
-              <div>
-                <label htmlFor="eventId" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Outing / Event *
-                </label>
-                <div className="flex gap-2">
-                  <select
-                    id="eventId"
-                    name="eventId"
-                    value={formData.eventId}
-                    onChange={handleEventSelect}
-                    required
-                    disabled={fromReservation}
-                    className={`form-input flex-1 ${fromReservation ? 'bg-gray-50 text-gray-500 cursor-not-allowed opacity-60' : ''}`}
-                  >
-                    <option value="">
-                      {eventsLoading ? 'Loading events…' : 'Select an event'}
-                    </option>
-                    {events.map(ev => (
-                      <option key={ev.id} value={ev.id}>
-                        {ev.name}{ev.startDate ? ` — ${new Date(ev.startDate).toLocaleDateString()}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {!fromReservation && (
-                    <button
-                      type="button"
-                      onClick={() => setShowNewEventModal(true)}
-                      className="shrink-0 h-12 px-3 rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue text-sm font-medium"
-                      aria-label="Add new event"
-                    >
-                      + New
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="scoutName" className={secondaryLabelClass}>
-                  Checked out to (Outing Leader Name) *
-                </label>
-                <input
-                  type="text"
-                  id="scoutName"
-                  name="scoutName"
-                  value={formData.scoutName}
-                  onChange={handleChange}
-                  disabled={secondaryLocked}
-                  required={eventReady}
-                  className={secondaryFieldClass}
-                  placeholder="Enter outing leader name"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="qmName" className={user ? 'block text-sm font-semibold text-gray-700 mb-2' : secondaryLabelClass}>
-                  Checked out by (QM name) *
-                </label>
-                <input
-                  type="text"
-                  id="qmName"
-                  name="qmName"
-                  value={formData.qmName}
-                  onChange={handleChange}
-                  disabled={user ? true : secondaryLocked}
-                  required={eventReady}
-                  className={user ? 'form-input bg-gray-50 text-gray-500 cursor-not-allowed opacity-60' : secondaryFieldClass}
-                  placeholder="Enter quartermaster name"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="date" className={secondaryLabelClass}>
-                  Checkout Date *
-                </label>
-                <input
-                  type="date"
-                  id="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  disabled={secondaryLocked}
-                  required={eventReady}
-                  className={secondaryFieldClass}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="notes" className={secondaryLabelClass}>
-                  Notes (Optional)
-                </label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  disabled={secondaryLocked}
-                  rows={3}
-                  className={secondaryFieldClass}
-                  placeholder="Any special notes or instructions..."
-                />
-              </div>
-            </div>
-          </form>
-
-          {submitError && (
-            <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800 text-sm">{submitError}</p>
-            </div>
-          )}
+          {formContent}
         </div>
       </div>
 
@@ -377,8 +621,14 @@ const Checkout = () => {
 
       {/* Removed items warning modal */}
       {removedItemsWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md bg-white rounded-2xl p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+          <button
+            type="button"
+            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
+            aria-label="Close"
+            onClick={() => setRemovedItemsWarning(null)}
+          />
+          <div className="modal-dialog-panel-enter relative z-[101] w-full max-w-md rounded-2xl bg-white px-6 pt-6 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
             <h2 className="text-lg font-bold text-gray-900 mb-2">Items Not Being Checked Out</h2>
             <p className="text-sm text-gray-600 mb-4">
               The following {removedItemsWarning.length === 1 ? 'item was' : 'items were'} in your reservation but removed from the cart.{' '}
@@ -412,10 +662,16 @@ const Checkout = () => {
 
       {/* New event modal */}
       {showNewEventModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-0 sm:px-4">
-          <div className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Add New Event</h2>
-            <form onSubmit={handleCreateEvent} className="space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+          <button
+            type="button"
+            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
+            aria-label="Close"
+            onClick={() => { setShowNewEventModal(false); setNewEventError(null); setNewEventLeaderSearch(''); setNewEventAdultLeaderSearch(''); }}
+          />
+            <div className="modal-dialog-panel-enter relative z-[101] max-h-[min(90dvh,42rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white px-6 pt-6 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Add New Event</h2>
+              <form onSubmit={handleCreateEvent} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Event Name *</label>
                 <input
@@ -461,43 +717,30 @@ const Checkout = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">SPL (Senior Patrol Leader) *</label>
-                <select
+                <label htmlFor="outing-leader-checkout-mobile" className="block text-sm font-semibold text-gray-700 mb-1">
+                  Outing leader *
+                </label>
+                <RosterSearchField
+                  fieldId="outing-leader-checkout-mobile"
+                  users={scouts}
                   value={newEventForm.eventSplId}
-                  onChange={e => setNewEventForm(prev => ({ ...prev, eventSplId: e.target.value }))}
-                  className="form-input w-full"
-                >
-                  <option value="">— Select SPL —</option>
-                  {scouts.map(u => (
-                    <option key={u.id} value={u.id}>{u.fullName}</option>
-                  ))}
-                </select>
+                  onChange={(id) => setNewEventForm((prev) => ({ ...prev, eventSplId: id }))}
+                  searchText={newEventLeaderSearch}
+                  onSearchTextChange={setNewEventLeaderSearch}
+                  disabled={newEventLoading}
+                />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">ASPL (Assistant SPL)</label>
-                <select
-                  value={newEventForm.eventAsplId}
-                  onChange={e => setNewEventForm(prev => ({ ...prev, eventAsplId: e.target.value }))}
-                  className="form-input w-full"
-                >
-                  <option value="">— None —</option>
-                  {scouts.map(u => (
-                    <option key={u.id} value={u.id}>{u.fullName}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Adult Leader *</label>
-                <select
+                <label htmlFor="adult-leader-checkout-mobile" className="block text-sm font-semibold text-gray-700 mb-1">Adult Leader *</label>
+                <RosterSearchField
+                  fieldId="adult-leader-checkout-mobile"
+                  users={adults}
                   value={newEventForm.adultLeaderId}
-                  onChange={e => setNewEventForm(prev => ({ ...prev, adultLeaderId: e.target.value }))}
-                  className="form-input w-full"
-                >
-                  <option value="">— Select Adult Leader —</option>
-                  {adults.map(u => (
-                    <option key={u.id} value={u.id}>{u.fullName}</option>
-                  ))}
-                </select>
+                  onChange={(id) => setNewEventForm((prev) => ({ ...prev, adultLeaderId: id }))}
+                  searchText={newEventAdultLeaderSearch}
+                  onSearchTextChange={setNewEventAdultLeaderSearch}
+                  disabled={newEventLoading}
+                />
               </div>
               {newEventError && (
                 <p className="text-sm text-red-600">{newEventError}</p>
@@ -505,7 +748,7 @@ const Checkout = () => {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setShowNewEventModal(false); setNewEventError(null); }}
+                  onClick={() => { setShowNewEventModal(false); setNewEventError(null); setNewEventLeaderSearch(''); setNewEventAdultLeaderSearch(''); }}
                   className="flex-1 h-11 rounded-md border border-gray-300 text-sm font-medium text-gray-700"
                 >
                   Cancel

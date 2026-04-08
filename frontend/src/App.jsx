@@ -3,14 +3,14 @@ if ('scrollRestoration' in window.history) {
   window.history.scrollRestoration = 'manual';
 }
 
-import { HashRouter as Router, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, Outlet, useParams, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import useIsDesktop from './hooks/useIsDesktop';
 
 // Context providers
 import { CartProvider } from './context/CartContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { isDevAuthBypassActive } from './config/devAuthBypass';
 import { setUnauthorizedHandler } from './hooks/useInventory';
 import { MembersMockProvider } from './context/MembersMockContext';
 
@@ -18,6 +18,7 @@ import { MembersMockProvider } from './context/MembersMockContext';
 import ScrollToTop from './components/ScrollToTop';
 import InputFocusLock from './components/InputFocusLock';
 import ProtectedRoute from './components/ProtectedRoute';
+import DesktopLayoutRoute from './components/DesktopLayoutRoute';
 import { canCheckout, canCheckin, canManageInventory, canManageMembers } from './utils/permissions';
 
 // Auth pages (public)
@@ -30,6 +31,7 @@ import Landing from './pages/Landing';
 import ManageTables from './pages/ManageTables';
 import OutingsPage from './pages/OutingsPage';
 import ComingSoonPage from './pages/ComingSoonPage';
+import HubEventPlaceholder from './pages/HubEventPlaceholder';
 
 // Members (mock roster — session-only)
 import ManageMembers from './pages/manage-members/ManageMembers';
@@ -91,12 +93,100 @@ function UnauthorizedWatcher() {
   const { logout } = useAuth();
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      if (isDevAuthBypassActive()) return;
       logout();
     });
     return () => setUnauthorizedHandler(null);
   }, [logout]);
   return null;
+}
+
+/**
+ * Outer chrome — on lg+ everything is full-width (DesktopShell manages width).
+ * Below lg, hub pages are full-width; other routes get a centered column on xl.
+ */
+const FULL_WIDTH_MOBILE = new Set(['/home', '/gear', '/outings', '/manage', '/advancement', '/calendar']);
+
+function AppContentShell() {
+  const { pathname } = useLocation();
+  const isDesktop = useIsDesktop();
+
+  const isFullWidthMobile = FULL_WIDTH_MOBILE.has(pathname);
+  const innerClass = isDesktop || isFullWidthMobile
+    ? 'w-full min-h-screen bg-gray-50'
+    : 'min-h-screen bg-gray-50 xl:mx-auto xl:max-w-2xl xl:shadow-xl';
+  const outerClass = isDesktop
+    ? 'min-h-screen bg-gray-50'
+    : 'min-h-screen xl:bg-gray-200';
+
+  return (
+    <div className={outerClass}>
+      <div className={innerClass}>
+        <Routes>
+                {/* Public routes — no desktop shell */}
+                <Route path="/"            element={<SmartRoot />} />
+                <Route path="/auth/verify" element={<VerifyPage />} />
+
+                {/* All authenticated routes share the desktop layout */}
+                <Route element={<ProtectedRoute><DesktopLayoutRoute /></ProtectedRoute>}>
+                  <Route path="/home" element={<HomePage />} />
+                  <Route path="/hub/event/:eventId" element={<HubEventPlaceholder />} />
+
+                  <Route path="/gear" element={<Landing />} />
+                  <Route path="/outings" element={<OutingsPage />} />
+                  <Route path="/advancement" element={<ComingSoonPage title="Advancement" />} />
+                  <Route path="/calendar" element={<ComingSoonPage title="Calendar" />} />
+
+                  {/* Manage hub + members */}
+                  <Route
+                    path="/manage"
+                    element={<MembersMockProvider><Outlet /></MembersMockProvider>}
+                  >
+                    <Route index element={<ManageTables />} />
+                    <Route path="members/roster" element={<Navigate to="/manage/members" replace />} />
+                    <Route path="members/add" element={<Navigate to="/manage/members" replace state={{ openAddMember: true }} />} />
+                    <Route
+                      path="members"
+                      element={(
+                        <ProtectedRoute canAccess={canManageMembers}>
+                          <ManageMembers />
+                        </ProtectedRoute>
+                      )}
+                    />
+                  </Route>
+
+                  {/* Gear sub-routes */}
+                  <Route path="/categories" element={<ProtectedRoute canAccess={canCheckout}><Categories /></ProtectedRoute>} />
+                  <Route path="/items/:category" element={<ProtectedRoute canAccess={canCheckout}><Items /></ProtectedRoute>} />
+                  <Route path="/cart" element={<ProtectedRoute canAccess={canCheckout}><Cart /></ProtectedRoute>} />
+                  <Route path="/checkout" element={<ProtectedRoute canAccess={canCheckout}><Checkout /></ProtectedRoute>} />
+                  <Route path="/checkin/outings" element={<Navigate to="/checkin" replace />} />
+                  <Route path="/checkin/items"   element={<Navigate to="/checkin" replace />} />
+                  <Route path="/checkin/form" element={<ProtectedRoute canAccess={canCheckin}><CheckinForm /></ProtectedRoute>} />
+                  <Route path="/checkin" element={<ProtectedRoute canAccess={canCheckin}><Checkin /></ProtectedRoute>} />
+                  <Route path="/success" element={<ProtectedRoute canAccess={canCheckout}><Success /></ProtectedRoute>} />
+                  <Route path="/checkout-options" element={<ProtectedRoute canAccess={canCheckout}><CheckoutOptions /></ProtectedRoute>} />
+                  <Route path="/reservations" element={<Reservations />} />
+                  <Route path="/reservation-info" element={<ReservationInfo />} />
+                  <Route path="/reservation-success" element={<ReservationSuccess />} />
+                  <Route path="/outing-selection" element={<ProtectedRoute canAccess={canCheckout}><OutingSelection /></ProtectedRoute>} />
+
+                  {/* Manage Inventory */}
+                  <Route path="/manage-inventory" element={<ProtectedRoute canAccess={canManageInventory}><ManageInventoryDashboard /></ProtectedRoute>} />
+                  <Route path="/manage-inventory/view" element={<ProtectedRoute canAccess={canManageInventory}><ViewInventory /></ProtectedRoute>} />
+                  <Route path="/manage-inventory/add-item" element={<ProtectedRoute canAccess={canManageInventory}><NavigateAddItemModal /></ProtectedRoute>} />
+                  <Route path="/manage-inventory/edit-item/:itemId" element={<ProtectedRoute canAccess={canManageInventory}><NavigateEditItemModal /></ProtectedRoute>} />
+                  <Route path="/manage-inventory/item-log/:itemId" element={<ProtectedRoute canAccess={canManageInventory}><ItemTransactionLog /></ProtectedRoute>} />
+                  <Route path="/manage-inventory/view-logs" element={<ProtectedRoute canAccess={canManageInventory}><ViewTransactionLog /></ProtectedRoute>} />
+                  <Route path="/manage-inventory/delete-item/:itemId" element={<ProtectedRoute canAccess={canManageInventory}><NavigateDeleteItemModal /></ProtectedRoute>} />
+                  <Route path="/manage-inventory/select-category" element={<ProtectedRoute canAccess={canManageInventory}><SelectCategory /></ProtectedRoute>} />
+                  <Route path="/manage-inventory/categories" element={<ProtectedRoute canAccess={canManageInventory}><ManageCategories /></ProtectedRoute>} />
+                  <Route path="/manage-inventory/add-category" element={<ProtectedRoute canAccess={canManageInventory}><AddCategory /></ProtectedRoute>} />
+                  <Route path="/manage-inventory/edit-category/:classCode" element={<ProtectedRoute canAccess={canManageInventory}><EditCategory /></ProtectedRoute>} />
+                </Route>
+        </Routes>
+      </div>
+    </div>
+  );
 }
 
 function App() {
@@ -107,136 +197,7 @@ function App() {
           <UnauthorizedWatcher />
           <ScrollToTop />
           <InputFocusLock />
-          <div className="min-h-screen xl:bg-gray-200">
-            <div className="xl:max-w-2xl xl:mx-auto bg-gray-50 min-h-screen xl:shadow-xl">
-              <Routes>
-                {/* Public routes */}
-                <Route path="/"            element={<SmartRoot />} />
-                <Route path="/auth/verify" element={<VerifyPage />} />
-
-                {/* Authenticated hub */}
-                <Route path="/home" element={
-                  <ProtectedRoute><HomePage /></ProtectedRoute>
-                } />
-
-                {/* Top-level sections */}
-                <Route path="/gear" element={
-                  <ProtectedRoute><Landing /></ProtectedRoute>
-                } />
-                <Route path="/outings" element={
-                  <ProtectedRoute><OutingsPage /></ProtectedRoute>
-                } />
-                <Route path="/advancement" element={
-                  <ProtectedRoute><ComingSoonPage title="Advancement" /></ProtectedRoute>
-                } />
-                <Route path="/calendar" element={
-                  <ProtectedRoute><ComingSoonPage title="Calendar" /></ProtectedRoute>
-                } />
-                {/* Manage hub + members (shared mock roster context) */}
-                <Route
-                  path="/manage"
-                  element={
-                    <ProtectedRoute>
-                      <MembersMockProvider>
-                        <Outlet />
-                      </MembersMockProvider>
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<ManageTables />} />
-                  {/* Legacy URLs → roster list */}
-                  <Route
-                    path="members/roster"
-                    element={<Navigate to="/manage/members" replace />}
-                  />
-                  <Route
-                    path="members/add"
-                    element={
-                      <Navigate to="/manage/members" replace state={{ openAddMember: true }} />
-                    }
-                  />
-                  <Route path="members" element={
-                    <ProtectedRoute canAccess={canManageMembers}><ManageMembers /></ProtectedRoute>
-                  } />
-                </Route>
-
-                {/* Gear sub-routes */}
-                <Route path="/categories" element={
-                  <ProtectedRoute canAccess={canCheckout}><Categories /></ProtectedRoute>
-                } />
-                <Route path="/items/:category" element={
-                  <ProtectedRoute canAccess={canCheckout}><Items /></ProtectedRoute>
-                } />
-                <Route path="/cart" element={
-                  <ProtectedRoute canAccess={canCheckout}><Cart /></ProtectedRoute>
-                } />
-                <Route path="/checkout" element={
-                  <ProtectedRoute canAccess={canCheckout}><Checkout /></ProtectedRoute>
-                } />
-                <Route path="/checkin/outings" element={<Navigate to="/checkin" replace />} />
-                <Route path="/checkin/items"   element={<Navigate to="/checkin" replace />} />
-                <Route path="/checkin/form" element={
-                  <ProtectedRoute canAccess={canCheckin}><CheckinForm /></ProtectedRoute>
-                } />
-                <Route path="/checkin" element={
-                  <ProtectedRoute canAccess={canCheckin}><Checkin /></ProtectedRoute>
-                } />
-                <Route path="/success" element={
-                  <ProtectedRoute canAccess={canCheckout}><Success /></ProtectedRoute>
-                } />
-                <Route path="/checkout-options" element={
-                  <ProtectedRoute canAccess={canCheckout}><CheckoutOptions /></ProtectedRoute>
-                } />
-                <Route path="/reservations" element={
-                  <ProtectedRoute><Reservations /></ProtectedRoute>
-                } />
-                <Route path="/reservation-info" element={
-                  <ProtectedRoute><ReservationInfo /></ProtectedRoute>
-                } />
-                <Route path="/reservation-success" element={
-                  <ProtectedRoute><ReservationSuccess /></ProtectedRoute>
-                } />
-                <Route path="/outing-selection" element={
-                  <ProtectedRoute canAccess={canCheckout}><OutingSelection /></ProtectedRoute>
-                } />
-
-                {/* Manage Inventory */}
-                <Route path="/manage-inventory" element={
-                  <ProtectedRoute canAccess={canManageInventory}><ManageInventoryDashboard /></ProtectedRoute>
-                } />
-                <Route path="/manage-inventory/view" element={
-                  <ProtectedRoute canAccess={canManageInventory}><ViewInventory /></ProtectedRoute>
-                } />
-                <Route path="/manage-inventory/add-item" element={
-                  <ProtectedRoute canAccess={canManageInventory}><NavigateAddItemModal /></ProtectedRoute>
-                } />
-                <Route path="/manage-inventory/edit-item/:itemId" element={
-                  <ProtectedRoute canAccess={canManageInventory}><NavigateEditItemModal /></ProtectedRoute>
-                } />
-                <Route path="/manage-inventory/item-log/:itemId" element={
-                  <ProtectedRoute canAccess={canManageInventory}><ItemTransactionLog /></ProtectedRoute>
-                } />
-                <Route path="/manage-inventory/view-logs" element={
-                  <ProtectedRoute canAccess={canManageInventory}><ViewTransactionLog /></ProtectedRoute>
-                } />
-                <Route path="/manage-inventory/delete-item/:itemId" element={
-                  <ProtectedRoute canAccess={canManageInventory}><NavigateDeleteItemModal /></ProtectedRoute>
-                } />
-                <Route path="/manage-inventory/select-category" element={
-                  <ProtectedRoute canAccess={canManageInventory}><SelectCategory /></ProtectedRoute>
-                } />
-                <Route path="/manage-inventory/categories" element={
-                  <ProtectedRoute canAccess={canManageInventory}><ManageCategories /></ProtectedRoute>
-                } />
-                <Route path="/manage-inventory/add-category" element={
-                  <ProtectedRoute canAccess={canManageInventory}><AddCategory /></ProtectedRoute>
-                } />
-                <Route path="/manage-inventory/edit-category/:classCode" element={
-                  <ProtectedRoute canAccess={canManageInventory}><EditCategory /></ProtectedRoute>
-                } />
-              </Routes>
-            </div>
-          </div>
+          <AppContentShell />
         </Router>
       </CartProvider>
     </AuthProvider>

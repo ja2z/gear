@@ -4,43 +4,46 @@ import { useEffect, useState, useRef } from 'react';
 import { useCart } from '../context/CartContext';
 import { AnimateMain, SegmentSwitchAnimate } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
+import useIsDesktop from '../hooks/useIsDesktop';
+import { useDesktopHeader } from '../context/DesktopHeaderContext';
 
 const Cart = () => {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'checkout';
   const navigate = useNavigate();
   const { items, removeItem, getTotalItems } = useCart();
-  const [viewMode, setViewMode] = useState('items'); // 'items' or 'categories'
+  const [viewMode, setViewMode] = useState('items');
   const [buttonRenderKey, setButtonRenderKey] = useState(0);
   const [scrollingToCategory, setScrollingToCategory] = useState(false);
   const scrollContainerRef = useRef(null);
+  const isDesktop = useIsDesktop();
 
-  // Custom remove handler that forces complete button re-render
+  const totalItems = getTotalItems();
+  const headerTitle = mode === 'reserve'
+    ? `Reservation Cart (${totalItems} ${totalItems === 1 ? 'item' : 'items'})`
+    : `Your Cart (${totalItems} ${totalItems === 1 ? 'item' : 'items'})`;
+
+  useDesktopHeader({
+    title: headerTitle,
+  });
+
   const handleRemoveItem = (itemId) => {
     removeItem(itemId);
-    // Force complete re-render of all buttons by changing the render key
     setButtonRenderKey(prev => prev + 1);
   };
 
-// Reset scroll position when component mounts - remove this entire useEffect
-// Let ScrollToTop component handle initial page load
-
-// Reset scroll position when switching view modes
 useEffect(() => {
-  // Don't scroll to top if we're scrolling to a specific category
   if (scrollingToCategory || !scrollContainerRef.current) {
     return;
   }
   
-  // Scroll the container to top
   requestAnimationFrame(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0;
     }
   });
-}, [viewMode]); // Removed scrollingToCategory from deps to prevent re-triggering
+}, [viewMode]);
 
-  // Group items by category for categories view
   const getItemsByCategory = () => {
     const grouped = {};
     items.forEach(item => {
@@ -54,32 +57,24 @@ useEffect(() => {
       }
       grouped[category].items.push(item);
     });
-    // Sort items within each category by itemNum
     Object.values(grouped).forEach(cat => {
       cat.items.sort((a, b) => (a.itemNum || 0) - (b.itemNum || 0));
     });
     return grouped;
   };
 
-  // Scroll to category anchor
   const scrollToCategory = (category) => {
-    // Set flag to prevent auto-scroll to top
     setScrollingToCategory(true);
     setViewMode('items');
-    // Use setTimeout to ensure the view mode change has rendered
     setTimeout(() => {
       const element = document.getElementById(`category-${category}`);
       const container = scrollContainerRef.current;
       
       if (element && container) {
-        // Get the element's position relative to the container
         const containerRect = container.getBoundingClientRect();
         const elementRect = element.getBoundingClientRect();
         
-        // Calculate the scroll position
-        // We want to position the element below the toggle control
-        // Toggle control height is approximately 60px, add some padding
-        const offset = 20; // padding from top
+        const offset = 20;
         const targetScrollTop = container.scrollTop + (elementRect.top - containerRect.top) - offset;
         
         container.scrollTo({
@@ -87,14 +82,40 @@ useEffect(() => {
           behavior: 'smooth'
         });
       }
-      // Reset the flag after scrolling is complete
       setTimeout(() => {
         setScrollingToCategory(false);
-      }, 300); // Wait for smooth scroll animation to complete
+      }, 300);
     }, 100);
   };
 
+  const categoriesGrouped = getItemsByCategory();
+
+  // --- Empty cart ---
   if (items.length === 0) {
+    if (isDesktop) {
+      return (
+        <div className="px-5 py-12">
+          <div className="text-center">
+            <div className="mb-4 flex justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400" style={{width: '96px', height: '96px'}} key="large-cart-icon">
+                <circle cx="8" cy="21" r="1"></circle>
+                <circle cx="19" cy="21" r="1"></circle>
+                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
+            <p className="text-gray-600 mb-6">Add some gear to get started!</p>
+            <Link
+              to={`/categories?mode=${mode}`}
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all px-6 py-3 bg-scout-blue/12 border border-scout-blue/20 text-scout-blue shadow-xs hover:bg-scout-blue/18 touch-target no-underline"
+            >
+              Browse Categories
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="h-screen-small flex flex-col bg-gray-100">
         <div className={`header ${mode === 'reserve' ? 'header-reserve' : ''}`}>
@@ -104,7 +125,7 @@ useEffect(() => {
           >
             ←
           </Link>
-          <h1>{mode === 'reserve' ? 'Reservation Cart' : 'Your Cart'} ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'items'})</h1>
+          <h1>{headerTitle}</h1>
           <HeaderProfileMenu />
         </div>
 
@@ -135,9 +156,149 @@ useEffect(() => {
     );
   }
 
+  // --- Shared content pieces ---
+
+  const segmentedControl = (
+    <div className={isDesktop ? 'mb-4' : 'bg-white px-5 py-3 border-b border-gray-200'}>
+      <SegmentedControl
+        tabs={[
+          { key: 'items', label: 'Items' },
+          { key: 'categories', label: 'Categories' },
+        ]}
+        value={viewMode}
+        onChange={(key) => { setScrollingToCategory(false); setViewMode(key); }}
+      />
+    </div>
+  );
+
+  const itemListContent = (
+    <SegmentSwitchAnimate key={viewMode} className="min-h-0">
+      <div className={isDesktop ? '' : 'px-5 py-5 pb-20'}>
+        {viewMode === 'items' ? (
+          <div className="space-y-3">
+            {Object.entries(categoriesGrouped).map(([category, categoryData]) => (
+              <div key={category}>
+                <div id={`category-${category}`} className="mb-3">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-2">{categoryData.description}</h2>
+                </div>
+                
+                <div className="space-y-3 mb-6">
+                  {categoryData.items.map((item, index) => (
+                    <div key={`${item.itemId}-${index}`} className="card">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 mb-1">
+                            {item.itemId}
+                          </h3>
+                          <p className="text-sm text-gray-600">{item.description}</p>
+                        </div>
+                        
+                        <button
+                          key={`remove-${item.itemId}-${buttonRenderKey}`}
+                          onClick={() => handleRemoveItem(item.itemId)}
+                          className="remove-item-btn-clean ml-3 touch-target"
+                          title="Remove item"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {Object.entries(categoriesGrouped).map(([category, categoryData]) => (
+              <button
+                key={category}
+                onClick={() => scrollToCategory(category)}
+                className="card touch-target block w-full text-left no-underline"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-base text-gray-900">
+                    {categoryData.description}
+                  </span>
+                  <span className="status-in-shed">
+                    {categoryData.items.length} {categoryData.items.length === 1 ? 'item' : 'items'}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </SegmentSwitchAnimate>
+  );
+
+  const orderSummaryCard = (
+    <div className="card sticky top-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
+
+      <div className="space-y-2 mb-4">
+        {Object.entries(categoriesGrouped).map(([category, categoryData]) => (
+          <div key={category} className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">{categoryData.description}</span>
+            <span className="font-medium text-gray-900">
+              {categoryData.items.length} {categoryData.items.length === 1 ? 'item' : 'items'}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="border-t border-gray-200 pt-3 mb-5">
+        <div className="flex items-center justify-between font-semibold text-gray-900">
+          <span>Total</span>
+          <span>{totalItems} {totalItems === 1 ? 'item' : 'items'}</span>
+        </div>
+      </div>
+
+      {mode === 'reserve' ? (
+        <button
+          onClick={() => navigate('/reservation-info')}
+          className="w-full h-12 text-base font-medium rounded-md bg-scout-orange text-white"
+        >
+          Reserve Items →
+        </button>
+      ) : (
+        <Link
+          to="/checkout"
+          className="flex items-center justify-center w-full h-12 text-base font-medium rounded-md bg-scout-blue text-white no-underline"
+        >
+          Go to Checkout
+        </Link>
+      )}
+    </div>
+  );
+
+  // --- Desktop layout ---
+  if (isDesktop) {
+    return (
+      <div className="lg:grid lg:grid-cols-[1fr_20rem] lg:gap-6">
+        {/* Left column: segmented control + item list */}
+        <div ref={scrollContainerRef}>
+          {segmentedControl}
+          {itemListContent}
+        </div>
+
+        {/* Right column: sticky order summary */}
+        <div>
+          {orderSummaryCard}
+        </div>
+      </div>
+    );
+  }
+
+  // --- Mobile layout (unchanged) ---
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
-      {/* Header */}
       <div className={`header ${mode === 'reserve' ? 'header-reserve' : ''}`}>
         <Link
           to={`/categories?mode=${mode}`}
@@ -145,96 +306,17 @@ useEffect(() => {
         >
           ←
         </Link>
-        <h1>{mode === 'reserve' ? 'Reservation Cart' : 'Your Cart'} ({getTotalItems()} {getTotalItems() === 1 ? 'item' : 'items'})</h1>
+        <h1>{headerTitle}</h1>
         <HeaderProfileMenu />
       </div>
 
       <AnimateMain className="flex flex-1 flex-col min-h-0">
-      {/* Toggle Control */}
-      <div className="bg-white px-5 py-3 border-b border-gray-200">
-        <SegmentedControl
-          tabs={[
-            { key: 'items', label: 'Items' },
-            { key: 'categories', label: 'Categories' },
-          ]}
-          value={viewMode}
-          onChange={(key) => { setScrollingToCategory(false); setViewMode(key); }}
-        />
-      </div>
+      {segmentedControl}
 
-      {/* Cart Content - Scrollable */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
-        <SegmentSwitchAnimate key={viewMode} className="min-h-0">
-        <div className="px-5 py-5 pb-20">
-          {viewMode === 'items' ? (
-            // Items View
-            <div className="space-y-3">
-              {Object.entries(getItemsByCategory()).map(([category, categoryData]) => (
-                <div key={category}>
-                  {/* Category Header with Anchor */}
-                  <div id={`category-${category}`} className="mb-3">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-2">{categoryData.description}</h2>
-                  </div>
-                  
-                  {/* Items in this category */}
-                  <div className="space-y-3 mb-6">
-                    {categoryData.items.map((item, index) => (
-                      <div key={`${item.itemId}-${index}`} className="card">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 mb-1">
-                              {item.itemId}
-                            </h3>
-                            <p className="text-sm text-gray-600">{item.description}</p>
-                          </div>
-                          
-                          <button
-                            key={`remove-${item.itemId}-${buttonRenderKey}`}
-                            onClick={() => handleRemoveItem(item.itemId)}
-                            className="remove-item-btn-clean ml-3 touch-target"
-                            title="Remove item"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M3 6h18"></path>
-                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                              <line x1="10" y1="11" x2="10" y2="17"></line>
-                              <line x1="14" y1="11" x2="14" y2="17"></line>
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            // Categories View
-            <div className="space-y-3">
-              {Object.entries(getItemsByCategory()).map(([category, categoryData]) => (
-                <button
-                  key={category}
-                  onClick={() => scrollToCategory(category)}
-                  className="card touch-target block w-full text-left no-underline"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-base text-gray-900">
-                      {categoryData.description}
-                    </span>
-                    <span className="status-in-shed">
-                      {categoryData.items.length} {categoryData.items.length === 1 ? 'item' : 'items'}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        </SegmentSwitchAnimate>
+        {itemListContent}
       </div>
 
-      {/* Bottom Navigation */}
       <div className="bg-white border-t border-gray-200 p-4">
         {mode === 'reserve' ? (
           <button

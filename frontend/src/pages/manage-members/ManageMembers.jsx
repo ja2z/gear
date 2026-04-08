@@ -8,6 +8,8 @@ import { AnimateMain, SegmentSwitchAnimate } from '../../components/AnimateMain'
 import EditMember from './EditMember';
 import AddMember from './AddMember';
 import HeaderProfileMenu from '../../components/HeaderProfileMenu';
+import useIsDesktop from '../../hooks/useIsDesktop';
+import { useDesktopHeader } from '../../context/DesktopHeaderContext';
 
 const VIEW_TABS = [
   { key: 'grouped', label: 'Grouped' },
@@ -97,6 +99,7 @@ function MemberCard({ m, canEdit, onEdit, onDelete, formatAdded }) {
 const ManageMembers = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const { listMembers, deleteMember, canEditRoster, loading } = useMembersMock();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -110,6 +113,8 @@ const ManageMembers = () => {
   const members = useMemo(() => listMembers(searchQuery), [listMembers, searchQuery]);
   const totalCount = useMemo(() => listMembers('').length, [listMembers]);
   const groupedSections = useMemo(() => buildGroupedSections(members), [members]);
+
+  useDesktopHeader({ title: 'Members', subtitle: 'Roster, households, and roles' });
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
@@ -173,19 +178,21 @@ const ManageMembers = () => {
   };
 
   return (
-    <div className="h-screen-small flex flex-col bg-gray-100">
-      <div className="header">
-        <Link to="/manage" className="back-button no-underline" aria-label="Back to manage data">
-          ←
-        </Link>
-        <div className="flex min-w-0 flex-1 flex-col items-center justify-center px-1">
-          <h1 className="!flex-none text-center text-truncate">Members</h1>
-          <span className="text-xs font-medium text-gray-400">
-            {loading ? '…' : `${totalCount} ${totalCount === 1 ? 'member' : 'members'}`}
-          </span>
+    <div className={isDesktop ? 'flex flex-col bg-gray-100' : 'h-screen-small flex flex-col bg-gray-100'}>
+      {!isDesktop && (
+        <div className="header">
+          <Link to="/manage" className="back-button no-underline" aria-label="Back to manage data">
+            ←
+          </Link>
+          <div className="flex min-w-0 flex-1 flex-col items-center justify-center px-1">
+            <h1 className="!flex-none text-center text-truncate">Members</h1>
+            <span className="text-xs font-medium text-gray-400">
+              {loading ? '…' : `${totalCount} ${totalCount === 1 ? 'member' : 'members'}`}
+            </span>
+          </div>
+          <HeaderProfileMenu />
         </div>
-        <HeaderProfileMenu />
-      </div>
+      )}
 
       <AnimateMain className="flex flex-1 flex-col min-h-0">
         <SearchableSegmentedToolbar
@@ -217,19 +224,19 @@ const ManageMembers = () => {
 
         <div className="flex-1 overflow-y-auto">
           <SegmentSwitchAnimate key={viewMode} className="min-h-0">
-            <div className="space-y-3 px-5 py-5 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))]">
+            <div className={`space-y-3 px-5 py-5 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))] ${isDesktop ? 'lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0 xl:grid-cols-3' : ''}`}>
               {loading ? (
-                <div className="flex justify-center py-12">
+                <div className={`flex justify-center py-12 ${isDesktop ? 'lg:col-span-full' : ''}`}>
                   <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-scout-blue" />
                 </div>
               ) : members.length === 0 ? (
-                <p className="py-10 text-center text-sm text-gray-500">
+                <p className={`py-10 text-center text-sm text-gray-500 ${isDesktop ? 'lg:col-span-full' : ''}`}>
                   {searchQuery.trim() ? 'No members match your search.' : 'No members in the roster.'}
                 </p>
               ) : viewMode === 'grouped' ? (
                 groupedSections.map((section) => (
-                  <section key={section.key} className="space-y-3">
-                    <h2 className="text-base font-semibold text-gray-900">
+                  <section key={section.key} className={`space-y-3 ${isDesktop ? 'lg:col-span-full lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0 xl:grid-cols-3' : ''}`}>
+                    <h2 className={`text-base font-semibold text-gray-900 ${isDesktop ? 'lg:col-span-full' : ''}`}>
                       {section.title}{' '}
                       <span className="text-sm font-normal text-gray-500">({section.members.length})</span>
                     </h2>
@@ -264,11 +271,18 @@ const ManageMembers = () => {
 
       {deleteTarget && (
         <div
-          className={`fixed inset-0 flex items-end justify-center bg-black/40 ${
+          className={`fixed inset-0 flex items-center justify-center p-3 sm:p-4 ${
             editingMemberId || addingMember ? 'z-[120]' : 'z-50'
           }`}
         >
-          <div className="w-full max-w-md rounded-t-2xl bg-white px-5 pt-5 pb-8">
+          <button
+            type="button"
+            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
+            aria-label="Close"
+            disabled={deleteLoading}
+            onClick={() => !deleteLoading && setDeleteTarget(null)}
+          />
+          <div className="modal-dialog-panel-enter relative z-[101] w-full max-w-md rounded-2xl bg-white px-5 pt-5 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
             <h2 className="mb-1 text-lg font-bold text-gray-900">Remove member?</h2>
             <p className="mb-1 text-sm text-gray-600">
               <span className="font-medium">{deleteTarget.fullName}</span>
@@ -311,7 +325,7 @@ const ManageMembers = () => {
             aria-label="Close editor"
             onClick={() => setEditingMemberId(null)}
           />
-          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md flex-col overflow-y-auto overflow-x-hidden rounded-2xl bg-gray-100 shadow-2xl">
+          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md lg:max-w-xl flex-col overflow-y-auto overflow-x-hidden rounded-2xl bg-gray-100 shadow-2xl">
             <EditMember
               key={editingMemberId}
               memberId={editingMemberId}
@@ -334,7 +348,7 @@ const ManageMembers = () => {
             aria-label="Close add member"
             onClick={() => setAddingMember(false)}
           />
-          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md flex-col overflow-y-auto overflow-x-hidden rounded-2xl bg-gray-100 shadow-2xl">
+          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md lg:max-w-xl flex-col overflow-y-auto overflow-x-hidden rounded-2xl bg-gray-100 shadow-2xl">
             <AddMember key={addModalKey} onClose={() => setAddingMember(false)} />
           </div>
         </div>

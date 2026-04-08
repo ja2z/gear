@@ -104,7 +104,11 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating reservation:', error);
-    res.status(500).json({ error: 'Failed to create reservation' });
+    const payload = { error: 'Failed to create reservation' };
+    if (process.env.NODE_ENV !== 'production' && error?.message) {
+      payload.details = error.message;
+    }
+    res.status(500).json(payload);
   }
 });
 

@@ -10,6 +10,8 @@ import { AnimateMain, SegmentSwitchAnimate } from '../../components/AnimateMain'
 import AddItemForm from './AddItemForm';
 import EditItemForm from './EditItemForm';
 import { getApiBaseUrl } from '../../config/apiBaseUrl';
+import useIsDesktop from '../../hooks/useIsDesktop';
+import { useDesktopHeader } from '../../context/DesktopHeaderContext';
 
 const VIEW_TABS = [
   { key: 'category', label: 'Categories' },
@@ -23,6 +25,9 @@ const ViewInventory = () => {
   const [searchParams] = useSearchParams();
   const { toast, showToast, hideToast } = useToast();
   const { getData } = useInventory();
+  const isDesktop = useIsDesktop();
+
+  useDesktopHeader({ title: 'Manage Items' });
 
   const [viewMode, setViewMode] = useState('category'); // 'category' | 'item' | 'outing'
   const [categoryStats, setCategoryStats] = useState([]);
@@ -172,15 +177,17 @@ const ViewInventory = () => {
 
   // Scroll to top when switching to category view
   useEffect(() => {
-    if (viewMode === 'category' && scrollContainerRef.current) {
-      requestAnimationFrame(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTop = 0;
-        }
-      });
-      setPendingScrollToCategory(null); // Clear any pending scroll
+    if (viewMode === 'category') {
+      if (!isDesktop && scrollContainerRef.current) {
+        requestAnimationFrame(() => {
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = 0;
+          }
+        });
+      }
+      setPendingScrollToCategory(null);
     }
-  }, [viewMode]);
+  }, [viewMode, isDesktop]);
 
   // Fetch category stats
   const fetchCategoryStats = async () => {
@@ -237,7 +244,17 @@ const ViewInventory = () => {
 
   // Perform pending scroll when category is set and view mode is 'item'
   useEffect(() => {
-    if (viewMode === 'item' && pendingScrollToCategory && !loading && scrollContainerRef.current) {
+    if (viewMode === 'item' && pendingScrollToCategory && !loading) {
+      if (isDesktop) {
+        const id = setTimeout(() => {
+          const el = document.getElementById(`category-${pendingScrollToCategory}`);
+          el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setPendingScrollToCategory(null);
+        }, 250);
+        return () => clearTimeout(id);
+      }
+
+      if (!scrollContainerRef.current) return;
       let cancelled = false;
       let timeoutIds = [];
       
@@ -287,11 +304,17 @@ const ViewInventory = () => {
         timeoutIds.forEach(id => clearTimeout(id));
       };
     }
-  }, [viewMode, loading, pendingScrollToCategory]);
+  }, [viewMode, loading, pendingScrollToCategory, isDesktop]);
 
   // Restore scroll position when returning from edit
   useEffect(() => {
-    if (pendingScrollTop !== null && !loading && scrollContainerRef.current) {
+    if (pendingScrollTop !== null && !loading) {
+      if (isDesktop) {
+        setPendingScrollTop(null);
+        return;
+      }
+
+      if (!scrollContainerRef.current) return;
       let cancelled = false;
       let timeoutIds = [];
 
@@ -317,7 +340,7 @@ const ViewInventory = () => {
         timeoutIds.forEach(clearTimeout);
       };
     }
-  }, [pendingScrollTop, loading]);
+  }, [pendingScrollTop, loading, isDesktop]);
 
   // Filter categories by search (include item descriptions like Categories.jsx)
   const filteredCategories = categoryStats.filter(cat => {
@@ -466,22 +489,24 @@ const ViewInventory = () => {
   };
 
   return (
-    <div className="h-screen-small flex flex-col bg-gray-100">
+    <div className={isDesktop ? '' : 'h-screen-small flex flex-col bg-gray-100'}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
       {/* Header */}
-      <div className="header">
-        <Link
-          to="/manage-inventory"
-          className="back-button no-underline"
-        >
-          ←
-        </Link>
-        <h1>Manage Items</h1>
-        <HeaderProfileMenu />
-      </div>
+      {!isDesktop && (
+        <div className="header">
+          <Link
+            to="/manage-inventory"
+            className="back-button no-underline"
+          >
+            ←
+          </Link>
+          <h1>Manage Items</h1>
+          <HeaderProfileMenu />
+        </div>
+      )}
 
-      <AnimateMain className="flex flex-1 flex-col min-h-0">
+      <AnimateMain className={isDesktop ? 'flex flex-col' : 'flex flex-1 flex-col min-h-0'}>
       <SearchableSegmentedToolbar
         tabs={VIEW_TABS}
         segmentValue={viewMode}
@@ -564,9 +589,9 @@ const ViewInventory = () => {
       )}
 
       {/* Scrollable Content */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+      <div ref={scrollContainerRef} className={isDesktop ? '' : 'flex-1 overflow-y-auto'}>
         <SegmentSwitchAnimate key={viewMode} className="min-h-0">
-        <div className="px-5 py-5 pb-20">
+        <div className={isDesktop ? 'py-5' : 'px-5 py-5 pb-20'}>
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-scout-blue"></div>
@@ -724,7 +749,7 @@ const ViewInventory = () => {
               setAddItemCategory(null);
             }}
           />
-          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-gray-100 shadow-2xl">
+          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md lg:max-w-xl flex-col overflow-hidden rounded-2xl bg-gray-100 shadow-2xl">
             <div className="header shrink-0">
               <button
                 type="button"
@@ -774,7 +799,7 @@ const ViewInventory = () => {
             aria-label="Close editor"
             onClick={() => setEditingItemId(null)}
           />
-          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-gray-100 shadow-2xl">
+          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md lg:max-w-xl flex-col overflow-hidden rounded-2xl bg-gray-100 shadow-2xl">
             <div className="header shrink-0">
               <button
                 type="button"
@@ -806,11 +831,23 @@ const ViewInventory = () => {
 
       {deleteTarget && (
         <div
-          className={`fixed inset-0 flex items-end justify-center bg-black/40 ${
+          className={`fixed inset-0 flex items-center justify-center p-3 sm:p-4 ${
             editingItemId || addingItem ? 'z-[120]' : 'z-50'
           }`}
         >
-          <div className="w-full max-w-md rounded-t-2xl bg-white px-5 pt-5 pb-8">
+          <button
+            type="button"
+            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
+            aria-label="Close"
+            disabled={deleteLoading}
+            onClick={() => {
+              if (!deleteLoading) {
+                setDeleteTarget(null);
+                setDeleteConfirmText('');
+              }
+            }}
+          />
+          <div className="modal-dialog-panel-enter relative z-[101] max-h-[min(90dvh,36rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white px-5 pt-5 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl lg:max-w-xl">
             <h2 className="mb-1 text-lg font-bold text-gray-900">Remove item?</h2>
             <p className="mb-1 text-sm text-gray-600">
               <span className="font-medium">{deleteTarget.itemId}</span>
@@ -860,4 +897,3 @@ const ViewInventory = () => {
 };
 
 export default ViewInventory;
-

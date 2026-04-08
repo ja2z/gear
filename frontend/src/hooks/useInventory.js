@@ -157,11 +157,22 @@ export const useInventory = () => {
   const checkHealth = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(`${API_BASE_URL}/health`);
+      const response = await fetch(`${API_BASE_URL}/health`, {
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+      });
       if (!response.ok) {
-        throw new Error(`Health check failed: ${response.status}`);
+        let msg = `Health check failed (${response.status})`;
+        try {
+          const errBody = await response.json();
+          if (errBody?.message) msg = errBody.message;
+          else if (errBody?.error) msg = errBody.error;
+        } catch {
+          /* non-JSON body */
+        }
+        throw new Error(msg);
       }
       const data = await response.json();
       return data;
@@ -316,9 +327,27 @@ export const useReservations = () => {
         credentials: 'include',
         body: JSON.stringify(data),
       });
-      if (response.status === 401) { _onUnauthorized?.(); throw new Error('Unauthorized'); }
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || `HTTP error! status: ${response.status}`);
+      const text = await response.text();
+      let result = {};
+      try {
+        result = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(
+          'The server did not return JSON (API may be down or requests are hitting the wrong URL). In dev, run the backend on port 3001; leave VITE_API_URL unset or point it at http://localhost:3001 so /api proxies correctly.'
+        );
+      }
+      if (response.status === 401) {
+        _onUnauthorized?.();
+        throw new Error(result.error || 'Unauthorized');
+      }
+      if (!response.ok) {
+        const msg =
+          result.details ||
+          result.error ||
+          result.message ||
+          `Request failed (${response.status})`;
+        throw new Error(msg);
+      }
       return result;
     } catch (err) {
       setError(err.message);
