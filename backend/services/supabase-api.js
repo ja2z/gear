@@ -237,7 +237,7 @@ const supabaseAPI = {
           notes,
         });
 
-        results.push({ itemId, success: true, transactionId, condition: item.condition });
+        results.push({ itemId, success: true, transactionId, condition: item.condition, itemDesc: item.itemDesc, description: item.description });
       } catch (error) {
         console.error(`Error checking out item ${itemId}:`, error);
         results.push({ itemId, success: false, error: error.message });

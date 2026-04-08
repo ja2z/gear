@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabaseAPI = require('../services/supabase-api');
+const { sendCheckoutConfirmation } = require('../services/email-service');
 
 // POST /api/checkout - Process checkout transaction
 router.post('/', async (req, res) => {
@@ -20,6 +21,11 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Invalid event ID' });
     }
 
+    const event = await supabaseAPI.getEventById(parsedEventId);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
     const results = await supabaseAPI.checkoutItems(
       itemIds,
       scoutName,
@@ -30,6 +36,34 @@ router.post('/', async (req, res) => {
 
     const successful = results.filter(r => r.success);
     const failed = results.filter(r => !r.success);
+
+    // Send confirmation email (non-blocking)
+    if (successful.length > 0) {
+      const checkoutDate = new Date().toLocaleString('en-US', {
+        timeZone: 'America/Los_Angeles',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short',
+      });
+
+      sendCheckoutConfirmation({
+        outingName: event.name,
+        scoutName,
+        processedBy,
+        loggedInEmail: req.user?.email,
+        outingLeaderEmail: event.eventSplEmail,
+        adultLeaderEmail: event.adultLeaderEmail,
+        items: successful,
+        checkoutDate,
+        outingStartDate: event.startDate,
+        outingEndDate: event.endDate,
+        outingLeader: event.eventSplName,
+        adultLeader: event.adultLeaderName,
+      }).catch(err => console.error('Email send failed (non-fatal):', err.message));
+    }
 
     res.json({
       success: failed.length === 0,

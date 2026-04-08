@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useInventory } from '../hooks/useInventory';
@@ -19,6 +19,7 @@ const Checkout = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { state: locationState } = useLocation();
+  const submittedRef = useRef(false);
   const isDesktop = useIsDesktop();
   const fromReservation = reservationMeta?.fromReservation === true || locationState?.fromReservation === true;
   const userFullName = user ? `${user.first_name} ${user.last_name}` : '';
@@ -123,6 +124,7 @@ const Checkout = () => {
       const result = await postData('/checkout', checkoutData);
 
       if (result.success) {
+        submittedRef.current = true;
         const itemCount = getTotalItems();
         if (fromReservation && reservationMeta?.eventId) {
           try {
@@ -134,8 +136,8 @@ const Checkout = () => {
             console.error('Failed to clean up reservation:', err);
           }
         }
-        clearCart();
         navigate(`/success?action=checkout&count=${itemCount}`);
+        clearCart();
       } else {
         setSubmitError(result.message || 'Checkout failed');
       }
@@ -228,7 +230,7 @@ const Checkout = () => {
     }
   };
 
-  if (items.length === 0) {
+  if (items.length === 0 && !submittedRef.current) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
