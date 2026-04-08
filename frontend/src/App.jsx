@@ -18,6 +18,7 @@ import { MembersMockProvider } from './context/MembersMockContext';
 import ScrollToTop from './components/ScrollToTop';
 import InputFocusLock from './components/InputFocusLock';
 import ProtectedRoute from './components/ProtectedRoute';
+import { canCheckout, canCheckin, canManageInventory, canManageMembers } from './utils/permissions';
 
 // Auth pages (public)
 import LoginPage from './pages/LoginPage';
@@ -154,35 +155,37 @@ function App() {
                       <Navigate to="/manage/members" replace state={{ openAddMember: true }} />
                     }
                   />
-                  <Route path="members" element={<ManageMembers />} />
+                  <Route path="members" element={
+                    <ProtectedRoute canAccess={canManageMembers}><ManageMembers /></ProtectedRoute>
+                  } />
                 </Route>
 
                 {/* Gear sub-routes */}
                 <Route path="/categories" element={
-                  <ProtectedRoute><Categories /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canCheckout}><Categories /></ProtectedRoute>
                 } />
                 <Route path="/items/:category" element={
-                  <ProtectedRoute><Items /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canCheckout}><Items /></ProtectedRoute>
                 } />
                 <Route path="/cart" element={
-                  <ProtectedRoute><Cart /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canCheckout}><Cart /></ProtectedRoute>
                 } />
                 <Route path="/checkout" element={
-                  <ProtectedRoute><Checkout /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canCheckout}><Checkout /></ProtectedRoute>
                 } />
                 <Route path="/checkin/outings" element={<Navigate to="/checkin" replace />} />
                 <Route path="/checkin/items"   element={<Navigate to="/checkin" replace />} />
                 <Route path="/checkin/form" element={
-                  <ProtectedRoute><CheckinForm /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canCheckin}><CheckinForm /></ProtectedRoute>
                 } />
                 <Route path="/checkin" element={
-                  <ProtectedRoute><Checkin /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canCheckin}><Checkin /></ProtectedRoute>
                 } />
                 <Route path="/success" element={
-                  <ProtectedRoute><Success /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canCheckout}><Success /></ProtectedRoute>
                 } />
                 <Route path="/checkout-options" element={
-                  <ProtectedRoute><CheckoutOptions /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canCheckout}><CheckoutOptions /></ProtectedRoute>
                 } />
                 <Route path="/reservations" element={
                   <ProtectedRoute><Reservations /></ProtectedRoute>
@@ -194,42 +197,42 @@ function App() {
                   <ProtectedRoute><ReservationSuccess /></ProtectedRoute>
                 } />
                 <Route path="/outing-selection" element={
-                  <ProtectedRoute><OutingSelection /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canCheckout}><OutingSelection /></ProtectedRoute>
                 } />
 
                 {/* Manage Inventory */}
                 <Route path="/manage-inventory" element={
-                  <ProtectedRoute><ManageInventoryDashboard /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canManageInventory}><ManageInventoryDashboard /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/view" element={
-                  <ProtectedRoute><ViewInventory /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canManageInventory}><ViewInventory /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/add-item" element={
-                  <ProtectedRoute><NavigateAddItemModal /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canManageInventory}><NavigateAddItemModal /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/edit-item/:itemId" element={
-                  <ProtectedRoute><NavigateEditItemModal /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canManageInventory}><NavigateEditItemModal /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/item-log/:itemId" element={
-                  <ProtectedRoute><ItemTransactionLog /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canManageInventory}><ItemTransactionLog /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/view-logs" element={
-                  <ProtectedRoute><ViewTransactionLog /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canManageInventory}><ViewTransactionLog /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/delete-item/:itemId" element={
-                  <ProtectedRoute><NavigateDeleteItemModal /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canManageInventory}><NavigateDeleteItemModal /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/select-category" element={
-                  <ProtectedRoute><SelectCategory /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canManageInventory}><SelectCategory /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/categories" element={
-                  <ProtectedRoute><ManageCategories /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canManageInventory}><ManageCategories /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/add-category" element={
-                  <ProtectedRoute><AddCategory /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canManageInventory}><AddCategory /></ProtectedRoute>
                 } />
                 <Route path="/manage-inventory/edit-category/:classCode" element={
-                  <ProtectedRoute><EditCategory /></ProtectedRoute>
+                  <ProtectedRoute canAccess={canManageInventory}><EditCategory /></ProtectedRoute>
                 } />
               </Routes>
             </div>

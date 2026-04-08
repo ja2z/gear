@@ -1,6 +1,8 @@
 import { createContext, useContext, useMemo, useCallback, useState, useEffect } from 'react';
 import { getApiBaseUrl } from '../config/apiBaseUrl';
 import { compareMembersByLastName } from '../data/membersMockData';
+import { useAuth } from './AuthContext';
+import { canManageMembers } from '../utils/permissions';
 
 const API_BASE = getApiBaseUrl();
 
@@ -10,7 +12,8 @@ export function MembersMockProvider({ children }) {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const canEditRoster = true;
+  const { user } = useAuth();
+  const canEditRoster = canManageMembers(user);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,7 +101,7 @@ export function MembersMockProvider({ children }) {
 
   const value = useMemo(
     () => ({ listMembers, getMember, addMember, updateMember, deleteMember, canEditRoster, loading }),
-    [listMembers, getMember, addMember, updateMember, deleteMember, loading]
+    [listMembers, getMember, addMember, updateMember, deleteMember, canEditRoster, loading]
   );
 
   return <MembersMockContext.Provider value={value}>{children}</MembersMockContext.Provider>;

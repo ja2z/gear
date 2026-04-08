@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, LogIn, BookMarked, Loader2 } from 'lucide-react';
 import { useInventory } from '../hooks/useInventory';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { canCheckout, canCheckin } from '../utils/permissions';
 import ConnectionError from '../components/ConnectionError';
 import SlowLoadHint from '../components/SlowLoadHint';
 import { useSlowLoad } from '../hooks/useSlowLoad';
@@ -16,6 +18,9 @@ const Landing = () => {
   const navigate = useNavigate();
   const { checkHealth } = useInventory();
   const { clearCart, reservationMeta } = useCart();
+  const { user } = useAuth();
+  const userCanCheckout = canCheckout(user);
+  const userCanCheckin = canCheckin(user);
   const [connectionError, setConnectionError] = useState(false);
 
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -77,7 +82,8 @@ const Landing = () => {
           <button
             type="button"
             onClick={handleCheckoutClick}
-            disabled={anyLoading}
+            disabled={anyLoading || !userCanCheckout}
+            title={!userCanCheckout ? 'Requires QM or Admin role' : undefined}
             className={`${tileBase} border border-scout-blue/15 bg-scout-blue/8 hover:bg-scout-blue/12 active:bg-scout-blue/15`}
           >
             {checkoutLoading ? (
@@ -94,7 +100,8 @@ const Landing = () => {
           <button
             type="button"
             onClick={handleCheckinClick}
-            disabled={anyLoading}
+            disabled={anyLoading || !userCanCheckin}
+            title={!userCanCheckin ? 'Requires QM or Admin role' : undefined}
             className={`${tileBase} border border-scout-green/15 bg-scout-green/8 hover:bg-scout-green/12 active:bg-scout-green/15`}
           >
             {checkinLoading ? (

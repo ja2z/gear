@@ -21,20 +21,24 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 // Routes
-const { requireAuth } = require('./middleware/auth');
+const { requireAuth, requireRole } = require('./middleware/auth');
 
 // Public auth routes (no session required)
 app.use('/api/auth', require('./routes/auth'));
 
-// All other API routes require a valid session
+// All authenticated users
 app.use('/api/events',           requireAuth, require('./routes/events'));
 app.use('/api/inventory',        requireAuth, require('./routes/inventory'));
-app.use('/api/checkout',         requireAuth, require('./routes/checkout'));
-app.use('/api/checkin',          requireAuth, require('./routes/checkin'));
 app.use('/api/metadata',         requireAuth, require('./routes/metadata'));
-app.use('/api/manage-inventory', requireAuth, require('./routes/manage-inventory'));
-app.use('/api/manage/members',   requireAuth, require('./routes/manage-members'));
 app.use('/api/reservations',     requireAuth, require('./routes/reservations'));
+
+// QM + Admin only
+app.use('/api/checkout',         requireAuth, requireRole('Admin', 'QM'), require('./routes/checkout'));
+app.use('/api/checkin',          requireAuth, requireRole('Admin', 'QM'), require('./routes/checkin'));
+app.use('/api/manage-inventory', requireAuth, requireRole('Admin', 'QM'), require('./routes/manage-inventory'));
+
+// Admin only
+app.use('/api/manage/members',   requireAuth, requireRole('Admin'), require('./routes/manage-members'));
 
 // Lightweight ping endpoint for keep-alive (also touches Supabase to prevent cold connections)
 app.get('/api/ping', async (req, res) => {

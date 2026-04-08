@@ -9,7 +9,7 @@ export const DEV_MOCK_USER = {
   email: 'dev@local.test',
   first_name: 'Dev',
   last_name: 'Bypass',
-  role: null,
+  role: 'Admin',
 };
 
 export function isDevAuthBypassActive() {

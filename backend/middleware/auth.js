@@ -45,4 +45,14 @@ async function requireAuth(req, res, next) {
   next();
 }
 
-module.exports = { requireAuth, COOKIE_NAME, COOKIE_OPTIONS };
+function requireRole(...allowedRoles) {
+  return function (req, res, next) {
+    const role = req.user?.role ?? 'Admin'; // null = treat as Admin (safety valve)
+    if (!allowedRoles.includes(role)) {
+      return res.status(403).json({ error: 'Forbidden: insufficient role' });
+    }
+    next();
+  };
+}
+
+module.exports = { requireAuth, requireRole, COOKIE_NAME, COOKIE_OPTIONS };

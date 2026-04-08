@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { AnimateMain } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
+import { useAuth } from '../context/AuthContext';
+import { canManageMembers } from '../utils/permissions';
 import {
   Backpack,
   Users,
@@ -27,6 +29,7 @@ const TABLE_OPTIONS = [
     to: '/manage/members',
     icon: Users,
     comingSoon: false,
+    adminOnly: true,
     iconClass: 'bg-scout-green/10 text-scout-green/70',
   },
   {
@@ -56,6 +59,9 @@ const TABLE_OPTIONS = [
 ];
 
 const ManageTables = () => {
+  const { user } = useAuth();
+  const userCanManageMembers = canManageMembers(user);
+
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
       <div className="header">
@@ -74,6 +80,7 @@ const ManageTables = () => {
         <ul className="mx-auto max-w-xl space-y-3">
           {TABLE_OPTIONS.map((row) => {
             const Icon = row.icon;
+            const isRestricted = row.adminOnly && !userCanManageMembers;
             const inner = (
               <>
                 <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${row.iconClass}`}>
@@ -87,16 +94,21 @@ const ManageTables = () => {
                         Soon
                       </span>
                     )}
+                    {isRestricted && (
+                      <span className="rounded bg-gray-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+                        Admin only
+                      </span>
+                    )}
                   </div>
                   <p className="mt-0.5 text-sm text-gray-600">{row.description}</p>
                 </div>
-                {!row.comingSoon && (
+                {!row.comingSoon && !isRestricted && (
                   <ChevronRight className="h-5 w-5 shrink-0 text-gray-400" aria-hidden />
                 )}
               </>
             );
 
-            if (row.to && !row.comingSoon) {
+            if (row.to && !row.comingSoon && !isRestricted) {
               return (
                 <li key={row.id}>
                   <Link
@@ -111,7 +123,9 @@ const ManageTables = () => {
 
             return (
               <li key={row.id}>
-                <div className="card flex items-center gap-4 opacity-75">{inner}</div>
+                <div className={`card flex items-center gap-4 opacity-75${isRestricted ? ' cursor-not-allowed' : ''}`}>
+                  {inner}
+                </div>
               </li>
             );
           })}
