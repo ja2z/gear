@@ -112,7 +112,7 @@ const OutingsPage = () => {
     if (!form.name.trim()) { setModalError('Event name is required'); return; }
     if (!form.startDate)    { setModalError('Start date is required'); return; }
     if (isOvernight && !form.endDate) { setModalError('End date is required for overnight outings'); return; }
-    if (!form.eventSplId)   { setModalError('SPL is required'); return; }
+    if (!form.eventSplId)   { setModalError('Outing Leader is required'); return; }
     if (!form.adultLeaderId) { setModalError('Adult leader is required'); return; }
 
     const payload = {
@@ -226,8 +226,7 @@ const OutingsPage = () => {
                           {ev.endDate ? ` – ${formatDate(ev.endDate)}` : ''}
                         </p>
                       )}
-                      {ev.eventSplName && <p>SPL: {ev.eventSplName}</p>}
-                      {ev.eventAsplName && <p>ASPL: {ev.eventAsplName}</p>}
+                      {ev.eventSplName && <p>Outing Leader: {ev.eventSplName}</p>}
                       {ev.adultLeaderName && <p>Adult Leader: {ev.adultLeaderName}</p>}
                     </div>
                   </div>
@@ -304,39 +303,26 @@ const OutingsPage = () => {
                   className="form-input w-full"
                 />
               </div>
+              {isOvernight && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">End Date *</label>
+                  <input
+                    type="date"
+                    value={form.endDate}
+                    min={form.startDate || undefined}
+                    onChange={e => handleFormChange('endDate', e.target.value)}
+                    className="form-input w-full"
+                  />
+                </div>
+              )}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  End Date {isOvernight ? '*' : '(Optional)'}
-                </label>
-                <input
-                  type="date"
-                  value={form.endDate}
-                  min={form.startDate || undefined}
-                  onChange={e => handleFormChange('endDate', e.target.value)}
-                  className="form-input w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">SPL (Senior Patrol Leader) *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Outing Leader *</label>
                 <select
                   value={form.eventSplId}
                   onChange={e => handleFormChange('eventSplId', e.target.value)}
                   className="form-input w-full"
                 >
-                  <option value="">— Select SPL —</option>
-                  {scouts.map(u => (
-                    <option key={u.id} value={u.id}>{u.fullName}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">ASPL (Assistant SPL)</label>
-                <select
-                  value={form.eventAsplId}
-                  onChange={e => handleFormChange('eventAsplId', e.target.value)}
-                  className="form-input w-full"
-                >
-                  <option value="">— None —</option>
+                  <option value="">— Select Outing Leader —</option>
                   {scouts.map(u => (
                     <option key={u.id} value={u.id}>{u.fullName}</option>
                   ))}
