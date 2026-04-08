@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useInventory } from '../hooks/useInventory';
 
-const ConnectionError = ({ onRetry, onGoHome }) => {
+const ConnectionError = ({ onRetry, onGoHome, detail }) => {
   const { checkHealth, loading } = useInventory();
   const [retryError, setRetryError] = useState(null);
 
@@ -34,6 +34,22 @@ const ConnectionError = ({ onRetry, onGoHome }) => {
         <p className="text-gray-600 mb-6">
           The gear management system requires a connection to the database to function properly.
         </p>
+
+        {detail && (
+          <div className="mb-6 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-left">
+            <p className="text-xs font-semibold text-amber-900 mb-1">Details</p>
+            <p className="text-xs text-amber-900/90 break-words font-mono">{detail}</p>
+            {import.meta.env.DEV &&
+              /failed to fetch|load failed|network|not allowed to request resource/i.test(detail) && (
+                <p className="text-xs text-amber-800/90 mt-2 leading-snug">
+                  Dev tip: Use the exact same URL in Safari as in Chrome (e.g. both{' '}
+                  <code className="rounded bg-amber-100/80 px-1">localhost</code> or both{' '}
+                  <code className="rounded bg-amber-100/80 px-1">127.0.0.1</code>). Ensure the Vite and
+                  backend servers are running.
+                </p>
+              )}
+          </div>
+        )}
 
         {/* Possible Causes */}
         <div className="text-left mb-6">

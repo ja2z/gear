@@ -34,6 +34,44 @@
   100% { transform: scale(1); }
 }
 
+/* Login “check your email” — mailbox emoji */
+@keyframes login-mailbox-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes login-mailbox-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.login-mailbox-wrap {
+  animation: login-mailbox-pop 0.55s cubic-bezier(0.34, 1.45, 0.64, 1) both;
+}
+
+.login-mailbox-icon {
+  display: inline-block;
+  animation: login-mailbox-bob 1.35s ease-in-out 0.55s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-mailbox-wrap,
+  .login-mailbox-icon {
+    animation: none;
+  }
+}
+
 /* Custom styles for mobile-first design */
 * {
   box-sizing: border-box;
@@ -165,7 +203,47 @@ a.back-button:active {
   }
 }
 
-/* Centered dialog (e.g. edit member modal) — backdrop fade + panel ease in */
+/*
+  Fullscreen dimmer: implement as a plain div (not <button>). WebKit/Blink often paint
+  default :focus / :active / inner shadow on full-viewport buttons — reads as a bright
+  “border” while the mouse is held down. Solid rgba + slight inset bleed covers subpixel
+  hairlines at the viewport edge on high-DPI displays.
+*/
+.modal-dialog-overlay-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: visible;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+.modal-dialog-backdrop-surface {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: rgba(0, 0, 0, 0.45);
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  pointer-events: auto;
+  transform: translateZ(0);
+}
+
+/* Centered dialog — backdrop fade + quick subtle panel pop (all modals) */
 @keyframes modal-dialog-backdrop-in {
   from {
     opacity: 0;
@@ -176,11 +254,15 @@ a.back-button:active {
 }
 
 @keyframes modal-dialog-panel-in {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(14px) scale(0.98);
+    transform: translateY(6px) scale(0.95);
   }
-  to {
+  40% {
+    opacity: 1;
+    transform: translateY(1px) scale(0.99);
+  }
+  100% {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
@@ -191,7 +273,7 @@ a.back-button:active {
 }
 
 .modal-dialog-panel-enter {
-  animation: modal-dialog-panel-in 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.98) both;
+  animation: modal-dialog-panel-in 0.34s cubic-bezier(0.32, 0.72, 0.36, 1) both;
 }
 
 @keyframes modal-dialog-backdrop-out {
@@ -214,8 +296,10 @@ a.back-button:active {
   }
 }
 
+/* Must stay in sync with .modal-dialog-panel-exit duration: if the backdrop fades first,
+   bright page content shows through the still-fading white panel → visible “white flash”. */
 .modal-dialog-backdrop-exit {
-  animation: modal-dialog-backdrop-out 0.22s ease-in forwards;
+  animation: modal-dialog-backdrop-out 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.98) forwards;
 }
 
 .modal-dialog-panel-exit {
@@ -295,6 +379,10 @@ a.back-button:active {
     animation: none;
   }
 
+  .modal-dialog-backdrop-surface {
+    transform: none;
+  }
+
   .cart-badge.cart-badge-bump-animate {
     animation: none;
   }
@@ -305,7 +393,14 @@ a.back-button:active {
   }
 }
 
-.h-screen-small { height: 100svh; } /* Small viewport height - prevents Safari URL bar collapse */
+/*
+  Full-height app shell. svh = stable fallback. dvh = dynamic viewport — height updates as mobile
+  browser chrome changes (address/search bar, bottom toolbar), so content fits the *visible* area.
+*/
+.h-screen-small {
+  height: 100svh;
+  height: 100dvh;
+}
 
 /* Card styles */
 .card {
@@ -454,12 +549,15 @@ a.back-button:active {
   outline: none;
 }
 
-/* Header styles — glassy tint */
+/* Header styles — glassy tint (horizontal padding matches TroopBrandHeader / home gutters) */
 .header {
   background-color: rgba(30, 57, 138, 0.06);
   border-bottom: 1px solid rgba(30, 57, 138, 0.10);
   color: #111827;
-  padding: 0.75rem 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
   position: sticky;
   top: 0;
   z-index: 50;
@@ -470,6 +568,15 @@ a.back-button:active {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
+}
+
+@media (min-width: 640px) {
+  .header {
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+    padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+  }
 }
 
 .header h1 {
@@ -535,6 +642,14 @@ input[type="date"] {
   appearance: none;
   min-width: 0;
   max-width: 100%;
+}
+
+/* react-day-picker — troop hub outing modal (scoped) */
+.outing-date-popover .rdp-root {
+  --rdp-accent-color: #1e398a;
+  --rdp-accent-background-color: rgba(30, 57, 138, 0.12);
+  --rdp-day_button-border-radius: 9999px;
+  --rdp-today-color: #1e398a;
 }
 
 /* Form input styles */

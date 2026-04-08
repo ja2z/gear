@@ -142,3 +142,87 @@ export const getLQIPImages = () => OPTIMIZED_IMAGES.map(img => img.lqip).filter(
 const listPath = path.join(__dirname, '../src/utils/optimizedImageList.js');
 fs.writeFileSync(listPath, listContent);
 console.log(`Updated optimizedImageList.js with ${imageData.length} images`);
+
+// --- Hero crop focal points (variance-based saliency on downscaled greyscale) ---
+// Picks a weighted center of "interesting" texture: works for portraits, groups, and distant hikers vs sky/fog.
+
+const GRID = 8;
+
+/**
+ * @param {string} webpAbsPath
+ * @returns {{ x: number, y: number }}
+ */
+async function computeVarianceFocal(webpAbsPath) {
+  const { data, info } = await sharp(webpAbsPath)
+    .resize(112, 112, { fit: 'inside' })
+    .greyscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const w = info.width;
+  const h = info.height;
+  const cellW = w / GRID;
+  const cellH = h / GRID;
+  let maxV = 0;
+  const cells = [];
+
+  for (let row = 0; row < GRID; row++) {
+    for (let col = 0; col < GRID; col++) {
+      const x0 = Math.floor(col * cellW);
+      const y0 = Math.floor(row * cellH);
+      const x1 = Math.min(w, Math.ceil((col + 1) * cellW));
+      const y1 = Math.min(h, Math.ceil((row + 1) * cellH));
+      let sum = 0;
+      let sumSq = 0;
+      let n = 0;
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+          const v = data[y * w + x];
+          sum += v;
+          sumSq += v * v;
+          n++;
+        }
+      }
+      const mean = n ? sum / n : 0;
+      const variance = n ? sumSq / n - mean * mean : 0;
+      maxV = Math.max(maxV, variance);
+      cells.push({
+        variance,
+        cx: ((col + 0.5) / GRID) * 100,
+        cy: ((row + 0.5) / GRID) * 100,
+      });
+    }
+  }
+
+  const round2 = (n) => Math.round(n * 100) / 100;
+
+  if (maxV < 4) {
+    return { x: 50, y: 50 };
+  }
+
+  let sw = 0;
+  let sx = 0;
+  let sy = 0;
+  for (const c of cells) {
+    const wt = Math.pow(c.variance + 0.02, 1.15);
+    sx += c.cx * wt;
+    sy += c.cy * wt;
+    sw += wt;
+  }
+  return { x: round2(sx / sw), y: round2(sy / sw) };
+}
+
+const focalOut = {};
+for (const f of webpFiles) {
+  const baseName = path.parse(f).name;
+  try {
+    focalOut[baseName] = await computeVarianceFocal(path.join(imagesDir, f));
+  } catch (e) {
+    console.warn(`Focal compute failed for ${f}:`, e.message);
+    focalOut[baseName] = { x: 50, y: 50 };
+  }
+}
+
+const focalPath = path.join(__dirname, '../src/config/heroFocalPoints.generated.json');
+fs.writeFileSync(focalPath, `${JSON.stringify(focalOut, null, 2)}\n`);
+console.log(`Wrote hero focal map (${Object.keys(focalOut).length} images) → src/config/heroFocalPoints.generated.json`);

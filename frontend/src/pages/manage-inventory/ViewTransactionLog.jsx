@@ -6,10 +6,15 @@ import TransactionCard from '../../components/TransactionCard';
 import { useToast } from '../../hooks/useToast';
 import { useInventory } from '../../hooks/useInventory';
 import { AnimateMain } from '../../components/AnimateMain';
+import useIsDesktop from '../../hooks/useIsDesktop';
+import { useDesktopHeader } from '../../context/DesktopHeaderContext';
 
 const ViewTransactionLog = () => {
   const { toast, showToast, hideToast } = useToast();
   const { getData } = useInventory();
+  const isDesktop = useIsDesktop();
+
+  useDesktopHeader({ title: 'Transaction Log' });
 
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -168,22 +173,23 @@ const ViewTransactionLog = () => {
   const endItem = Math.min(currentPage * itemsPerPage, totalCount);
 
   return (
-    <div className="h-screen-small flex flex-col bg-gray-100">
+    <div className={isDesktop ? '' : 'h-screen-small flex flex-col bg-gray-100'}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
-      {/* Header */}
-      <div className="header">
-        <Link
-          to="/manage-inventory"
-          className="back-button no-underline"
-        >
-          ←
-        </Link>
-        <h1>Transaction Log</h1>
-        <HeaderProfileMenu />
-      </div>
+      {!isDesktop && (
+        <div className="header">
+          <Link
+            to="/manage-inventory"
+            className="back-button no-underline"
+          >
+            ←
+          </Link>
+          <h1>Transaction Log</h1>
+          <HeaderProfileMenu />
+        </div>
+      )}
 
-      <AnimateMain className="flex flex-1 flex-col min-h-0">
+      <AnimateMain className={isDesktop ? '' : 'flex flex-1 flex-col min-h-0'}>
       {/* Date chips + filter toggle — always visible */}
       <div className="bg-white px-5 py-2 border-b border-gray-200 flex items-center justify-between">
         <div className="flex gap-2">
@@ -257,7 +263,7 @@ const ViewTransactionLog = () => {
       )}
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={isDesktop ? '' : 'flex-1 overflow-y-auto'}>
         {/* Results Count */}
         {!loading && (
           <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
@@ -303,7 +309,7 @@ const ViewTransactionLog = () => {
       )}
 
       {/* Content */}
-      <div className="px-5 py-6">
+      <div className={isDesktop ? 'py-5' : 'px-5 py-6'}>
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-scout-blue"></div>
@@ -364,4 +370,3 @@ const ViewTransactionLog = () => {
 };
 
 export default ViewTransactionLog;
-

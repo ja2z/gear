@@ -9,10 +9,15 @@ import {
   ManageHubQuickFilterCard,
 } from '../../components/manage-hub';
 import HeaderProfileMenu from '../../components/HeaderProfileMenu';
+import useIsDesktop from '../../hooks/useIsDesktop';
+import { useDesktopHeader } from '../../context/DesktopHeaderContext';
 
 const ManageInventoryDashboard = () => {
   const { getData } = useInventory();
   const [stats, setStats] = useState(null);
+  const isDesktop = useIsDesktop();
+
+  useDesktopHeader({ title: 'Manage Inventory' });
 
   useEffect(() => {
     getData('/inventory')
@@ -84,19 +89,21 @@ const ManageInventoryDashboard = () => {
   }, [stats]);
 
   return (
-    <div className="h-screen-small flex flex-col bg-gray-100">
-      <div className="header">
-        <Link to="/manage" className="back-button no-underline" aria-label="Back to manage data">
-          ←
-        </Link>
-        <h1>Manage Inventory</h1>
-        <HeaderProfileMenu />
-      </div>
+    <div className={isDesktop ? '' : 'h-screen-small flex flex-col bg-gray-100'}>
+      {!isDesktop && (
+        <div className="header">
+          <Link to="/manage" className="back-button no-underline" aria-label="Back to manage data">
+            ←
+          </Link>
+          <h1>Manage Inventory</h1>
+          <HeaderProfileMenu />
+        </div>
+      )}
 
-      <AnimateMain className="flex-1 overflow-y-auto px-4 py-4 pb-8">
-        <div className="mx-auto max-w-xl space-y-3">
-          <div className="flex gap-3">
-            <div className="min-w-0 flex-1">
+      <AnimateMain className={isDesktop ? '' : 'flex-1 overflow-y-auto px-4 py-4 pb-8'}>
+        <div className={isDesktop ? 'space-y-4' : 'mx-auto max-w-xl space-y-3'}>
+          <div className={isDesktop ? 'grid grid-cols-2 gap-4' : 'flex gap-3'}>
+            <div className={isDesktop ? '' : 'min-w-0 flex-1'}>
               <ManageHubSummaryStrip
                 to="/manage-inventory/view?view=item"
                 label="Active inventory"
@@ -106,7 +113,7 @@ const ManageInventoryDashboard = () => {
                 compact
               />
             </div>
-            <div className="min-w-0 flex-1">
+            <div className={isDesktop ? '' : 'min-w-0 flex-1'}>
               {!stats ? (
                 <div className="card animate-pulse p-3">
                   <div className="h-3 w-24 rounded bg-gray-200" />

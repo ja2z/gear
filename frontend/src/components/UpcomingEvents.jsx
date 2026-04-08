@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Tent, Users, UsersRound } from 'lucide-react';
 import { UPCOMING_EVENTS } from '../data/upcomingEvents';
 
@@ -29,7 +30,7 @@ const UpcomingEvents = ({ events = UPCOMING_EVENTS, variant = 'panel' }) => {
   if (variant === 'floating') {
     return (
       <section
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex max-h-[72%] items-end px-2 pb-2.5 pt-6 sm:px-3 sm:pb-3"
+        className="absolute inset-x-0 bottom-0 z-10 flex max-h-[65%] items-end px-2 pb-1.5 pt-4 sm:max-h-[72%] sm:px-3 sm:pb-3 sm:pt-6"
         aria-label="Upcoming events"
       >
         <div className="flex w-full min-w-0 gap-1.5 sm:gap-2">
@@ -37,14 +38,15 @@ const UpcomingEvents = ({ events = UPCOMING_EVENTS, variant = 'panel' }) => {
             const cfg = KIND_CONFIG[ev.kind] ?? KIND_CONFIG.meeting;
             const Icon = cfg.Icon;
             return (
-              <article
+              <Link
                 key={ev.id}
-                className={`relative flex min-w-0 flex-1 cursor-default flex-col items-center gap-1 px-1.5 py-2 text-center select-none sm:gap-1.5 sm:px-2 sm:py-2.5 ${cardFloating}`}
+                to={`/hub/event/${ev.id}`}
+                className={`relative flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-0.5 px-1.5 py-1.5 text-center no-underline transition-opacity active:opacity-90 sm:gap-1 sm:px-2 sm:py-2 ${cardFloating}`}
               >
                 <div
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg sm:h-8 sm:w-8 ${cfg.iconClass}`}
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg sm:h-8 sm:w-8 ${cfg.iconClass}`}
                 >
-                  <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2} aria-hidden />
+                  <Icon className="h-3 w-3 sm:h-4 sm:w-4" strokeWidth={2} aria-hidden />
                 </div>
                 <p className="w-full text-[8px] font-semibold uppercase leading-tight tracking-wide text-gray-800 [text-shadow:0_1px_1px_rgba(255,255,255,0.7)] sm:text-[9px]">
                   {ev.label}
@@ -52,10 +54,7 @@ const UpcomingEvents = ({ events = UPCOMING_EVENTS, variant = 'panel' }) => {
                 <p className="line-clamp-2 w-full text-[11px] font-semibold leading-snug text-gray-950 [text-shadow:0_1px_1px_rgba(255,255,255,0.65)] sm:text-xs">
                   {ev.title}
                 </p>
-                <p className="line-clamp-2 w-full text-[9px] leading-snug text-gray-800 [text-shadow:0_1px_1px_rgba(255,255,255,0.6)] sm:text-[10px]">
-                  {ev.detail}
-                </p>
-              </article>
+              </Link>
             );
           })}
         </div>
@@ -76,9 +75,10 @@ const UpcomingEvents = ({ events = UPCOMING_EVENTS, variant = 'panel' }) => {
           const cfg = KIND_CONFIG[ev.kind] ?? KIND_CONFIG.meeting;
           const Icon = cfg.Icon;
           return (
-            <div
+            <Link
               key={ev.id}
-              className={`flex gap-3 px-3 py-2.5 sm:py-3 ${i > 0 ? 'border-t border-gray-100' : ''}`}
+              to={`/hub/event/${ev.id}`}
+              className={`flex gap-3 px-3 py-2.5 no-underline sm:py-3 ${i > 0 ? 'border-t border-gray-100' : ''}`}
             >
               <div
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${cfg.iconClass}`}
@@ -90,9 +90,11 @@ const UpcomingEvents = ({ events = UPCOMING_EVENTS, variant = 'panel' }) => {
                   {ev.label}
                 </p>
                 <p className="truncate text-sm font-semibold leading-snug text-gray-900">{ev.title}</p>
-                <p className="mt-0.5 text-xs leading-snug text-gray-600 line-clamp-2">{ev.detail}</p>
+                {ev.detail ? (
+                  <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-gray-500">{ev.detail}</p>
+                ) : null}
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>

@@ -6,11 +6,16 @@ import { useInventory } from '../../hooks/useInventory';
 import { validateCategoryCode, validateCategoryName } from '../../utils/validation';
 import { AnimateMain } from '../../components/AnimateMain';
 import HeaderProfileMenu from '../../components/HeaderProfileMenu';
+import useIsDesktop from '../../hooks/useIsDesktop';
+import { useDesktopHeader } from '../../context/DesktopHeaderContext';
 
 const AddCategory = () => {
   const navigate = useNavigate();
   const { toast, showToast, hideToast } = useToast();
   const { getData, postData } = useInventory();
+  const isDesktop = useIsDesktop();
+
+  useDesktopHeader({ title: 'Add New Category' });
 
   const [formData, setFormData] = useState({
     class: '',
@@ -88,98 +93,116 @@ const AddCategory = () => {
     }
   };
 
+  const formFields = (
+    <>
+      {/* Category Code */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Category Code <span className="text-red-500">*</span>
+          <span className="text-gray-500 text-xs ml-1">(uppercase, max 5 chars)</span>
+        </label>
+        <input
+          type="text"
+          value={formData.class}
+          onChange={(e) => setFormData({ ...formData, class: e.target.value.toUpperCase() })}
+          maxLength={5}
+          className={`w-full bg-white px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase ${
+            errors.class ? 'border-red-500' : 'border-gray-300'
+          }`}
+          placeholder="BRCAN"
+        />
+        {errors.class && (
+          <p className="text-red-500 text-sm mt-1">{errors.class}</p>
+        )}
+      </div>
+
+      {/* Display Name */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Display Name <span className="text-red-500">*</span>
+          <span className="text-gray-500 text-xs ml-1">(max 22 chars)</span>
+        </label>
+        <input
+          type="text"
+          value={formData.classDesc}
+          onChange={(e) => setFormData({ ...formData, classDesc: e.target.value })}
+          maxLength={22}
+          className={`w-full bg-white px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+            errors.classDesc ? 'border-red-500' : 'border-gray-300'
+          }`}
+          placeholder="Bear Can"
+        />
+        {errors.classDesc && (
+          <p className="text-red-500 text-sm mt-1">{errors.classDesc}</p>
+        )}
+      </div>
+    </>
+  );
+
+  const actionButtons = (
+    <div className="flex space-x-3">
+      <button
+        type="button"
+        onClick={() => navigate('/manage-inventory/categories')}
+        disabled={loading}
+        className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 min-h-[44px] disabled:opacity-50"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        onClick={handleSubmit}
+        disabled={loading || !isFormValid}
+        className="btn-primary-pill flex-1"
+      >
+        {loading ? 'Creating...' : 'Create Category'}
+      </button>
+    </div>
+  );
+
   return (
-    <div className="h-screen-small flex flex-col bg-gray-100">
+    <div className={isDesktop ? '' : 'h-screen-small flex flex-col bg-gray-100'}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
-      {/* Header */}
-      <div className="header">
-        <Link
-          to="/manage-inventory/categories"
-          className="back-button no-underline"
-        >
-          ←
-        </Link>
-        <h1>Add New Category</h1>
-        <HeaderProfileMenu />
-      </div>
-
-      <AnimateMain className="flex flex-1 flex-col min-h-0">
-      {/* Scrollable Form */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-5 py-6 pb-24">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Category Code */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Category Code <span className="text-red-500">*</span>
-              <span className="text-gray-500 text-xs ml-1">(uppercase, max 5 chars)</span>
-            </label>
-            <input
-              type="text"
-              value={formData.class}
-              onChange={(e) => setFormData({ ...formData, class: e.target.value.toUpperCase() })}
-              maxLength={5}
-              className={`w-full bg-white px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase ${
-                errors.class ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="BRCAN"
-            />
-            {errors.class && (
-              <p className="text-red-500 text-sm mt-1">{errors.class}</p>
-            )}
-          </div>
-
-          {/* Display Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Display Name <span className="text-red-500">*</span>
-              <span className="text-gray-500 text-xs ml-1">(max 22 chars)</span>
-            </label>
-            <input
-              type="text"
-              value={formData.classDesc}
-              onChange={(e) => setFormData({ ...formData, classDesc: e.target.value })}
-              maxLength={22}
-              className={`w-full bg-white px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.classDesc ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Bear Can"
-            />
-            {errors.classDesc && (
-              <p className="text-red-500 text-sm mt-1">{errors.classDesc}</p>
-            )}
-          </div>
-
-        </form>
-        </div>
-      </div>
-
-      {/* Sticky Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50" style={{width: '100vw'}}>
-        <div className="flex space-x-3">
-          <button
-            type="button"
-            onClick={() => navigate('/manage-inventory/categories')}
-            disabled={loading}
-            className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 min-h-[44px] disabled:opacity-50"
+      {!isDesktop && (
+        <div className="header">
+          <Link
+            to="/manage-inventory/categories"
+            className="back-button no-underline"
           >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={loading || !isFormValid}
-            className="btn-primary-pill flex-1"
-          >
-            {loading ? 'Creating...' : 'Create Category'}
-          </button>
+            ←
+          </Link>
+          <h1>Add New Category</h1>
+          <HeaderProfileMenu />
         </div>
-      </div>
-      </AnimateMain>
+      )}
+
+      {isDesktop ? (
+        <div className="lg:max-w-lg lg:mx-auto py-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {formFields}
+            <div className="pt-2">{actionButtons}</div>
+          </form>
+        </div>
+      ) : (
+        <AnimateMain className="flex flex-1 flex-col min-h-0">
+        {/* Scrollable Form */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-5 py-6 pb-24">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {formFields}
+          </form>
+          </div>
+        </div>
+
+        {/* Sticky Bottom Actions */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50" style={{width: '100vw'}}>
+          {actionButtons}
+        </div>
+        </AnimateMain>
+      )}
     </div>
   );
 };
 
 export default AddCategory;
-

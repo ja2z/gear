@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getApiBaseUrl } from '../config/apiBaseUrl';
-import { useAuth } from '../context/AuthContext';
 import TroopBrandHeader from '../components/TroopBrandHeader';
 import { AnimateMain } from '../components/AnimateMain';
 
@@ -10,16 +8,11 @@ const API_BASE_URL = getApiBaseUrl();
 const loginHeaderCenter = (
   <div className="flex flex-col items-center gap-1">
     <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Scouts BSA</p>
-    <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
-      <h1 className="text-lg font-semibold leading-none text-gray-900 sm:text-xl">Troop 222</h1>
-      <span className="text-sm text-gray-500">Troop tools</span>
-    </div>
+    <h1 className="text-lg font-semibold leading-none text-gray-900 sm:text-xl">Troop 222</h1>
   </div>
 );
 
 const LoginPage = () => {
-  const navigate = useNavigate();
-  const { devBypassLogin } = useAuth();
   const [email, setEmail]     = useState('');
   const [sent, setSent]       = useState(false);
   const [loading, setLoading] = useState(false);
@@ -54,11 +47,6 @@ const LoginPage = () => {
     }
   };
 
-  const handleDevBypass = () => {
-    devBypassLogin?.();
-    navigate('/home', { replace: true });
-  };
-
   return (
     <div className="h-screen-small flex flex-col bg-gray-100">
       <TroopBrandHeader center={loginHeaderCenter} />
@@ -66,14 +54,16 @@ const LoginPage = () => {
       <AnimateMain className="flex-1 flex flex-col items-center justify-center px-5">
         {sent ? (
           <div className="text-center max-w-sm">
-            <div className="text-5xl mb-4">📬</div>
+            <div className="login-mailbox-wrap mb-4 flex justify-center" aria-hidden>
+              <span className="login-mailbox-icon text-5xl leading-none select-none">📬</span>
+            </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h2>
             <p className="text-gray-500 text-sm">
               If that email is registered, we sent a login link. It expires in 15 minutes.
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
+          <form onSubmit={handleSubmit} className="w-full max-w-sm lg:max-w-md lg:mx-auto space-y-4">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Sign in</h2>
               <p className="text-gray-500 mt-1 text-sm">
@@ -106,16 +96,6 @@ const LoginPage = () => {
             >
               {loading ? 'Sending…' : 'Send Login Link'}
             </button>
-
-            {import.meta.env.DEV && typeof devBypassLogin === 'function' && (
-              <button
-                type="button"
-                onClick={handleDevBypass}
-                className="w-full text-center text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl py-3 px-3 font-medium"
-              >
-                Continue without signing in (dev only)
-              </button>
-            )}
           </form>
         )}
       </AnimateMain>

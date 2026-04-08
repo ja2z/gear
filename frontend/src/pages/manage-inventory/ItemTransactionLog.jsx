@@ -6,15 +6,20 @@ import { useToast } from '../../hooks/useToast';
 import { useInventory } from '../../hooks/useInventory';
 import { AnimateMain } from '../../components/AnimateMain';
 import HeaderProfileMenu from '../../components/HeaderProfileMenu';
+import useIsDesktop from '../../hooks/useIsDesktop';
+import { useDesktopHeader } from '../../context/DesktopHeaderContext';
 
 const ItemTransactionLog = () => {
   const navigate = useNavigate();
   const { itemId } = useParams();
   const { toast, showToast, hideToast } = useToast();
   const { getData } = useInventory();
+  const isDesktop = useIsDesktop();
 
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useDesktopHeader({ title: 'Transaction Log', subtitle: itemId });
 
   useEffect(() => {
     fetchTransactions();
@@ -34,31 +39,32 @@ const ItemTransactionLog = () => {
   };
 
   return (
-    <div className="h-screen-small flex flex-col bg-gray-100">
+    <div className={isDesktop ? '' : 'h-screen-small flex flex-col bg-gray-100'}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
-      {/* Header */}
-      <div className="header">
-        <Link
-          to="/manage-inventory/view"
-          state={{ editItemId: itemId }}
-          className="back-button no-underline"
-          aria-label="Back to manage items"
-        >
-          ←
-        </Link>
-        <h1>Transaction Log</h1>
-        <HeaderProfileMenu />
-      </div>
-
-      <AnimateMain className="flex flex-1 flex-col min-h-0">
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-5 py-6">
-        {/* Item ID Display */}
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">{itemId}</h2>
+      {!isDesktop && (
+        <div className="header">
+          <Link
+            to="/manage-inventory/view"
+            state={{ editItemId: itemId }}
+            className="back-button no-underline"
+            aria-label="Back to manage items"
+          >
+            ←
+          </Link>
+          <h1>Transaction Log</h1>
+          <HeaderProfileMenu />
         </div>
+      )}
+
+      <AnimateMain className={isDesktop ? '' : 'flex flex-1 flex-col min-h-0'}>
+      <div className={isDesktop ? '' : 'flex-1 overflow-y-auto'}>
+        <div className={isDesktop ? 'py-5' : 'px-5 py-6'}>
+        {!isDesktop && (
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">{itemId}</h2>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -87,4 +93,3 @@ const ItemTransactionLog = () => {
 };
 
 export default ItemTransactionLog;
-

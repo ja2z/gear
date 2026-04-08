@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User,
@@ -8,21 +7,14 @@ import {
   MapPin,
   ClipboardList,
 } from 'lucide-react';
-import ImagePreloader from '../components/ImagePreloader';
-import { getRandomHomeImage } from '../utils/imageRotation';
-import { useOptimizedImage } from '../hooks/useOptimizedImage';
+import HomeHeroCarousel from '../components/HomeHeroCarousel';
 import { AnimateMain } from '../components/AnimateMain';
 
 const Home = () => {
   const navigate = useNavigate();
 
-  const [selectedImagePath] = useState(() => getRandomHomeImage());
-  const { currentImage, imageData } = useOptimizedImage(selectedImagePath);
-
   return (
     <>
-      {imageData && <ImagePreloader images={[imageData]} />}
-
       <div className="h-screen-small flex flex-col bg-gray-100">
         {/* Welcome banner — dashboard-style header: safe areas, clear hierarchy, soft depth */}
         <div className="relative z-10 shrink-0 overflow-hidden border-b border-white/15 bg-gradient-to-b from-[#234a9e] via-[#1E398A] to-[#122552] shadow-[0_4px_24px_-2px_rgba(0,0,0,0.2)]">
@@ -79,21 +71,7 @@ const Home = () => {
         </div>
 
         <AnimateMain className="flex flex-1 flex-col min-h-0">
-        {/* Hero — same treatment as gear landing */}
-        <div
-          className="relative flex-1 min-h-0 overflow-hidden"
-          style={{
-            backgroundImage: currentImage
-              ? `url(${currentImage})`
-              : 'linear-gradient(to bottom, #1E398A, #0f1f5c)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            backgroundColor: '#1E398A',
-          }}
-        >
-          <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-b from-transparent to-white sm:h-24" />
-        </div>
+        <HomeHeroCarousel />
 
         {/* Module buttons */}
         <div className="shrink-0 bg-white px-4 pt-1.5 pb-5 space-y-2.5 sm:px-5 sm:pb-6 sm:space-y-3">

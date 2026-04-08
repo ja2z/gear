@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useInventory } from '../../hooks/useInventory';
 import { AnimateMain } from '../../components/AnimateMain';
 import HeaderProfileMenu from '../../components/HeaderProfileMenu';
+import useIsDesktop from '../../hooks/useIsDesktop';
+import { useDesktopHeader } from '../../context/DesktopHeaderContext';
 
 const SelectCategory = () => {
   const navigate = useNavigate();
@@ -10,6 +12,9 @@ const SelectCategory = () => {
   const [categories, setCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const isDesktop = useIsDesktop();
+
+  useDesktopHeader({ title: 'Select Category' });
 
   useEffect(() => {
     fetchCategories();
@@ -38,23 +43,23 @@ const SelectCategory = () => {
   };
 
   return (
-    <div className="h-screen-small flex flex-col bg-gray-100">
-      {/* Header */}
-      <div className="header">
-        <Link
-          to="/manage-inventory/view"
-          state={{ openAddItem: true }}
-          className="back-button no-underline"
-        >
-          ←
-        </Link>
-        <h1>Select Category</h1>
-        <HeaderProfileMenu />
-      </div>
+    <div className={isDesktop ? '' : 'h-screen-small flex flex-col bg-gray-100'}>
+      {!isDesktop && (
+        <div className="header">
+          <Link
+            to="/manage-inventory/view"
+            state={{ openAddItem: true }}
+            className="back-button no-underline"
+          >
+            ←
+          </Link>
+          <h1>Select Category</h1>
+          <HeaderProfileMenu />
+        </div>
+      )}
 
-      <AnimateMain className="flex flex-1 flex-col min-h-0">
-      {/* Search */}
-      <div className="bg-white px-5 py-4 border-b border-gray-200">
+      <AnimateMain className={isDesktop ? '' : 'flex flex-1 flex-col min-h-0'}>
+      <div className={isDesktop ? 'py-4' : 'bg-white px-5 py-4 border-b border-gray-200'}>
         <input
           type="text"
           placeholder="Search categories..."
@@ -64,9 +69,8 @@ const SelectCategory = () => {
         />
       </div>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-4 py-4">
+      <div className={isDesktop ? '' : 'flex-1 overflow-y-auto'}>
+        <div className={isDesktop ? 'py-4' : 'px-4 py-4'}>
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-scout-blue"></div>
@@ -95,4 +99,3 @@ const SelectCategory = () => {
 };
 
 export default SelectCategory;
-

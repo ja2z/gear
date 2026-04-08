@@ -1,41 +1,43 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { AnimateMain } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import useIsDesktop from '../hooks/useIsDesktop';
+import { useDesktopHeader } from '../context/DesktopHeaderContext';
 
 const Success = () => {
   const [searchParams] = useSearchParams();
   const action = searchParams.get('action') || 'checkout';
   const count = parseInt(searchParams.get('count')) || 0;
-  // Removed complex logo sizing - using fixed 150px height
+  const isDesktop = useIsDesktop();
   
   const [animate, setAnimate] = useState(false);
 
-  // Reset scroll position when component mounts
+  useDesktopHeader({ title: 'Success' });
+
   useEffect(() => {
     const scrollToTop = () => {
       window.scrollTo(0, 0);
     };
     requestAnimationFrame(scrollToTop);
-    // Trigger bounce animation shortly after mount
     const t = setTimeout(() => setAnimate(true), 50);
     return () => clearTimeout(t);
   }, []);
 
-  // Removed complex logo sizing calculations - using fixed 150px height
-  
   const isCheckin = action === 'checkin';
   
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
-      <div className="header">
-        <div className="h-10 w-10 shrink-0" aria-hidden />
-        <h1 className="flex-1 text-center">{isCheckin ? 'Check-in Complete!' : 'Checkout Complete!'}</h1>
-        <HeaderProfileMenu />
-      </div>
+      {!isDesktop && (
+        <div className="header">
+          <div className="h-10 w-10 shrink-0" aria-hidden />
+          <h1 className="flex-1 text-center">{isCheckin ? 'Check-in Complete!' : 'Checkout Complete!'}</h1>
+          <HeaderProfileMenu />
+        </div>
+      )}
 
       <AnimateMain className="flex-1">
-      <div className="px-5 py-12">
+      <div className="px-5 py-12 lg:max-w-lg lg:mx-auto lg:mt-8">
         <div className="text-center">
           <div
             className="text-7xl mb-6 inline-block transition-transform duration-500 ease-out"

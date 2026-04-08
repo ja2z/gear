@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useInventory } from '../../hooks/useInventory';
 import { AnimateMain } from '../../components/AnimateMain';
 import SearchableSegmentedToolbar from '../../components/SearchableSegmentedToolbar';
 import HeaderProfileMenu from '../../components/HeaderProfileMenu';
+import useIsDesktop from '../../hooks/useIsDesktop';
+import { useDesktopHeader } from '../../context/DesktopHeaderContext';
 
 const ManageCategories = () => {
   const navigate = useNavigate();
@@ -12,6 +14,21 @@ const ManageCategories = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const isDesktop = useIsDesktop();
+
+  const desktopHeaderRight = useMemo(() => (
+    <Link
+      to="/manage-inventory/add-category"
+      className="inline-flex h-9 items-center rounded-md bg-scout-blue px-4 text-sm font-medium text-white no-underline"
+    >
+      + Add Category
+    </Link>
+  ), []);
+
+  useDesktopHeader({
+    title: 'Manage Categories',
+    headerRight: isDesktop ? desktopHeaderRight : null,
+  });
 
   useEffect(() => {
     fetchCategories();
@@ -35,32 +52,33 @@ const ManageCategories = () => {
   );
 
   return (
-    <div className="h-screen-small flex flex-col bg-gray-100">
-      {/* Header */}
-      <div className="header">
-        <Link
-          to="/manage-inventory"
-          className="back-button no-underline"
-        >
-          ←
-        </Link>
-        <h1>Manage Categories</h1>
-        <div className="flex shrink-0 items-center gap-2">
+    <div className={isDesktop ? '' : 'h-screen-small flex flex-col bg-gray-100'}>
+      {!isDesktop && (
+        <div className="header">
           <Link
-            to="/manage-inventory/add-category"
-            className="cart-badge no-underline"
-            aria-label="Add category"
+            to="/manage-inventory"
+            className="back-button no-underline"
           >
-            <svg className="add-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
+            ←
           </Link>
-          <HeaderProfileMenu />
+          <h1>Manage Categories</h1>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              to="/manage-inventory/add-category"
+              className="cart-badge no-underline"
+              aria-label="Add category"
+            >
+              <svg className="add-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </Link>
+            <HeaderProfileMenu />
+          </div>
         </div>
-      </div>
+      )}
 
-      <AnimateMain className="flex flex-1 flex-col min-h-0">
+      <AnimateMain className={isDesktop ? '' : 'flex flex-1 flex-col min-h-0'}>
       <SearchableSegmentedToolbar
         hideSegments
         searchOnlyLabel="Categories"
@@ -73,9 +91,8 @@ const ManageCategories = () => {
         searchPlaceholder="Search categories..."
       />
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-5 py-5 pb-20">
+      <div className={isDesktop ? '' : 'flex-1 overflow-y-auto'}>
+        <div className={isDesktop ? 'py-5' : 'px-5 py-5 pb-20'}>
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-scout-blue"></div>
@@ -107,4 +124,3 @@ const ManageCategories = () => {
 };
 
 export default ManageCategories;
-

@@ -4,10 +4,15 @@ import { useInventory } from '../hooks/useInventory';
 import ConnectionError from '../components/ConnectionError';
 import { AnimateMain } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
+import useIsDesktop from '../hooks/useIsDesktop';
+import { useDesktopHeader } from '../context/DesktopHeaderContext';
 
 const OutingSelection = () => {
   const { getData } = useInventory();
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
+
+  useDesktopHeader({ title: 'Select Outing' });
   const [searchTerm, setSearchTerm] = useState('');
   const [outingsWithItems, setOutingsWithItems] = useState([]);
   const [error, setError] = useState(null);
@@ -56,18 +61,19 @@ const OutingSelection = () => {
   }
 
   return (
-    <div className="h-screen-small flex flex-col bg-gray-100">
-      {/* Header */}
-      <div className="header">
-        <Link
-          to="/gear"
-          className="back-button no-underline"
-        >
-          ←
-        </Link>
-        <h1>Select Outing</h1>
-        <HeaderProfileMenu />
-      </div>
+    <div className={isDesktop ? 'flex flex-col flex-1 min-h-0 bg-gray-100' : 'h-screen-small flex flex-col bg-gray-100'}>
+      {!isDesktop && (
+        <div className="header">
+          <Link
+            to="/gear"
+            className="back-button no-underline"
+          >
+            ←
+          </Link>
+          <h1>Select Outing</h1>
+          <HeaderProfileMenu />
+        </div>
+      )}
 
       <AnimateMain className="flex flex-1 flex-col min-h-0">
       {/* Search */}
