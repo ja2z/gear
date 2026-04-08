@@ -87,6 +87,7 @@ router.post('/', async (req, res) => {
       outingName: event.name,
       reservedBy,
       reservedEmail,
+      loggedInEmail: req.user?.email,
       items: successful,
       reservationDate,
     }).catch(err => console.error('Email send failed (non-fatal):', err.message));

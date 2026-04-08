@@ -113,13 +113,24 @@ function buildPDF(outingName, reservedBy, reservationDate, items) {
   });
 }
 
-async function sendReservationConfirmation({ outingName, reservedBy, reservedEmail, items, reservationDate }) {
+async function sendReservationConfirmation({ outingName, reservedBy, reservedEmail, loggedInEmail, items, reservationDate }) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️  RESEND_API_KEY not configured — skipping reservation confirmation email');
     return { skipped: true };
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
+
+  // Build recipient list: logged-in user, outing leader (reservedEmail), and QM — deduplicated.
+  // In dev mode (EMAIL_DEV_ONLY=true), send only to the logged-in user.
+  let recipients;
+  if (process.env.EMAIL_DEV_ONLY === 'true') {
+    recipients = [loggedInEmail || reservedEmail];
+  } else {
+    const seen = new Set();
+    recipients = [loggedInEmail, reservedEmail, 'qm@t222.org']
+      .filter(e => e && !seen.has(e.toLowerCase()) && seen.add(e.toLowerCase()));
+  }
   const pdfBuffer = await buildPDF(outingName, reservedBy, reservationDate, items);
 
   const itemListHtml = items
@@ -162,7 +173,7 @@ async function sendReservationConfirmation({ outingName, reservedBy, reservedEma
 
   await resend.emails.send({
     from: `Troop 222 QM <${process.env.RESEND_FROM || 'qm@t222.org'}>`,
-    to: reservedEmail,
+    to: recipients,
     subject: `Gear Reservation Confirmed — ${outingName}`,
     html,
     attachments: [
