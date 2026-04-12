@@ -18,6 +18,18 @@ function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+/** PostgREST sometimes returns embedded FK rows as a single object or a one-element array. */
+function firstRow(embed) {
+  if (embed == null) return null;
+  return Array.isArray(embed) ? embed[0] ?? null : embed;
+}
+
+function roleNameFromEmbed(roles) {
+  if (roles == null) return null;
+  const r = firstRow(roles);
+  return r?.name ?? null;
+}
+
 const authService = {
   generateToken,
   hashToken,
@@ -35,7 +47,8 @@ const authService = {
       email:      data.email,
       first_name: data.first_name,
       last_name:  data.last_name,
-      role:       data.roles?.name || null,
+      role_id:    data.role_id,
+      role:       roleNameFromEmbed(data.roles),
     };
   },
 
@@ -96,28 +109,40 @@ const authService = {
     return rawToken;
   },
 
+  /**
+   * Resolve session by cookie, then load the user row directly (no sessions→users embed).
+   * Embedded FK rows were unreliable in some environments; role must match DB for requireRole.
+   */
   async getSessionUser(rawToken) {
     const tokenHash = hashToken(rawToken);
 
-    const { data, error } = await supabase
+    const { data: sess, error } = await supabase
       .from('sessions')
-      .select('id, user_id, expires_at, users(id, email, first_name, last_name, roles(name))')
+      .select('id, user_id, expires_at')
       .eq('token_hash', tokenHash)
       .maybeSingle();
     if (error) throw error;
-    if (!data) return null;
-    if (new Date(data.expires_at) < new Date()) return null;
+    if (!sess) return null;
+    if (new Date(sess.expires_at) < new Date()) return null;
 
-    const u = data.users;
+    const { data: u, error: userErr } = await supabase
+      .from('users')
+      .select('id, email, first_name, last_name, role_id, roles(name)')
+      .eq('id', sess.user_id)
+      .maybeSingle();
+    if (userErr) throw userErr;
+    if (!u) return null;
+
     return {
-      sessionId: data.id,
-      expiresAt: data.expires_at,
+      sessionId: sess.id,
+      expiresAt: sess.expires_at,
       user: {
         id:         u.id,
         email:      u.email,
         first_name: u.first_name,
         last_name:  u.last_name,
-        role:       u.roles?.name || null,
+        role_id:    u.role_id,
+        role:       roleNameFromEmbed(u.roles),
       },
     };
   },

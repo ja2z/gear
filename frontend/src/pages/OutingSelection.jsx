@@ -12,7 +12,7 @@ const OutingSelection = () => {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
 
-  useDesktopHeader({ title: 'Select Outing' });
+  useDesktopHeader({ title: 'Select event' });
   const [searchTerm, setSearchTerm] = useState('');
   const [outingsWithItems, setOutingsWithItems] = useState([]);
   const [error, setError] = useState(null);
@@ -70,7 +70,7 @@ const OutingSelection = () => {
           >
             ←
           </Link>
-          <h1>Select Outing</h1>
+          <h1>Select event</h1>
           <HeaderProfileMenu />
         </div>
       )}
@@ -80,7 +80,7 @@ const OutingSelection = () => {
       <div className="bg-white px-5 py-4 border-b border-gray-200">
         <input
           type="text"
-          placeholder="Search outings..."
+          placeholder="Search events..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="search-input"
@@ -103,12 +103,12 @@ const OutingSelection = () => {
       {isLoading && (
         <div className="px-5 py-12">
           <div className="text-center">
-            <p className="text-gray-500">Loading outings...</p>
+            <p className="text-gray-500">Loading events...</p>
           </div>
         </div>
       )}
 
-      {/* Outings List */}
+      {/* Events list */}
       {!isLoading && !error && (
         <div className="px-5 py-5">
           <div className="space-y-3">
@@ -144,7 +144,7 @@ const OutingSelection = () => {
 
           {filteredOutings.length === 0 && outingsWithItems.length > 0 && (
             <div className="text-center py-12">
-              <p className="text-gray-500">No outings found matching your search</p>
+              <p className="text-gray-500">No events found matching your search</p>
             </div>
           )}
 
@@ -155,7 +155,7 @@ const OutingSelection = () => {
                 to="/gear"
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive mt-4 px-6 py-3 bg-scout-blue/12 border border-scout-blue/20 text-scout-blue shadow-xs hover:bg-scout-blue/18 rounded-lg no-underline"
               >
-                Back to Home
+                Back to Gear
               </Link>
             </div>
           )}

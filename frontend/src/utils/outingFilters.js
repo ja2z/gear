@@ -1,6 +1,70 @@
 /** Days before today still counted as “upcoming” (ongoing trips, late planning). */
 export const UPCOMING_BUFFER_DAYS = 3;
 
+/** Troop calendar dates for gear checkout / check-in modals (align with event `startDate` comparisons). */
+export const TROOP_TZ = 'America/Los_Angeles';
+
+/** Today as YYYY-MM-DD in the troop timezone. */
+export function todayYmdTroop() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: TROOP_TZ });
+}
+
+/**
+ * Normalize API `DATE` or ISO datetime to the calendar day YYYY-MM-DD in {@link TROOP_TZ}.
+ * Plain `YYYY-MM-DD` is the roster/calendar truth and is not shifted.
+ */
+export function calendarYmdTroop(raw) {
+  if (raw == null || raw === '') return null;
+  const s = String(raw).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    return s.slice(0, 10);
+  }
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en-CA', { timeZone: TROOP_TZ });
+}
+
+/** Event start as YYYY-MM-DD in troop TZ (see {@link calendarYmdTroop}). */
+export function eventStartYmdTroop(ev) {
+  return calendarYmdTroop(ev?.startDate);
+}
+
+/**
+ * Checkout outing modal: events starting today or later. Sort soonest first (today → future).
+ */
+export function checkoutModalEligibleEvents(events) {
+  const t = todayYmdTroop();
+  return [...(events || [])]
+    .filter((ev) => {
+      const d = eventStartYmdTroop(ev);
+      return d != null && d >= t;
+    })
+    .sort((a, b) => eventStartYmdTroop(a).localeCompare(eventStartYmdTroop(b)));
+}
+
+/**
+ * Check-in outing modal: events starting today or earlier, with at least one item still checked out.
+ * Sort: today first, then progressively farther in the past.
+ * @param {object[]} events from GET /events
+ * @param {Array<{ eventId: string|number, itemCount?: number }>} outingsWithItems from GET /inventory/outings
+ */
+export function checkinModalEligibleEvents(events, outingsWithItems) {
+  const t = todayYmdTroop();
+  const withGear = new Set(
+    (outingsWithItems || [])
+      .filter((o) => (o.itemCount ?? 0) > 0)
+      .map((o) => String(o.eventId))
+  );
+  return [...(events || [])]
+    .filter((ev) => {
+      const d = eventStartYmdTroop(ev);
+      if (d == null || d > t) return false;
+      if (!withGear.has(String(ev.id))) return false;
+      return true;
+    })
+    .sort((a, b) => eventStartYmdTroop(b).localeCompare(eventStartYmdTroop(a)));
+}
+
 /** @param {string | undefined} s YYYY-MM-DD */
 export function parseOutingYmd(s) {
   if (!s || typeof s !== 'string') return null;
@@ -32,8 +96,9 @@ export function upcomingCutoffDate(bufferDays = UPCOMING_BUFFER_DAYS) {
  * @param {number} [bufferDays]
  */
 export function filterAndSortOutings(events, filter, bufferDays = UPCOMING_BUFFER_DAYS) {
+  const list = Array.isArray(events) ? events : [];
   const cutoff = upcomingCutoffDate(bufferDays);
-  const withLast = events
+  const withLast = list
     .map((ev) => ({ ev, last: eventLastDay(ev) }))
     .filter(({ last }) => last != null);
 

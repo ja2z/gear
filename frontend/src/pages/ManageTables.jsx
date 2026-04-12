@@ -37,7 +37,7 @@ const TABLE_OPTIONS = [
   {
     id: 'events',
     title: 'Calendar & events',
-    description: 'Meetings, outings, and RSVPs',
+    description: 'Meetings, events, and RSVPs',
     icon: Calendar,
     comingSoon: true,
     iconClass: 'bg-gray-100 text-gray-400',

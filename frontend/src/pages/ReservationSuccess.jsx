@@ -38,10 +38,10 @@ const ReservationSuccess = () => {
         <p className="text-gray-400 text-sm mb-8">Check your email for a confirmation and PDF summary.</p>
 
         <Link
-          to="/home"
+          to="/gear"
           className="inline-flex items-center justify-center rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue px-8 py-3 text-base font-medium touch-target no-underline"
         >
-          Return to Home
+          Back to Gear
         </Link>
       </div>
       <div className="shrink-0 flex justify-center pb-8">

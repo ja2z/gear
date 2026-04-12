@@ -1,15 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useCategories } from '../hooks/useInventory';
+import { useCategories, useInventory } from '../hooks/useInventory';
 import ConnectionError from '../components/ConnectionError';
 import SlowLoadHint from '../components/SlowLoadHint';
 import { useSlowLoad } from '../hooks/useSlowLoad';
 import { AnimateMain } from '../components/AnimateMain';
 import CategoryItemsPanel from '../components/CategoryItemsPanel';
+import CheckoutOutingModal from '../components/CheckoutOutingModal';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
 import useIsDesktop from '../hooks/useIsDesktop';
 import { useDesktopHeader } from '../context/DesktopHeaderContext';
+import { eventKindLabel } from '../utils/eventKindLabel';
 
 const Categories = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,13 +20,23 @@ const Categories = () => {
   const [modalExitKind, setModalExitKind] = useState(null);
   const [cartBump, setCartBump] = useState(false);
   const [flyToCart, setFlyToCart] = useState(null);
+  const cartFlyTargetRef = useRef(null);
+  const cartBumpTimerRef = useRef(null);
+  const pendingAddTimerRef = useRef(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'checkout';
-  const from = searchParams.get('from');
-  const { items: cartItems, getTotalItems, getItemsInCartByCategory, reservationMeta, addMultipleItems } =
-    useCart();
+  const {
+    items: cartItems,
+    getTotalItems,
+    getItemsInCartByCategory,
+    reservationMeta,
+    checkoutEvent,
+    addMultipleItems,
+    mergeReservationMeta,
+  } = useCart();
   const { categories, loading, error, refreshCategories } = useCategories();
+  const { getData } = useInventory();
   const [connectionError, setConnectionError] = useState(false);
   const slowHint = useSlowLoad(loading && categories.length === 0);
   const isDesktop = useIsDesktop();
@@ -39,6 +51,29 @@ const Categories = () => {
     }
   }, [error, loading]);
 
+  const reservationMetaRef = useRef(reservationMeta);
+  reservationMetaRef.current = reservationMeta;
+
+  useEffect(() => {
+    if (mode !== 'reserve' || !reservationMeta?.eventId || reservationMeta.eventType) return;
+    let cancelled = false;
+    const id = reservationMeta.eventId;
+    getData(`/events/${id}`)
+      .then((ev) => {
+        if (cancelled || !ev?.eventType) return;
+        const prev = reservationMetaRef.current;
+        if (!prev || String(prev.eventId) !== String(id)) return;
+        mergeReservationMeta({ eventType: ev.eventType });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, reservationMeta?.eventId, reservationMeta?.eventType, getData, mergeReservationMeta]);
+
+  const needsOuting =
+    mode !== 'reserve' && !reservationMeta?.eventId && !checkoutEvent?.eventId;
+
   useEffect(() => {
     if (!selectedCategory) return;
     const prev = document.body.style.overflow;
@@ -50,7 +85,7 @@ const Categories = () => {
 
   useEffect(() => {
     if (!flyToCart) return;
-    const t = window.setTimeout(() => setFlyToCart(null), 800);
+    const t = window.setTimeout(() => setFlyToCart(null), 900); /* 0.8s animation + buffer; keep in sync with index.css */
     return () => window.clearTimeout(t);
   }, [flyToCart]);
 
@@ -60,20 +95,69 @@ const Categories = () => {
     return () => window.clearTimeout(t);
   }, [cartBump]);
 
+  useEffect(() => {
+    return () => {
+      if (cartBumpTimerRef.current) window.clearTimeout(cartBumpTimerRef.current);
+      if (pendingAddTimerRef.current) window.clearTimeout(pendingAddTimerRef.current);
+    };
+  }, []);
+
   const closeCategoryModal = useCallback(
     (reason = 'dismiss', itemsToAdd = null, cardOrigins = null) => {
       if (!selectedCategory || modalExiting) return;
       if (reason === 'addedToCart' && itemsToAdd?.length) {
-        addMultipleItems(itemsToAdd);
-        setCartBump(true);
-        const origins = Array.isArray(cardOrigins)
+        const filtered = Array.isArray(cardOrigins)
           ? cardOrigins.filter((o) => o && typeof o.x === 'number')
           : [];
+        const cartEl = cartFlyTargetRef.current;
+        const cartRect = cartEl?.getBoundingClientRect();
+        const cartCx = cartRect ? cartRect.left + cartRect.width / 2 : null;
+        const cartCy = cartRect ? cartRect.top + cartRect.height / 2 : null;
+        let origins = filtered;
+        if (cartCx != null && cartCy != null) {
+          if (filtered.length > 0) {
+            origins = filtered.map((o) => ({
+              ...o,
+              flyDx: cartCx - o.x,
+              flyDy: cartCy - o.y,
+            }));
+          } else {
+            const fx = window.innerWidth / 2;
+            const fy = window.innerHeight * 0.68;
+            origins = [
+              {
+                itemId: 'aggregate',
+                x: fx,
+                y: fy,
+                flyDx: cartCx - fx,
+                flyDy: cartCy - fy,
+              },
+            ];
+          }
+        }
         setFlyToCart({
           id: Date.now(),
           origins,
           aggregateCount: itemsToAdd.length,
         });
+
+        // Bump cart when the chip visually lands (~72% of fly — see keyframes in index.css), not after full fade
+        const prefersReduced =
+          typeof window !== 'undefined' &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const bumpDelayMs = prefersReduced ? 0 : 575; // ~0.8s × 0.72 (land keyframe); keep in sync with fly-to-cart-tag duration
+
+        if (pendingAddTimerRef.current) window.clearTimeout(pendingAddTimerRef.current);
+        pendingAddTimerRef.current = window.setTimeout(() => {
+          pendingAddTimerRef.current = null;
+          addMultipleItems(itemsToAdd);
+        }, bumpDelayMs);
+
+        if (cartBumpTimerRef.current) window.clearTimeout(cartBumpTimerRef.current);
+        cartBumpTimerRef.current = window.setTimeout(() => {
+          cartBumpTimerRef.current = null;
+          setCartBump(true);
+        }, bumpDelayMs);
       }
       setModalExitKind(reason === 'addedToCart' ? 'addedToCart' : 'dismiss');
       setModalExiting(true);
@@ -196,31 +280,55 @@ const Categories = () => {
     </div>
   );
 
+  const reserveOutingDisplay =
+    mode === 'reserve' && reservationMeta
+      ? reservationMeta.outingName?.trim() ||
+        (reservationMeta.eventId != null && String(reservationMeta.eventId) !== ''
+          ? `Event ${reservationMeta.eventId}`
+          : null)
+      : null;
+
+  const reserveKind = eventKindLabel(reservationMeta?.eventType);
+
+  const reserveGearOutingBanner = reserveOutingDisplay && (
+    <div className="shrink-0 border-b border-gray-200 bg-white px-5 py-3">
+      <p
+        className="truncate text-center text-base text-gray-900"
+        title={`${reserveKind}: ${reserveOutingDisplay}`}
+      >
+        <span className="font-semibold text-gray-600">{reserveKind}:</span>{' '}
+        <span className="font-semibold">{reserveOutingDisplay}</span>
+      </p>
+    </div>
+  );
+
   /* ── Shared: category items modal ── */
   const categoryModal = selectedCategory && (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4"
+      className="modal-dialog-overlay-root select-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby="category-items-modal-title"
     >
       <div
-        className={`absolute inset-0 cursor-pointer bg-black/45 [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] ${
+        role="presentation"
+        aria-hidden
+        className={`modal-dialog-backdrop-surface ${
           modalExiting ? 'modal-dialog-backdrop-exit' : 'modal-dialog-backdrop-enter'
         }`}
-        role="presentation"
         onClick={() => closeCategoryModal('dismiss')}
       />
-      <div
-        className={`relative z-[101] flex h-[min(96dvh,800px)] w-full max-w-[26rem] lg:max-w-2xl flex-col overflow-hidden rounded-2xl bg-gray-100 shadow-2xl ${
-          modalExiting
-            ? modalExitKind === 'addedToCart'
-              ? 'modal-dialog-panel-exit-added'
-              : 'modal-dialog-panel-exit'
-            : 'modal-dialog-panel-enter'
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
+        <div
+          className={`pointer-events-auto relative z-[101] flex h-[min(85dvh,34rem)] w-full max-w-[22rem] flex-col overflow-hidden rounded-2xl bg-gray-100 shadow-2xl ${
+            modalExiting
+              ? modalExitKind === 'addedToCart'
+                ? 'modal-dialog-panel-exit-added'
+                : 'modal-dialog-panel-exit'
+              : 'modal-dialog-panel-enter'
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
         <CategoryItemsPanel
           key={selectedCategory}
           category={selectedCategory}
@@ -228,6 +336,7 @@ const Categories = () => {
           variant="modal"
           onClose={closeCategoryModal}
         />
+        </div>
       </div>
     </div>
   );
@@ -243,10 +352,21 @@ const Categories = () => {
             style={{
               left: o.x,
               top: o.y,
+              ...(typeof o.flyDx === 'number' &&
+                typeof o.flyDy === 'number' && {
+                  '--fly-dx': `${o.flyDx}px`,
+                  '--fly-dy': `${o.flyDy}px`,
+                }),
             }}
           >
-            <span className="inline-flex min-w-[2rem] items-center justify-center rounded-full bg-green-600 px-2.5 py-1 text-xs font-bold text-white shadow-lg ring-2 ring-white/30">
-              +1
+            <span
+              className={
+                o.itemId === 'aggregate'
+                  ? 'inline-flex min-w-[2.5rem] items-center justify-center rounded-full bg-green-600 px-3 py-1.5 text-sm font-bold text-white shadow-lg ring-2 ring-white/30'
+                  : 'inline-flex min-w-[2rem] items-center justify-center rounded-full bg-green-600 px-2.5 py-1 text-xs font-bold text-white shadow-lg ring-2 ring-white/30'
+              }
+            >
+              {o.itemId === 'aggregate' ? `+${flyToCart.aggregateCount}` : '+1'}
             </span>
           </div>
         ))
@@ -275,6 +395,8 @@ const Categories = () => {
           />
         </div>
 
+        {reserveGearOutingBanner}
+
         <div className="flex-1 overflow-y-auto">
           <div className="px-5 py-5 lg:grid lg:grid-cols-[1fr_18rem] lg:gap-6">
             <div>
@@ -287,7 +409,7 @@ const Categories = () => {
             <div>
               <div className="sticky top-5">
                 <div className="card p-5">
-                  <div className="flex items-center gap-3 mb-3">
+                  <div ref={cartFlyTargetRef} className="flex items-center gap-3 mb-3">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-scout-blue">
                       <circle cx="8" cy="21" r="1"></circle>
                       <circle cx="19" cy="21" r="1"></circle>
@@ -321,7 +443,7 @@ const Categories = () => {
     <div className="h-screen-small flex flex-col bg-gray-100">
       <div className={`header ${mode === 'reserve' ? 'header-reserve' : ''}`}>
         <Link
-          to={mode === 'reserve' || from === 'reservations' ? '/reservations' : '/gear'}
+          to="/gear"
           className="back-button no-underline"
         >
           ←
@@ -341,6 +463,7 @@ const Categories = () => {
             className="search-input min-w-0 flex-1"
           />
           <Link
+            ref={cartFlyTargetRef}
             to={`/cart?mode=${mode}`}
             className={`cart-badge shrink-0 no-underline ${cartBump ? 'cart-badge-bump-animate' : ''}`}
           >
@@ -354,6 +477,8 @@ const Categories = () => {
         </div>
       </div>
 
+      {reserveGearOutingBanner}
+
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 py-5 pb-20">
           <div className="space-y-3">
@@ -366,6 +491,7 @@ const Categories = () => {
 
       {categoryModal}
       {flyToCartOverlay}
+      <CheckoutOutingModal open={needsOuting} onDismiss={() => navigate('/gear')} />
     </div>
   );
 };

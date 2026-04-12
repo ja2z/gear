@@ -207,20 +207,20 @@ const ManageMembers = () => {
           searchOpen={searchOpen}
           onSearchOpenChange={setSearchOpen}
           searchPlaceholder="Search name, email…"
+          toolbarEndAccessory={
+            canEditRoster ? (
+              <button
+                type="button"
+                onClick={openAddMemberModal}
+                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-full border border-scout-green/25 bg-scout-green/12 px-2.5 py-2 text-xs font-semibold text-scout-green touch-target transition-colors hover:bg-scout-green/18 active:bg-scout-green/22 sm:gap-1.5 sm:px-3 sm:text-sm"
+                aria-label="Add member"
+              >
+                <UserPlus className="h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px]" strokeWidth={2} aria-hidden />
+                <span className="max-[380px]:sr-only">Add</span>
+              </button>
+            ) : null
+          }
         />
-
-        {canEditRoster && (
-          <div className="shrink-0 border-b border-gray-200 bg-white px-5 py-3">
-            <button
-              type="button"
-              onClick={openAddMemberModal}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-scout-green/20 bg-scout-green/12 text-base font-medium text-scout-green touch-target transition-colors hover:bg-scout-green/18 active:bg-scout-green/22"
-            >
-              <UserPlus className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
-              Add member
-            </button>
-          </div>
-        )}
 
         <div className="flex-1 overflow-y-auto">
           <SegmentSwitchAnimate key={viewMode} className="min-h-0">
@@ -271,19 +271,22 @@ const ManageMembers = () => {
 
       {deleteTarget && (
         <div
-          className={`fixed inset-0 flex items-center justify-center p-3 sm:p-4 ${
-            editingMemberId || addingMember ? 'z-[120]' : 'z-50'
+          className={`modal-dialog-overlay-root select-none ${
+            editingMemberId || addingMember ? 'z-[120]' : ''
           }`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="manage-members-delete-title"
         >
-          <button
-            type="button"
-            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
-            aria-label="Close"
-            disabled={deleteLoading}
+          <div
+            role="presentation"
+            aria-hidden
+            className="modal-dialog-backdrop-surface modal-dialog-backdrop-enter"
             onClick={() => !deleteLoading && setDeleteTarget(null)}
           />
-          <div className="modal-dialog-panel-enter relative z-[101] w-full max-w-md rounded-2xl bg-white px-5 pt-5 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
-            <h2 className="mb-1 text-lg font-bold text-gray-900">Remove member?</h2>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
+            <div className="modal-dialog-panel-enter pointer-events-auto relative z-[101] w-full max-w-md rounded-2xl bg-white px-5 pt-5 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
+            <h2 id="manage-members-delete-title" className="mb-1 text-lg font-bold text-gray-900">Remove member?</h2>
             <p className="mb-1 text-sm text-gray-600">
               <span className="font-medium">{deleteTarget.fullName}</span>
             </p>
@@ -309,47 +312,52 @@ const ManageMembers = () => {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {editingMemberId && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
+          className="modal-dialog-overlay-root select-none z-[100]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="edit-member-modal-title"
         >
-          <button
-            type="button"
-            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
-            aria-label="Close editor"
+          <div
+            role="presentation"
+            aria-hidden
+            className="modal-dialog-backdrop-surface modal-dialog-backdrop-enter"
             onClick={() => setEditingMemberId(null)}
           />
-          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md lg:max-w-xl flex-col overflow-y-auto overflow-x-hidden rounded-2xl bg-gray-100 shadow-2xl">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4 sm:p-6">
+            <div className="modal-dialog-panel-enter pointer-events-auto relative z-[101] flex max-h-[96dvh] w-full max-w-md lg:max-w-xl flex-col overflow-y-auto overflow-x-hidden rounded-2xl bg-gray-100 shadow-2xl">
             <EditMember
               key={editingMemberId}
               memberId={editingMemberId}
               onClose={() => setEditingMemberId(null)}
             />
           </div>
+          </div>
         </div>
       )}
 
       {addingMember && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
+          className="modal-dialog-overlay-root select-none z-[100]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="add-member-modal-title"
         >
-          <button
-            type="button"
-            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
-            aria-label="Close add member"
+          <div
+            role="presentation"
+            aria-hidden
+            className="modal-dialog-backdrop-surface modal-dialog-backdrop-enter"
             onClick={() => setAddingMember(false)}
           />
-          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md lg:max-w-xl flex-col overflow-y-auto overflow-x-hidden rounded-2xl bg-gray-100 shadow-2xl">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4 sm:p-6">
+            <div className="modal-dialog-panel-enter pointer-events-auto relative z-[101] flex max-h-[96dvh] w-full max-w-md lg:max-w-xl flex-col overflow-y-auto overflow-x-hidden rounded-2xl bg-gray-100 shadow-2xl">
             <AddMember key={addModalKey} onClose={() => setAddingMember(false)} />
+          </div>
           </div>
         </div>
       )}

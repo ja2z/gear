@@ -55,6 +55,49 @@ const cartReducer = (state, action) => {
       saveCartToStorage(metaState);
       return metaState;
 
+    /** Shallow-merge into reservationMeta without dropping other fields (e.g. eventType backfill). */
+    case 'MERGE_RESERVATION_META':
+      if (!state.reservationMeta) return state;
+      const mergedMetaState = {
+        ...state,
+        reservationMeta: { ...state.reservationMeta, ...action.payload },
+      };
+      saveCartToStorage(mergedMetaState);
+      return mergedMetaState;
+
+    /** Single write: clear cart items and set reservation draft (avoids clear + set races with localStorage). */
+    case 'BEGIN_RESERVE_CATEGORIES_DRAFT': {
+      const draftState = {
+        ...state,
+        items: [],
+        createdAt: null,
+        checkoutEvent: null,
+        reservationMeta: action.payload,
+      };
+      saveCartToStorage(draftState);
+      return draftState;
+    }
+
+    /** Replace cart items + reservation meta in one save (edit / checkout-from-reservation flows). */
+    case 'SET_CART_RESERVATION_SESSION': {
+      const { items: sessionItems, meta } = action.payload;
+      const list = Array.isArray(sessionItems) ? sessionItems : [];
+      const sessionState = {
+        ...state,
+        items: list,
+        createdAt: list.length ? Date.now() : null,
+        checkoutEvent: null,
+        reservationMeta: meta,
+      };
+      saveCartToStorage(sessionState);
+      return sessionState;
+    }
+
+    case 'SET_CHECKOUT_EVENT':
+      const evState = { ...state, checkoutEvent: action.payload };
+      saveCartToStorage(evState);
+      return evState;
+
     case 'ADD_ITEM':
       // Check if item already exists in cart
       const existingItem = state.items.find(item => item.itemId === action.payload.itemId);
@@ -82,6 +125,7 @@ const cartReducer = (state, action) => {
       // If cart becomes empty, clear createdAt
       if (updatedState.items.length === 0) {
         updatedState.createdAt = null;
+        updatedState.checkoutEvent = null;
       }
       
       // Save to localStorage
@@ -110,16 +154,23 @@ const cartReducer = (state, action) => {
         ...state,
         items: [],
         createdAt: null,
-        reservationMeta: null
+        reservationMeta: null,
+        checkoutEvent: null,
       };
       
       // Clear from localStorage
       clearCartFromStorage();
       return clearedState;
     
-    case 'LOAD_CART':
-      // Load cart from localStorage (used on app initialization)
-      return action.payload;
+    case 'LOAD_CART': {
+      const p = action.payload;
+      return {
+        items: p.items || [],
+        createdAt: p.createdAt ?? null,
+        reservationMeta: p.reservationMeta ?? null,
+        checkoutEvent: p.checkoutEvent ?? null,
+      };
+    }
     
     default:
       return state;
@@ -130,7 +181,9 @@ export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, {
     items: [],
     createdAt: null,
-    reservationMeta: null
+    reservationMeta: null,
+    /** { eventId, outingName, scoutName? } — chosen before browsing gear (checkout flow only) */
+    checkoutEvent: null,
   });
 
   // Initialize cart from localStorage on app startup
@@ -161,6 +214,22 @@ export const CartProvider = ({ children }) => {
     dispatch({ type: 'SET_RESERVATION_META', payload: meta });
   };
 
+  const mergeReservationMeta = (partial) => {
+    dispatch({ type: 'MERGE_RESERVATION_META', payload: partial });
+  };
+
+  const beginReserveCategoriesDraft = (meta) => {
+    dispatch({ type: 'BEGIN_RESERVE_CATEGORIES_DRAFT', payload: meta });
+  };
+
+  const setCartReservationSession = ({ items: sessionItems, meta }) => {
+    dispatch({ type: 'SET_CART_RESERVATION_SESSION', payload: { items: sessionItems, meta } });
+  };
+
+  const setCheckoutEvent = (payload) => {
+    dispatch({ type: 'SET_CHECKOUT_EVENT', payload });
+  };
+
   const getTotalItems = () => {
     return state.items.length;
   };
@@ -188,11 +257,16 @@ export const CartProvider = ({ children }) => {
   const value = {
     items: state.items,
     reservationMeta: state.reservationMeta,
+    checkoutEvent: state.checkoutEvent,
     addItem,
     addMultipleItems,
     removeItem,
     clearCart,
     setReservationMeta,
+    mergeReservationMeta,
+    beginReserveCategoriesDraft,
+    setCartReservationSession,
+    setCheckoutEvent,
     getTotalItems,
     isItemInCart,
     getItemsInCartByCategory,

@@ -1,18 +1,28 @@
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import SegmentedControl from '../components/SegmentedControl';
 import { useEffect, useState, useRef } from 'react';
 import { useCart } from '../context/CartContext';
 import { AnimateMain, SegmentSwitchAnimate } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
+import CartCheckoutModal from '../components/CartCheckoutModal';
+import CartReserveModal from '../components/CartReserveModal';
 import useIsDesktop from '../hooks/useIsDesktop';
 import { useDesktopHeader } from '../context/DesktopHeaderContext';
 
 const Cart = () => {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'checkout';
-  const navigate = useNavigate();
   const { items, removeItem, getTotalItems } = useCart();
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [reserveModalOpen, setReserveModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState('items');
+
+  useEffect(() => {
+    if (items.length === 0) {
+      setCheckoutModalOpen(false);
+      setReserveModalOpen(false);
+    }
+  }, [items.length]);
   const [buttonRenderKey, setButtonRenderKey] = useState(0);
   const [scrollingToCategory, setScrollingToCategory] = useState(false);
   const scrollContainerRef = useRef(null);
@@ -262,18 +272,20 @@ useEffect(() => {
 
       {mode === 'reserve' ? (
         <button
-          onClick={() => navigate('/reservation-info')}
+          type="button"
+          onClick={() => setReserveModalOpen(true)}
           className="w-full h-12 text-base font-medium rounded-md bg-scout-orange text-white"
         >
-          Reserve Items →
+          Reserve items
         </button>
       ) : (
-        <Link
-          to="/checkout"
-          className="flex items-center justify-center w-full h-12 text-base font-medium rounded-md bg-scout-blue text-white no-underline"
+        <button
+          type="button"
+          onClick={() => setCheckoutModalOpen(true)}
+          className="w-full h-12 text-base font-medium rounded-md bg-scout-blue text-white"
         >
-          Go to Checkout
-        </Link>
+          Checkout
+        </button>
       )}
     </div>
   );
@@ -281,18 +293,22 @@ useEffect(() => {
   // --- Desktop layout ---
   if (isDesktop) {
     return (
-      <div className="lg:grid lg:grid-cols-[1fr_20rem] lg:gap-6">
-        {/* Left column: segmented control + item list */}
-        <div ref={scrollContainerRef}>
-          {segmentedControl}
-          {itemListContent}
-        </div>
+      <>
+        <div className="lg:grid lg:grid-cols-[1fr_20rem] lg:gap-6">
+          {/* Left column: segmented control + item list */}
+          <div ref={scrollContainerRef}>
+            {segmentedControl}
+            {itemListContent}
+          </div>
 
-        {/* Right column: sticky order summary */}
-        <div>
-          {orderSummaryCard}
+          {/* Right column: sticky order summary */}
+          <div>
+            {orderSummaryCard}
+          </div>
         </div>
-      </div>
+        <CartCheckoutModal open={checkoutModalOpen} onClose={() => setCheckoutModalOpen(false)} />
+        <CartReserveModal open={reserveModalOpen} onClose={() => setReserveModalOpen(false)} />
+      </>
     );
   }
 
@@ -320,21 +336,26 @@ useEffect(() => {
       <div className="bg-white border-t border-gray-200 p-4">
         {mode === 'reserve' ? (
           <button
-            onClick={() => navigate('/reservation-info')}
+            type="button"
+            onClick={() => setReserveModalOpen(true)}
             className="w-full h-12 text-base font-medium rounded-md bg-scout-orange/12 border border-scout-orange/20 text-scout-orange"
           >
-            Reserve Items →
+            Reserve items
           </button>
         ) : (
-          <Link
-            to="/checkout"
-            className="flex items-center justify-center w-full h-12 text-base font-medium rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue no-underline"
+          <button
+            type="button"
+            onClick={() => setCheckoutModalOpen(true)}
+            className="w-full h-12 text-base font-medium rounded-md bg-scout-blue/12 border border-scout-blue/20 text-scout-blue"
           >
-            Go to Checkout
-          </Link>
+            Checkout
+          </button>
         )}
       </div>
       </AnimateMain>
+
+      <CartCheckoutModal open={checkoutModalOpen} onClose={() => setCheckoutModalOpen(false)} />
+      <CartReserveModal open={reserveModalOpen} onClose={() => setReserveModalOpen(false)} />
     </div>
   );
 };

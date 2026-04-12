@@ -8,6 +8,7 @@ import SlowLoadHint from './SlowLoadHint';
 import { useSlowLoad } from '../hooks/useSlowLoad';
 import { AnimateMain } from './AnimateMain';
 import HeaderProfileMenu from './HeaderProfileMenu';
+import CheckoutOutingModal from './CheckoutOutingModal';
 
 const MODAL_ADD_MIN_MS = 140;
 const MODAL_ADDED_VISIBLE_MS = 220;
@@ -57,7 +58,7 @@ export default function CategoryItemsPanel({
 }) {
   const isModal = variant === 'modal';
   const navigate = useNavigate();
-  const { addMultipleItems, getTotalItems, isItemInCart, reservationMeta } = useCart();
+  const { addMultipleItems, getTotalItems, isItemInCart, reservationMeta, checkoutEvent } = useCart();
   const { items, loading, error } = useItems(category);
   const [selectedItems, setSelectedItems] = useState([]);
   const [connectionError, setConnectionError] = useState(false);
@@ -163,13 +164,16 @@ export default function CategoryItemsPanel({
       );
     }
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-scout-blue mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading items...</p>
-          <SlowLoadHint hint={slowHint} />
+      <>
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-scout-blue mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading items...</p>
+            <SlowLoadHint hint={slowHint} />
+          </div>
         </div>
-      </div>
+        <CheckoutOutingModal open={needsOuting} onDismiss={() => navigate('/gear')} />
+      </>
     );
   }
 
@@ -178,6 +182,7 @@ export default function CategoryItemsPanel({
     : 'h-screen-small flex flex-col bg-gray-100';
 
   return (
+    <>
     <div className={rootClass}>
       {isModal ? (
         <ModalCategoryTitleBar
@@ -341,5 +346,7 @@ export default function CategoryItemsPanel({
         </div>
       </AnimateMain>
     </div>
+    <CheckoutOutingModal open={variant === 'page' && needsOuting} onDismiss={() => navigate('/gear')} />
+    </>
   );
 }

@@ -28,6 +28,8 @@ function SearchableSegmentedToolbar({
   searchOnlyLabel = '',
   /** Optional compact control between segments and search (e.g. Add item). */
   toolbarAccessory = null,
+  /** Optional control after the search icon (e.g. Add member) — stays on the main row. */
+  toolbarEndAccessory = null,
 }) {
   const [searchClosing, setSearchClosing] = useState(false);
   const searchInputRef = useRef(null);
@@ -139,6 +141,9 @@ function SearchableSegmentedToolbar({
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
         </button>
+        {toolbarEndAccessory ? (
+          <div className="flex shrink-0 items-center">{toolbarEndAccessory}</div>
+        ) : null}
       </div>
       <div
         className={`absolute inset-0 z-10 flex items-center bg-white ${toolbarReveal} ${

@@ -6,9 +6,9 @@ import { AnimateMain } from '../components/AnimateMain';
 const API_BASE_URL = getApiBaseUrl();
 
 const loginHeaderCenter = (
-  <div className="flex flex-col items-center gap-1">
-    <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Scouts BSA</p>
-    <h1 className="text-lg font-semibold leading-none text-gray-900 sm:text-xl">Troop 222</h1>
+  <div className="flex flex-col items-center gap-0.5">
+    <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400 sm:text-[11px]">Scouts BSA</p>
+    <h1 className="text-base font-semibold leading-none text-gray-900 sm:text-lg">Troop 222</h1>
   </div>
 );
 
@@ -68,7 +68,7 @@ const LoginPage = () => {
               <h2 className="text-2xl font-bold text-gray-900">Sign in</h2>
               <p className="text-gray-500 mt-1 text-sm">
                 Use the email on file with the troop. After you sign in, you will land on the{' '}
-                <span className="text-gray-700 font-medium">troop hub</span> (gear, outings, and manage).
+                <span className="text-gray-700 font-medium">troop hub</span> (gear, events, and manage).
               </p>
             </div>
 

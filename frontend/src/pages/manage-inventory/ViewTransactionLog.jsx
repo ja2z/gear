@@ -217,17 +217,17 @@ const ViewTransactionLog = () => {
         </button>
       </div>
 
-      {/* Expandable: Outing + Item ID search */}
+      {/* Expandable: Event + Item ID search */}
       {filtersOpen && (
         <div className="bg-white px-5 py-3 border-b border-gray-200 space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Outing</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Event</label>
             <select
               value={selectedOuting}
               onChange={(e) => { setSelectedOuting(e.target.value); setCurrentPage(1); }}
               className="w-full bg-white px-4 py-4 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-scout-blue focus:border-scout-blue min-h-[56px]"
             >
-              <option value="">All outings</option>
+              <option value="">All events</option>
               {outings.map((outing) => (
                 <option key={outing.outingName} value={outing.outingName}>
                   {outing.outingName} ({outing.transactionCount} {outing.transactionCount === 1 ? 'transaction' : 'transactions'})

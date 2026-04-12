@@ -67,9 +67,9 @@ export const HUB_ACTIONS = [
     layout: 'grid',
   },
   {
-    id: 'outings',
-    to: '/outings',
-    label: 'Outings',
+    id: 'events',
+    to: '/events',
+    label: 'Events',
     subtitle: 'Plan & manage trips',
     Icon: Tent,
     accent: 'green',

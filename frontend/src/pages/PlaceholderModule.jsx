@@ -5,7 +5,7 @@ import useIsDesktop from '../hooks/useIsDesktop';
 import { useDesktopHeader } from '../context/DesktopHeaderContext';
 
 /**
- * Simple placeholder for hub modules not yet built (Calendar, Advancement, Outings).
+ * Simple placeholder for hub modules not yet built (Calendar, Advancement, Events).
  */
 const PlaceholderModule = ({ title }) => {
   const isDesktop = useIsDesktop();

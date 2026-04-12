@@ -31,6 +31,7 @@ import Landing from './pages/Landing';
 import ManageTables from './pages/ManageTables';
 import OutingsPage from './pages/OutingsPage';
 import ComingSoonPage from './pages/ComingSoonPage';
+import CalendarPage from './pages/CalendarPage';
 import HubEventPlaceholder from './pages/HubEventPlaceholder';
 
 // Members (mock roster — session-only)
@@ -39,13 +40,10 @@ import ManageMembers from './pages/manage-members/ManageMembers';
 import Categories from './pages/Categories';
 import Items from './pages/Items';
 import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
 import Checkin from './pages/Checkin';
-import CheckinForm from './pages/CheckinForm';
 import OutingSelection from './pages/OutingSelection';
 import Success from './pages/Success';
 import CheckoutOptions from './pages/CheckoutOptions';
-import ReservationInfo from './pages/ReservationInfo';
 import ReservationSuccess from './pages/ReservationSuccess';
 import Reservations from './pages/Reservations';
 
@@ -104,7 +102,15 @@ function UnauthorizedWatcher() {
  * Outer chrome — on lg+ everything is full-width (DesktopShell manages width).
  * Below lg, hub pages are full-width; other routes get a centered column on xl.
  */
-const FULL_WIDTH_MOBILE = new Set(['/home', '/gear', '/outings', '/manage', '/advancement', '/calendar']);
+const FULL_WIDTH_MOBILE = new Set([
+  '/home',
+  '/gear',
+  '/events',
+  '/outings',
+  '/manage',
+  '/advancement',
+  '/calendar',
+]);
 
 function AppContentShell() {
   const { pathname } = useLocation();
@@ -132,9 +138,10 @@ function AppContentShell() {
                   <Route path="/hub/event/:eventId" element={<HubEventPlaceholder />} />
 
                   <Route path="/gear" element={<Landing />} />
-                  <Route path="/outings" element={<OutingsPage />} />
+                  <Route path="/events" element={<OutingsPage />} />
+                  <Route path="/outings" element={<Navigate to="/events" replace />} />
                   <Route path="/advancement" element={<ComingSoonPage title="Advancement" />} />
-                  <Route path="/calendar" element={<ComingSoonPage title="Calendar" />} />
+                  <Route path="/calendar" element={<CalendarPage />} />
 
                   {/* Manage hub + members */}
                   <Route
@@ -155,18 +162,18 @@ function AppContentShell() {
                   </Route>
 
                   {/* Gear sub-routes */}
+                  <Route path="/checkout/select-event" element={<Navigate to="/categories" replace />} />
                   <Route path="/categories" element={<ProtectedRoute canAccess={canCheckout}><Categories /></ProtectedRoute>} />
                   <Route path="/items/:category" element={<ProtectedRoute canAccess={canCheckout}><Items /></ProtectedRoute>} />
                   <Route path="/cart" element={<ProtectedRoute canAccess={canCheckout}><Cart /></ProtectedRoute>} />
-                  <Route path="/checkout" element={<ProtectedRoute canAccess={canCheckout}><Checkout /></ProtectedRoute>} />
+                  <Route path="/checkout" element={<Navigate to="/cart" replace />} />
                   <Route path="/checkin/outings" element={<Navigate to="/checkin" replace />} />
                   <Route path="/checkin/items"   element={<Navigate to="/checkin" replace />} />
-                  <Route path="/checkin/form" element={<ProtectedRoute canAccess={canCheckin}><CheckinForm /></ProtectedRoute>} />
+                  <Route path="/checkin/form" element={<Navigate to="/checkin" replace />} />
                   <Route path="/checkin" element={<ProtectedRoute canAccess={canCheckin}><Checkin /></ProtectedRoute>} />
                   <Route path="/success" element={<ProtectedRoute canAccess={canCheckout}><Success /></ProtectedRoute>} />
                   <Route path="/checkout-options" element={<ProtectedRoute canAccess={canCheckout}><CheckoutOptions /></ProtectedRoute>} />
                   <Route path="/reservations" element={<Reservations />} />
-                  <Route path="/reservation-info" element={<ReservationInfo />} />
                   <Route path="/reservation-success" element={<ReservationSuccess />} />
                   <Route path="/outing-selection" element={<ProtectedRoute canAccess={canCheckout}><OutingSelection /></ProtectedRoute>} />
 

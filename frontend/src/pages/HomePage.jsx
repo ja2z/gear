@@ -17,9 +17,9 @@ const HomePage = () => {
   if (isDesktop) return <HomeDashboard />;
 
   const headerCenter = (
-    <div className="flex flex-col items-center gap-1">
-      <h1 className="text-lg font-semibold leading-tight text-gray-900 sm:text-xl">Troop 222</h1>
-      <p className="text-sm leading-snug text-gray-500">
+    <div className="flex flex-col items-center gap-0.5">
+      <h1 className="text-base font-semibold leading-tight text-gray-900 sm:text-lg">Troop 222</h1>
+      <p className="text-xs leading-snug text-gray-500 sm:text-sm">
         Welcome, <span className="font-medium text-gray-900">{user?.first_name}</span>
       </p>
     </div>

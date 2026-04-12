@@ -80,7 +80,18 @@ export const useInventory = () => {
         body: JSON.stringify(data),
       });
 
-      const result = await response.json().catch(() => ({}));
+      const text = await response.text();
+      let result = {};
+      try {
+        result = text && text.trim() ? JSON.parse(text) : {};
+      } catch {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        throw new Error(
+          'Server returned non-JSON (check dev: Vite proxy to port 3001, backend running, and VITE_API_URL).'
+        );
+      }
 
       if (response.status === 401) {
         requestCache.clear();
@@ -88,7 +99,12 @@ export const useInventory = () => {
         throw new Error('Unauthorized');
       }
       if (!response.ok) {
-        throw new Error(result.error || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          result.error ||
+            result.message ||
+            result.details ||
+            `HTTP error! status: ${response.status}`
+        );
       }
       
       return result;
@@ -317,6 +333,15 @@ export const useReservations = () => {
     return response.json();
   }, []);
 
+  /** Same as fetchReservationItems but returns null when no reservation exists (404). */
+  const fetchReservationItemsIfExists = useCallback(async (eventId) => {
+    const response = await fetch(`${API_BASE_URL}/reservations/${eventId}`, { credentials: 'include' });
+    if (response.status === 404) return null;
+    if (response.status === 401) { _onUnauthorized?.(); throw new Error('Unauthorized'); }
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return response.json();
+  }, []);
+
   const postReservation = useCallback(async (data) => {
     setLoading(true);
     setError(null);
@@ -357,5 +382,13 @@ export const useReservations = () => {
     }
   }, []);
 
-  return { reservations, loading, error, fetchReservations, fetchReservationItems, postReservation };
+  return {
+    reservations,
+    loading,
+    error,
+    fetchReservations,
+    fetchReservationItems,
+    fetchReservationItemsIfExists,
+    postReservation,
+  };
 };

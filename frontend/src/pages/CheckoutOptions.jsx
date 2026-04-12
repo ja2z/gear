@@ -10,7 +10,7 @@ import { useDesktopHeader } from '../context/DesktopHeaderContext';
 
 const CheckoutOptions = () => {
   const navigate = useNavigate();
-  const { addMultipleItems, clearCart, setReservationMeta } = useCart();
+  const { clearCart, setCartReservationSession } = useCart();
   const { fetchReservations, fetchReservationItems } = useReservations();
 
   const [reservationsLoading, setReservationsLoading] = useState(false);
@@ -44,13 +44,21 @@ const CheckoutOptions = () => {
     setConfirmLoading(true);
     setError(null);
     try {
-      const reservation = await fetchReservationItems(selectedOuting.outingName);
-      clearCart();
-      addMultipleItems(reservation.items);
-      setReservationMeta({
-        fromReservation: true,
-        outingName: reservation.outingName,
-        scoutName: reservation.reservedBy,
+      const reservation = await fetchReservationItems(selectedOuting.eventId);
+      setCartReservationSession({
+        items: reservation.items,
+        meta: {
+          fromReservation: true,
+          eventId: reservation.eventId,
+          outingName: reservation.outingName,
+          scoutName: reservation.reservedBy,
+          originalItems: reservation.items.map((i) => ({
+            itemId: i.itemId,
+            description: i.description,
+            itemClass: i.itemClass,
+            itemNum: i.itemNum,
+          })),
+        },
       });
       navigate('/categories');
     } catch (err) {
@@ -109,16 +117,22 @@ const CheckoutOptions = () => {
 
       {/* Reservation selection modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-          <button
-            type="button"
-            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
-            aria-label="Close"
+        <div
+          className="modal-dialog-overlay-root select-none"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="checkout-options-reservation-title"
+        >
+          <div
+            role="presentation"
+            aria-hidden
+            className="modal-dialog-backdrop-surface modal-dialog-backdrop-enter"
             onClick={() => { setShowModal(false); setSelectedOuting(null); setError(null); }}
           />
-          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[min(80dvh,32rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white px-5 pt-5 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
+            <div className="modal-dialog-panel-enter pointer-events-auto relative z-[101] flex max-h-[min(80dvh,32rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white px-5 pt-5 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
             <div className="flex shrink-0 items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900">Select Reservation</h2>
+              <h2 id="checkout-options-reservation-title" className="text-lg font-bold text-gray-900">Select Reservation</h2>
               <button
                 type="button"
                 onClick={() => { setShowModal(false); setSelectedOuting(null); setError(null); }}
@@ -157,6 +171,7 @@ const CheckoutOptions = () => {
             >
               {confirmLoading ? 'Loading...' : 'Confirm Selection'}
             </button>
+          </div>
           </div>
         </div>
       )}

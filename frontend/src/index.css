@@ -354,20 +354,36 @@ a.back-button:active {
   position: relative;
 }
 
-/* Flying “+1” / “+N” toward upper-right (cart); start point is left/top of element (card center) */
+/*
+ * Flying “+1” / “+N” toward the cart badge.
+ * Per-element --fly-dx / --fly-dy (px) are set from JS so the arc ends at the real cart on mobile
+ * (header badge) and desktop (sidebar). Fallback matches the old vw/vh tuning when vars are unset.
+ */
 @keyframes fly-to-cart-tag {
   0% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
   }
+  /* Finish move by ~72% so less time eases slowly over the cart; brief hold then fade */
+  72% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--fly-dx)), calc(-50% + var(--fly-dy))) scale(0.35);
+  }
+  77% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--fly-dx)), calc(-50% + var(--fly-dy))) scale(0.35);
+  }
   100% {
     opacity: 0;
-    transform: translate(calc(-50% + min(38vw, 9.5rem)), calc(-50% - 46vh)) scale(0.35);
+    transform: translate(calc(-50% + var(--fly-dx)), calc(-50% + var(--fly-dy))) scale(0.35);
   }
 }
 
 .fly-to-cart-tag-animate {
-  animation: fly-to-cart-tag 0.7s cubic-bezier(0.22, 0.8, 0.32, 1) both;
+  --fly-dx: min(38vw, 9.5rem);
+  --fly-dy: -46vh;
+  /* Less ease-out “creep” at the end than 0.22,0.8,… — shorter perceived hover over badge */
+  animation: fly-to-cart-tag 0.8s cubic-bezier(0.4, 0.05, 0.2, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -554,8 +570,8 @@ a.back-button:active {
   background-color: rgba(30, 57, 138, 0.06);
   border-bottom: 1px solid rgba(30, 57, 138, 0.10);
   color: #111827;
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
   padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
   padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
   position: sticky;
@@ -564,7 +580,7 @@ a.back-button:active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
@@ -572,16 +588,16 @@ a.back-button:active {
 
 @media (min-width: 640px) {
   .header {
-    padding-top: 0.875rem;
-    padding-bottom: 0.875rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
     padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
     padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
   }
 }
 
 .header h1 {
-  font-size: 1.125rem;
-  line-height: 1.75rem;
+  font-size: 1rem;
+  line-height: 1.35rem;
   font-weight: 600;
   flex: 1;
   text-align: center;
@@ -589,7 +605,7 @@ a.back-button:active {
   color: #111827;
 }
 
-/* Header back button — glassy circle */
+/* Header back button — glassy circle (size aligns with HeaderProfileMenu touch target) */
 .header .back-button {
   display: flex;
   align-items: center;
@@ -601,7 +617,7 @@ a.back-button:active {
   color: #374151;
   text-decoration: none !important;
   transition: all 0.2s ease;
-  font-size: 1.25rem;
+  font-size: 1.125rem;
 }
 
 .header .back-button:hover {

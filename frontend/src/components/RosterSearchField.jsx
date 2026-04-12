@@ -7,13 +7,14 @@ const MAX_VISIBLE = 5;
  * Match if every whitespace-separated token appears somewhere in the full name (case-insensitive).
  */
 export function filterRosterByNameQuery(users, query) {
+  const list = Array.isArray(users) ? users : [];
   const tokens = query
     .trim()
     .toLowerCase()
     .split(/\s+/)
     .filter(Boolean);
-  if (tokens.length === 0) return users;
-  return users.filter((u) => {
+  if (tokens.length === 0) return list;
+  return list.filter((u) => {
     const name = (u.fullName || '').toLowerCase();
     return tokens.every((t) => name.includes(t));
   });
@@ -24,9 +25,25 @@ export function filterScoutsByNameQuery(users, query) {
   return filterRosterByNameQuery(users, query);
 }
 
+/** Walk up from `el` and collect elements that can scroll (modal bodies, overflow-y-auto forms, etc.). */
+function getScrollableAncestors(el) {
+  const list = [];
+  let p = el?.parentElement;
+  while (p && p !== document.documentElement) {
+    const st = getComputedStyle(p);
+    const oy = st.overflowY;
+    const ox = st.overflowX;
+    if (/(auto|scroll|overlay)/.test(oy) || /(auto|scroll|overlay)/.test(ox)) {
+      list.push(p);
+    }
+    p = p.parentElement;
+  }
+  return list;
+}
+
 /**
  * Searchable roster picker (youth or adults). Dropdown only when ≤ MAX_VISIBLE matches.
- * List is portaled to `document.body` with fixed positioning.
+ * List is portaled to `document.body` with fixed positioning (below the input).
  */
 export default function RosterSearchField({
   users,
@@ -45,20 +62,21 @@ export default function RosterSearchField({
   const [menuStyle, setMenuStyle] = useState(null);
   const [inputFocused, setInputFocused] = useState(false);
 
-  const filtered = useMemo(() => filterRosterByNameQuery(users, searchText), [users, searchText]);
+  const userList = Array.isArray(users) ? users : [];
+  const filtered = useMemo(() => filterRosterByNameQuery(userList, searchText), [userList, searchText]);
 
   const selectedUser = useMemo(
-    () => (value ? users.find((u) => String(u.id) === String(value)) : null),
-    [users, value],
+    () => (value ? userList.find((u) => String(u.id) === String(value)) : null),
+    [userList, value],
   );
 
   const baseShowDropdown = useMemo(() => {
     if (filtered.length === 0) return false;
     if (filtered.length > MAX_VISIBLE) return false;
     const q = searchText.trim();
-    if (q.length === 0 && users.length > MAX_VISIBLE) return false;
+    if (q.length === 0 && userList.length > MAX_VISIBLE) return false;
     return true;
-  }, [filtered.length, searchText, users.length]);
+  }, [filtered.length, searchText, userList.length]);
 
   /**
    * Hide the list while a saved selection is showing as plain text (edit outing, etc.).
@@ -93,22 +111,48 @@ export default function RosterSearchField({
       top: r.bottom + 4,
       width: r.width,
       maxHeight: maxH,
-      zIndex: 200,
+      zIndex: 5000,
     });
   }, [showDropdown]);
 
   useLayoutEffect(() => {
     updatePosition();
+    const id = requestAnimationFrame(() => updatePosition());
+    return () => cancelAnimationFrame(id);
   }, [updatePosition, searchText, filtered.length, showDropdown]);
 
   useEffect(() => {
     if (!showDropdown) return;
-    const onScroll = () => updatePosition();
-    window.addEventListener('scroll', onScroll, true);
-    window.addEventListener('resize', onScroll);
+    const anchor = anchorRef.current;
+    if (!anchor) return;
+
+    const run = () => {
+      updatePosition();
+    };
+
+    const scrollParents = getScrollableAncestors(anchor);
+    scrollParents.forEach((el) => {
+      el.addEventListener('scroll', run, { passive: true });
+    });
+    window.addEventListener('scroll', run, true);
+    window.addEventListener('resize', run);
+
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    if (vv) {
+      vv.addEventListener('resize', run);
+      vv.addEventListener('scroll', run);
+    }
+
     return () => {
-      window.removeEventListener('scroll', onScroll, true);
-      window.removeEventListener('resize', onScroll);
+      scrollParents.forEach((el) => {
+        el.removeEventListener('scroll', run);
+      });
+      window.removeEventListener('scroll', run, true);
+      window.removeEventListener('resize', run);
+      if (vv) {
+        vv.removeEventListener('resize', run);
+        vv.removeEventListener('scroll', run);
+      }
     };
   }, [showDropdown, updatePosition]);
 
@@ -139,7 +183,7 @@ export default function RosterSearchField({
     [],
   );
 
-  const dropdown =
+  const listbox =
     showDropdown &&
     menuStyle &&
     createPortal(
@@ -153,7 +197,7 @@ export default function RosterSearchField({
           <li key={u.id} role="option" aria-selected={String(u.id) === String(value)}>
             <button
               type="button"
-              className="w-full px-3 py-2.5 text-left text-sm text-gray-900 hover:bg-scout-blue/8 touch-target"
+              className="touch-target w-full px-3 py-2.5 text-left text-sm text-gray-900 hover:bg-scout-blue/8"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => selectUser(u)}
             >
@@ -162,34 +206,36 @@ export default function RosterSearchField({
           </li>
         ))}
       </ul>,
-      document.body
+      document.body,
     );
 
   return (
-    <div>
-      <div className="relative" ref={anchorRef}>
-        <input
-          id={fieldId}
-          type="search"
-          autoComplete="off"
-          spellCheck={false}
-          disabled={disabled}
-          placeholder="Search by name…"
-          value={searchText}
-          onChange={(e) => {
-            const t = e.target.value;
-            onSearchTextChange(t);
-            if (value) onChange('');
-          }}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          className="search-input w-full"
-          aria-expanded={showDropdown}
-          aria-controls={showDropdown ? `${listId}-listbox` : undefined}
-          aria-autocomplete="list"
-        />
-        {dropdown}
+    <>
+      <div className="relative w-full">
+        <div ref={anchorRef}>
+          <input
+            id={fieldId}
+            type="search"
+            autoComplete="off"
+            spellCheck={false}
+            disabled={disabled}
+            placeholder="Search by name…"
+            value={searchText}
+            onChange={(e) => {
+              const t = e.target.value;
+              onSearchTextChange(t);
+              if (value) onChange('');
+            }}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            className="search-input w-full"
+            aria-expanded={showDropdown}
+            aria-controls={showDropdown ? `${listId}-listbox` : undefined}
+            aria-autocomplete="list"
+          />
+        </div>
       </div>
-    </div>
+      {listbox}
+    </>
   );
 }

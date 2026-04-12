@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Loader2, Plus, X } from 'lucide-react';
-import { AnimateMain } from '../components/AnimateMain';
+import { AnimateMain, SegmentSwitchAnimate } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
 import { useInventory } from '../hooks/useInventory';
 import { getApiBaseUrl } from '../config/apiBaseUrl';
@@ -13,6 +13,7 @@ import OutingDatePicker from '../components/OutingDatePicker';
 import OutingListCard from '../components/OutingListCard';
 import SegmentedControl from '../components/SegmentedControl';
 import { filterAndSortOutings, UPCOMING_BUFFER_DAYS } from '../utils/outingFilters';
+import { primaryLeaderLabel } from '../utils/eventLabels';
 
 const OUTING_LIST_TABS = [
   { key: 'upcoming', label: 'Upcoming' },
@@ -71,11 +72,11 @@ const OutingsPage = () => {
         getData('/events/types/list'),
         getData('/events/users/list'),
       ]);
-      setEvents(eventsData);
-      setEventTypes(typesData);
-      setUsers(usersData);
+      setEvents(Array.isArray(eventsData) ? eventsData : []);
+      setEventTypes(Array.isArray(typesData) ? typesData : []);
+      setUsers(Array.isArray(usersData) ? usersData : []);
     } catch (err) {
-      setPageError('Failed to load outings');
+      setPageError('Failed to load events');
     } finally {
       setPageLoading(false);
     }
@@ -83,9 +84,20 @@ const OutingsPage = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const scouts = users.filter(u => !u.isAdult);
-  const adults = users.filter(u => u.isAdult);
-  const isOvernight = eventTypes.find(t => t.id === parseInt(form.eventTypeId, 10))?.type === 'Overnight Outing';
+  const usersList = Array.isArray(users) ? users : [];
+  const eventTypesList = Array.isArray(eventTypes) ? eventTypes : [];
+  const scouts = usersList.filter((u) => !u.isAdult);
+  const adults = usersList.filter((u) => u.isAdult);
+
+  const matchedEventType = useMemo(() => {
+    if (form.eventTypeId === '' || form.eventTypeId == null) return undefined;
+    const n = Number(form.eventTypeId);
+    if (Number.isNaN(n)) return undefined;
+    return eventTypesList.find((t) => Number(t.id) === n);
+  }, [eventTypesList, form.eventTypeId]);
+
+  const isOvernight = matchedEventType?.type === 'Overnight Outing';
+  const splLeaderFieldLabel = primaryLeaderLabel(matchedEventType?.type);
 
   const isOutingFormValid = useMemo(() => {
     if (!form.name?.trim()) return false;
@@ -147,7 +159,7 @@ const OutingsPage = () => {
     formExitHandledRef.current = false;
     setFormModalClosing(false);
     setEditingEvent(null);
-    setForm({ ...defaultForm, eventTypeId: eventTypes[0]?.id || '' });
+    setForm({ ...defaultForm, eventTypeId: eventTypesList[0]?.id ?? '' });
     setOutingLeaderSearch('');
     setAdultLeaderSearch('');
     setModalError(null);
@@ -191,12 +203,12 @@ const OutingsPage = () => {
       setModalError(isOvernight ? 'Start date is required' : 'Date is required');
       return;
     }
-    if (isOvernight && !form.endDate) { setModalError('End date is required for overnight outings'); return; }
+    if (isOvernight && !form.endDate) { setModalError('End date is required for overnight events'); return; }
     if (isOvernight && form.endDate && form.startDate && form.endDate < form.startDate) {
       setModalError('End date must be on or after start date');
       return;
     }
-    if (!form.eventSplId)   { setModalError('Outing leader is required'); return; }
+    if (!form.eventSplId) { setModalError(`${splLeaderFieldLabel} is required`); return; }
     if (!form.adultLeaderId) { setModalError('Adult leader is required'); return; }
 
     const payload = {
@@ -263,20 +275,10 @@ const OutingsPage = () => {
     }
   };
 
-  const newOutingBtn = !pageLoading && (
-    <button
-      onClick={openCreate}
-      className="inline-flex items-center gap-1.5 rounded-lg bg-scout-blue px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-scout-blue/90"
-    >
-      <Plus className="h-4 w-4" strokeWidth={2} />
-      New Outing
-    </button>
-  );
-
   useDesktopHeader({
-    title: 'Outings',
+    title: 'Events',
     subtitle: 'Plan & manage trips',
-    headerRight: newOutingBtn,
+    headerRight: null,
   });
 
   const loadingOrError = (
@@ -284,15 +286,15 @@ const OutingsPage = () => {
       {pageLoading && (
         <div className="flex flex-col items-center justify-center gap-3 py-16" role="status" aria-live="polite">
           <Loader2 className="h-9 w-9 animate-spin text-scout-blue/50" aria-hidden />
-          <p className="text-sm text-gray-500">Loading outings…</p>
+          <p className="text-sm text-gray-500">Loading events…</p>
         </div>
       )}
       {pageError && (
         <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800">{pageError}</div>
       )}
       {!pageLoading && !pageError && events.length === 0 && (
-        <div className="mx-auto max-w-sm rounded-2xl border border-dashed border-gray-200 bg-white/80 px-6 py-10 text-center shadow-sm">
-          <p className="text-base font-semibold text-gray-900">No outings yet</p>
+        <div className="mx-auto w-full max-w-lg rounded-2xl border border-dashed border-gray-200/90 bg-white px-6 py-10 text-center shadow-sm">
+          <p className="text-base font-semibold text-gray-900">No events yet</p>
           <p className="mt-2 text-sm text-gray-600">
             Add campouts, hikes, and meetings so scouts and adults can plan gear and dates in one place.
           </p>
@@ -302,7 +304,7 @@ const OutingsPage = () => {
             className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-scout-blue px-5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-scout-blue/90 touch-target"
           >
             <Plus className="h-4 w-4" strokeWidth={2} aria-hidden />
-            Create your first outing
+            Create your first event
           </button>
         </div>
       )}
@@ -313,23 +315,55 @@ const OutingsPage = () => {
     !pageLoading &&
     !pageError &&
     events.length > 0 && (
-      <div className="mb-4 w-full">
-        <SegmentedControl tabs={OUTING_LIST_TABS} value={outingListFilter} onChange={setOutingListFilter} />
+      <div className="flex w-full items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <SegmentedControl tabs={OUTING_LIST_TABS} value={outingListFilter} onChange={setOutingListFilter} />
+        </div>
+        <button
+          type="button"
+          onClick={openCreate}
+          className="touch-target flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-300/90 bg-white text-scout-blue/38 shadow-sm transition-colors hover:border-scout-blue/22 hover:bg-scout-blue/[0.06] hover:text-scout-blue/60 active:bg-scout-blue/[0.09]"
+          aria-label="New event"
+        >
+          <Plus className="h-5 w-5" strokeWidth={2} aria-hidden />
+        </button>
       </div>
     );
 
-  const filterEmptyMessage =
+  /** List + empty state for the active Upcoming/Past tab — animates on segment change. */
+  const eventsSegmentContent =
     !pageLoading &&
     !pageError &&
-    events.length > 0 &&
-    filteredSortedEvents.length === 0 && (
-      <div className="rounded-xl border border-gray-200/80 bg-white px-4 py-8 text-center shadow-sm">
-        <p className="text-sm text-gray-600">
-          {outingListFilter === 'upcoming'
-            ? 'No outings in this window. Try Past for earlier trips, or create a new outing.'
-            : 'No past outings to show yet. Switch to Upcoming for current and future trips.'}
-        </p>
-      </div>
+    events.length > 0 && (
+      <SegmentSwitchAnimate key={outingListFilter} className="block">
+        {filteredSortedEvents.length === 0 ? (
+          <div className="mx-auto w-full max-w-lg rounded-2xl border border-gray-200/90 bg-white px-4 py-10 text-center shadow-sm">
+            <p className="text-sm text-gray-600">
+              {outingListFilter === 'upcoming'
+                ? 'No events in this window. Try Past for earlier trips, or create a new event.'
+                : 'No past events to show yet. Switch to Upcoming for current and future trips.'}
+            </p>
+          </div>
+        ) : (
+          <section aria-label="Events list">
+            <ul className="m-0 flex list-none flex-col gap-3 p-0 sm:gap-4">
+              {filteredSortedEvents.map((ev) => (
+                <li key={ev.id} className="m-0 p-0">
+                  <OutingListCard
+                    ev={ev}
+                    onEdit={() => openEdit(ev)}
+                    onDelete={() => {
+                      setDeletingEvent(ev);
+                      setDeleteConfirmText('');
+                      setDeleteError(null);
+                    }}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </SegmentSwitchAnimate>
     );
 
   const formModal = showModal && (
@@ -337,7 +371,7 @@ const OutingsPage = () => {
       className="modal-dialog-overlay-root select-none"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="outing-form-modal-title"
+      aria-labelledby="event-form-modal-title"
     >
       <div
         role="presentation"
@@ -347,12 +381,12 @@ const OutingsPage = () => {
       />
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
         <div
-          className={`pointer-events-auto relative z-[101] flex max-h-[min(88dvh,42rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ${formModalClosing ? 'modal-dialog-panel-exit' : 'modal-dialog-panel-enter'}`}
+          className={`pointer-events-auto relative z-[101] flex h-[min(46rem,92dvh)] w-full max-w-[26rem] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ${formModalClosing ? 'modal-dialog-panel-exit' : 'modal-dialog-panel-enter'}`}
           onAnimationEnd={handleFormModalPanelAnimationEnd}
         >
-        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3">
-          <h2 id="outing-form-modal-title" className="text-lg font-bold text-gray-900">
-            {editingEvent ? 'Edit Outing' : 'New Outing'}
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 sm:px-3.5">
+          <h2 id="event-form-modal-title" className="text-base font-bold text-gray-900 sm:text-lg">
+            {editingEvent ? 'Edit event' : 'New event'}
           </h2>
           <button
             type="button"
@@ -365,22 +399,33 @@ const OutingsPage = () => {
         </div>
         <form
           onSubmit={handleSubmit}
-          className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:pb-5"
+          className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:space-y-3 sm:px-3.5 sm:pt-3.5 sm:pb-4"
         >
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Name *</label>
-            <input type="text" value={form.name} onChange={e => handleFormChange('name', e.target.value)} autoFocus className="form-input w-full" placeholder="e.g. Spring Campout 2026" />
+            <label className="mb-0.5 block text-sm font-semibold text-gray-700">Name *</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => handleFormChange('name', e.target.value)}
+              autoFocus={!editingEvent}
+              className="form-input w-full"
+              placeholder="e.g. Spring Campout 2026"
+            />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Type *</label>
+            <label className="mb-0.5 block text-sm font-semibold text-gray-700">Type *</label>
             <select value={form.eventTypeId} onChange={e => handleFormChange('eventTypeId', parseInt(e.target.value, 10))} className="form-input w-full">
-              {eventTypes.map(t => <option key={t.id} value={t.id}>{t.type}</option>)}
+              {eventTypesList.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.type}
+                </option>
+              ))}
             </select>
           </div>
           {isOvernight ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <label htmlFor="outing-start-date" className="block text-sm font-semibold text-gray-700 mb-1">
+                <label htmlFor="outing-start-date" className="mb-0.5 block text-sm font-semibold text-gray-700">
                   Start date *
                 </label>
                 <OutingDatePicker
@@ -391,7 +436,7 @@ const OutingsPage = () => {
                 />
               </div>
               <div>
-                <label htmlFor="outing-end-date" className="block text-sm font-semibold text-gray-700 mb-1">
+                <label htmlFor="outing-end-date" className="mb-0.5 block text-sm font-semibold text-gray-700">
                   End date *
                 </label>
                 <OutingDatePicker
@@ -405,7 +450,7 @@ const OutingsPage = () => {
             </div>
           ) : (
             <div>
-              <label htmlFor="outing-single-date" className="block text-sm font-semibold text-gray-700 mb-1">
+              <label htmlFor="outing-single-date" className="mb-0.5 block text-sm font-semibold text-gray-700">
                 Date *
               </label>
               <OutingDatePicker
@@ -417,11 +462,11 @@ const OutingsPage = () => {
             </div>
           )}
           <div>
-            <label htmlFor="outing-leader-outings" className="block text-sm font-semibold text-gray-700 mb-1">
-              Outing leader *
+            <label htmlFor="event-spl-leader" className="mb-0.5 block text-sm font-semibold text-gray-700">
+              {splLeaderFieldLabel} *
             </label>
             <RosterSearchField
-              fieldId="outing-leader-outings"
+              fieldId="event-spl-leader"
               users={scouts}
               value={form.eventSplId}
               onChange={(id) => handleFormChange('eventSplId', id)}
@@ -431,9 +476,9 @@ const OutingsPage = () => {
             />
           </div>
           <div>
-            <label htmlFor="adult-leader-outings" className="block text-sm font-semibold text-gray-700 mb-1">Adult Leader *</label>
+            <label htmlFor="event-adult-leader" className="mb-0.5 block text-sm font-semibold text-gray-700">Adult leader *</label>
             <RosterSearchField
-              fieldId="adult-leader-outings"
+              fieldId="event-adult-leader"
               users={adults}
               value={form.adultLeaderId}
               onChange={(id) => handleFormChange('adultLeaderId', id)}
@@ -442,17 +487,17 @@ const OutingsPage = () => {
               disabled={modalLoading}
             />
           </div>
-          {modalError && <p className="text-sm text-red-600">{modalError}</p>}
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={requestCloseFormModal} className="flex-1 h-11 rounded-md border border-gray-300 text-sm font-medium text-gray-700">
+          {modalError && <p className="text-sm leading-snug text-red-600">{modalError}</p>}
+          <div className="flex gap-2 pt-0.5 sm:gap-2.5">
+            <button type="button" onClick={requestCloseFormModal} className="h-10 flex-1 rounded-md border border-gray-300 text-sm font-medium text-gray-700 sm:h-11">
               Cancel
             </button>
             <button
               type="submit"
               disabled={modalLoading || !isOutingFormValid}
-              className="flex-1 h-11 rounded-md border text-sm font-medium transition-colors disabled:cursor-not-allowed bg-scout-blue/12 border-scout-blue/20 text-scout-blue enabled:hover:bg-scout-blue/18 disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:opacity-100"
+              className="h-10 flex-1 rounded-md border text-sm font-medium transition-colors disabled:cursor-not-allowed bg-scout-blue/12 border-scout-blue/20 text-scout-blue enabled:hover:bg-scout-blue/18 disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:opacity-100 sm:h-11"
             >
-              {modalLoading ? 'Saving…' : (editingEvent ? 'Save Changes' : 'Create Outing')}
+              {modalLoading ? 'Saving…' : (editingEvent ? 'Save changes' : 'Create event')}
             </button>
           </div>
         </form>
@@ -472,7 +517,7 @@ const OutingsPage = () => {
       className="modal-dialog-overlay-root select-none"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="outing-delete-modal-title"
+      aria-labelledby="event-delete-modal-title"
     >
       <div
         role="presentation"
@@ -481,18 +526,20 @@ const OutingsPage = () => {
         onClick={closeDeleteModal}
       />
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
-        <div className="modal-dialog-panel-enter pointer-events-auto relative z-[101] w-full max-w-md max-h-[min(90dvh,28rem)] overflow-y-auto rounded-2xl bg-white px-6 pt-6 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
-        <h2 id="outing-delete-modal-title" className="text-lg font-bold text-gray-900 mb-1">Delete Outing?</h2>
-        <p className="text-sm text-gray-600 mb-3">
+        <div className="modal-dialog-panel-enter pointer-events-auto relative z-[101] flex h-[min(28rem,78dvh)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white px-6 pt-6 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:pb-6 shadow-2xl">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5">
+        <h2 id="event-delete-modal-title" className="mb-1 text-lg font-bold text-gray-900">Delete event?</h2>
+        <p className="mb-3 text-sm text-gray-600">
           This will permanently delete <span className="font-semibold">{deletingEvent.name}</span> and cannot be undone.
-          Any gear still checked out to this outing will be returned to inventory.
-          Transaction history will be preserved but will lose the outing link.
+          Any gear still checked out for this event will be returned to inventory.
+          Transaction history will be preserved but will lose the event link.
         </p>
-        <p className="text-sm font-semibold text-gray-700 mb-1">Type the outing name to confirm:</p>
-        <p className="text-xs text-gray-400 font-mono mb-2">{deletingEvent.name}</p>
-        <input type="text" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} autoFocus placeholder="Type outing name…" className="form-input w-full mb-4" />
-        {deleteError && <p className="text-sm text-red-600 mb-3">{deleteError}</p>}
-        <div className="flex gap-3">
+        <p className="mb-1 text-sm font-semibold text-gray-700">Type the event name to confirm:</p>
+        <p className="mb-2 break-all font-mono text-xs text-gray-400">{deletingEvent.name}</p>
+        <input type="text" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} autoFocus placeholder="Type event name…" className="form-input mb-2 w-full" />
+        {deleteError && <p className="text-sm text-red-600 mb-2">{deleteError}</p>}
+        </div>
+        <div className="mt-4 flex shrink-0 gap-3 border-t border-gray-100 pt-4">
           <button type="button" onClick={closeDeleteModal} className="flex-1 h-11 rounded-md border border-gray-300 text-sm font-medium text-gray-700">
             Cancel
           </button>
@@ -505,38 +552,15 @@ const OutingsPage = () => {
     </div>
   );
 
-  const outingsList =
-    !pageLoading &&
-    !pageError &&
-    events.length > 0 &&
-    filteredSortedEvents.length > 0 && (
-      <ul className="grid list-none grid-cols-1 gap-3 p-0 lg:grid-cols-2 xl:grid-cols-3 lg:items-stretch">
-        {filteredSortedEvents.map((ev) => (
-          <li key={ev.id} className="flex min-h-0 h-full">
-            <OutingListCard
-              ev={ev}
-              onEdit={() => openEdit(ev)}
-              onDelete={() => {
-                setDeletingEvent(ev);
-                setDeleteConfirmText('');
-                setDeleteError(null);
-              }}
-            />
-          </li>
-        ))}
-      </ul>
-    );
-
   if (isDesktop) {
     return (
-      <>
+      <div className="mx-auto w-full max-w-lg space-y-4 px-6 py-6">
         {loadingOrError}
         {outingListToolbar}
-        {filterEmptyMessage}
-        {outingsList}
+        {eventsSegmentContent}
         {formModal ? createPortal(formModal, document.body) : null}
         {deleteModal ? createPortal(deleteModal, document.body) : null}
-      </>
+      </div>
     );
   }
 
@@ -544,28 +568,20 @@ const OutingsPage = () => {
     <div className="h-screen-small flex flex-col bg-gray-100">
       <div className="header">
         <Link to="/home" className="back-button no-underline">←</Link>
-        <h1>Outings</h1>
+        <h1>Events</h1>
         <div className="flex shrink-0 items-center gap-2">
           <HeaderProfileMenu />
         </div>
       </div>
 
-      <AnimateMain className="flex flex-1 flex-col min-h-0">
-        <div className="flex-1 overflow-y-auto">
-          <div className="px-5 py-5 pb-24">
+      <AnimateMain className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="space-y-4 px-5 py-5 pb-8">
             {loadingOrError}
             {outingListToolbar}
-            {filterEmptyMessage}
-            {outingsList}
+            {eventsSegmentContent}
           </div>
         </div>
-        {!pageLoading && (
-          <div className="fixed bottom-6 right-5 z-30">
-            <button onClick={openCreate} className="h-12 px-5 rounded-full bg-scout-blue text-white text-sm font-semibold shadow-lg">
-              + New Outing
-            </button>
-          </div>
-        )}
       </AnimateMain>
 
       {formModal ? createPortal(formModal, document.body) : null}

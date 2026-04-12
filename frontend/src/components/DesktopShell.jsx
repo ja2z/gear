@@ -36,7 +36,7 @@ export default function DesktopShell({ title, subtitle, children, headerRight })
         }`}
         aria-label="Troop hub navigation"
       >
-        <div className="flex items-center gap-2.5 border-b border-white/10 px-3.5 py-4">
+        <div className="flex items-center gap-2.5 border-b border-white/10 px-3.5 py-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-scout-orange text-xs font-bold text-white">
             222
           </div>
@@ -86,12 +86,12 @@ export default function DesktopShell({ title, subtitle, children, headerRight })
 
       {/* ── Main content ── */}
       <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col bg-gray-50">
-        <header className="shrink-0 border-b border-gray-200/80 bg-scout-blue/[0.04] px-6 py-4">
+        <header className="shrink-0 border-b border-gray-200/80 bg-scout-blue/[0.04] px-6 py-2.5">
           <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900">{title}</h1>
+              <h1 className="text-xl font-bold tracking-tight text-gray-900">{title}</h1>
               {subtitle && (
-                <p className="mt-0.5 text-sm text-gray-500">{subtitle}</p>
+                <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>
               )}
             </div>
             <div className="flex items-center gap-3">

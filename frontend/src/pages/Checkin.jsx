@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useInventory } from '../hooks/useInventory';
 import useIsDesktop from '../hooks/useIsDesktop';
 import { useDesktopHeader } from '../context/DesktopHeaderContext';
@@ -7,14 +7,18 @@ import ConnectionError from '../components/ConnectionError';
 import SearchableSegmentedToolbar from '../components/SearchableSegmentedToolbar';
 import { AnimateMain, SegmentSwitchAnimate } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
+import CheckinOutingModal from '../components/CheckinOutingModal';
+import CartCheckinModal from '../components/CartCheckinModal';
+import { eventKindLabel } from '../utils/eventKindLabel';
 
 const Checkin = () => {
-  const { getData, loading, clearCache } = useInventory();
+  const { getData, clearCache } = useInventory();
   const navigate = useNavigate();
+  const location = useLocation();
   const isDesktop = useIsDesktop();
   useDesktopHeader({ title: 'Check In', subtitle: 'Return gear to the shed' });
 
-  const [viewMode, setViewMode] = useState('outings'); // 'categories' | 'items' | 'outings'
+  const [viewMode, setViewMode] = useState('items'); // 'categories' | 'items' — outing is chosen in the modal first
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -24,6 +28,50 @@ const Checkin = () => {
   const [allCheckedOutItems, setAllCheckedOutItems] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [connectionError, setConnectionError] = useState(false);
+  /** Set after CheckinOutingModal — must match `items.outing_name` for checked-out rows */
+  const [checkinEvent, setCheckinEvent] = useState(null);
+  const [checkinConfirmOpen, setCheckinConfirmOpen] = useState(false);
+
+  const checkinEventRef = useRef(checkinEvent);
+  checkinEventRef.current = checkinEvent;
+
+  useEffect(() => {
+    if (!checkinEvent?.eventId || checkinEvent.eventType) return;
+    let cancelled = false;
+    const id = checkinEvent.eventId;
+    getData(`/events/${id}`)
+      .then((ev) => {
+        if (cancelled || !ev?.eventType) return;
+        const prev = checkinEventRef.current;
+        if (!prev || String(prev.eventId) !== String(id)) return;
+        setCheckinEvent({ ...prev, eventType: ev.eventType });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [checkinEvent?.eventId, checkinEvent?.eventType, getData]);
+
+  const effectiveItems = useMemo(() => {
+    if (!checkinEvent?.outingName) return [];
+    const name = String(checkinEvent.outingName).trim();
+    return allCheckedOutItems.filter(
+      (i) => String(i.outingName || '').trim() === name
+    );
+  }, [allCheckedOutItems, checkinEvent]);
+
+  useLayoutEffect(() => {
+    const payload = location.state?.checkinEvent;
+    if (!payload?.eventId || !payload?.outingName) return;
+    setCheckinEvent(payload);
+    setFilteredOuting(payload.outingName);
+    setFilteredCategory(null);
+    setViewMode('items');
+    setSelectedItems([]);
+    setSubmitError(null);
+    setSearchQuery('');
+    navigate('/checkin', { replace: true, state: {} });
+  }, [location.state, navigate]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,22 +92,7 @@ const Checkin = () => {
     fetchData();
   }, []);
 
-  // Derive outings (only items with an outing name)
-  const outingsMap = allCheckedOutItems.reduce((acc, item) => {
-    const name = item.outingName;
-    if (!name) return acc;
-    if (!acc[name]) {
-      acc[name] = { outingName: name, items: [] };
-    }
-    acc[name].items.push(item);
-    return acc;
-  }, {});
-  const outings = Object.values(outingsMap).sort((a, b) =>
-    a.outingName.localeCompare(b.outingName)
-  );
-
-  // Derive categories
-  const categoriesMap = allCheckedOutItems.reduce((acc, item) => {
+  const categoriesMap = effectiveItems.reduce((acc, item) => {
     const cls = item.itemClass;
     if (!cls) return acc;
     if (!acc[cls]) {
@@ -74,19 +107,6 @@ const Checkin = () => {
 
   const searchLower = searchQuery.toLowerCase();
 
-  const filteredOutings = outings.filter(outing => {
-    if (!searchLower) return true;
-    return (
-      outing.outingName.toLowerCase().includes(searchLower) ||
-      outing.items.some(item =>
-        item.itemId.toLowerCase().includes(searchLower) ||
-        (item.description && item.description.toLowerCase().includes(searchLower)) ||
-        (item.itemClass && item.itemClass.toLowerCase().includes(searchLower)) ||
-        (item.itemDesc && item.itemDesc.toLowerCase().includes(searchLower))
-      )
-    );
-  });
-
   const filteredCategories = categories.filter(cat => {
     if (!searchLower) return true;
     return (
@@ -99,7 +119,7 @@ const Checkin = () => {
     );
   });
 
-  const filteredItems = allCheckedOutItems.filter(item => {
+  const filteredItems = effectiveItems.filter(item => {
     const matchesSearch = !searchLower || (
       item.itemId.toLowerCase().includes(searchLower) ||
       (item.description && item.description.toLowerCase().includes(searchLower)) ||
@@ -110,13 +130,6 @@ const Checkin = () => {
     const matchesCategory = !filteredCategory || item.itemClass === filteredCategory;
     return matchesSearch && matchesOuting && matchesCategory;
   });
-
-  const handleOutingClick = (outingName) => {
-    setFilteredOuting(outingName);
-    setFilteredCategory(null);
-    setSearchQuery('');
-    setViewMode('items');
-  };
 
   const handleCategoryClick = (classCode) => {
     setFilteredCategory(classCode);
@@ -145,15 +158,22 @@ const Checkin = () => {
     });
   };
 
+  const changeCheckinOuting = () => {
+    setCheckinEvent(null);
+    setFilteredOuting(null);
+    setFilteredCategory(null);
+    setSelectedItems([]);
+    setSubmitError(null);
+    setSearchQuery('');
+  };
+
   const handleSubmit = () => {
     if (selectedItems.length === 0) {
       setSubmitError('Please select at least one item to check in.');
       return;
     }
     setSubmitError(null);
-    navigate('/checkin/form', {
-      state: { selectedItems, selectedOuting: filteredOuting }
-    });
+    setCheckinConfirmOpen(true);
   };
 
   if (connectionError) {
@@ -168,13 +188,10 @@ const Checkin = () => {
   const tabs = [
     { key: 'categories', label: 'Categories' },
     { key: 'items', label: 'Items' },
-    { key: 'outings', label: 'Outings' },
   ];
 
   const searchPlaceholder =
-    viewMode === 'outings' ? 'Search outings or items...' :
-    viewMode === 'categories' ? 'Search categories or items...' :
-    'Search items...';
+    viewMode === 'categories' ? 'Search categories or items...' : 'Search items...';
 
   const hasDesktopSelection = isDesktop && selectedItems.length > 0;
 
@@ -182,40 +199,6 @@ const Checkin = () => {
 
   const viewContent = (
     <>
-      {/* Outings View */}
-      {viewMode === 'outings' && (
-        <div className="space-y-3">
-          {filteredOutings.map(outing => (
-            <div
-              key={outing.outingName}
-              className="card card-compact cursor-pointer hover:shadow-card-hover transition-all"
-              onClick={() => handleOutingClick(outing.outingName)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1 m-0">
-                    {outing.outingName}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    {outing.items.length} item{outing.items.length !== 1 ? 's' : ''}
-                  </p>
-                </div>
-                <span className="text-gray-400 text-xl">›</span>
-              </div>
-            </div>
-          ))}
-          {filteredOutings.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">
-                {allCheckedOutItems.length === 0
-                  ? 'No items are currently checked out'
-                  : 'No outings match your search'}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Categories View */}
       {viewMode === 'categories' && (
         <div className="space-y-3">
@@ -239,8 +222,8 @@ const Checkin = () => {
           {filteredCategories.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-500">
-                {allCheckedOutItems.length === 0
-                  ? 'No items are currently checked out'
+                {effectiveItems.length === 0
+                  ? (checkinEvent ? 'No checked-out gear for this outing' : 'No items are currently checked out')
                   : 'No categories match your search'}
               </p>
             </div>
@@ -271,7 +254,7 @@ const Checkin = () => {
                       Checked out to: {item.checkedOutTo}
                     </p>
                     {item.outingName && (
-                      <p className="text-xs text-gray-500">Outing: {item.outingName}</p>
+                      <p className="text-xs text-gray-500">Event: {item.outingName}</p>
                     )}
                   </div>
                   <div className="mt-4 pt-4 border-t border-gray-200">
@@ -299,8 +282,8 @@ const Checkin = () => {
           {filteredItems.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-500">
-                {allCheckedOutItems.length === 0
-                  ? 'No items are currently checked out'
+                {effectiveItems.length === 0
+                  ? (checkinEvent ? 'No checked-out gear for this outing' : 'No items are currently checked out')
                   : 'No items match your search'}
               </p>
             </div>
@@ -358,16 +341,19 @@ const Checkin = () => {
             </div>
           )}
           <button
+            type="button"
             onClick={handleSubmit}
-            disabled={loading || selectedItems.length === 0}
-            className="w-full h-12 mt-4 rounded-md bg-scout-blue text-white text-base font-medium disabled:opacity-50"
+            disabled={selectedItems.length === 0}
+            className="w-full h-12 mt-4 rounded-md bg-scout-green text-white text-base font-medium disabled:opacity-50"
           >
-            {loading ? 'Processing...' : 'Proceed to Check In'}
+            Check in
           </button>
         </div>
       </div>
     </div>
   );
+
+  const checkinKindText = checkinEvent ? eventKindLabel(checkinEvent.eventType) : '';
 
   return (
     <div className={isDesktop ? 'flex flex-col bg-gray-100 flex-1 min-h-0' : 'h-screen-small flex flex-col bg-gray-100'}>
@@ -395,18 +381,22 @@ const Checkin = () => {
         searchPlaceholder={searchPlaceholder}
       />
 
-      {/* Active filter banners */}
-      {filteredOuting && (
-        <div className="bg-scout-blue/8 border-b border-scout-blue/15 px-5 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-scout-blue/60 shrink-0"></div>
-            <span className="text-scout-blue text-sm font-medium">{filteredOuting}</span>
-          </div>
-          <button
-            onClick={() => setFilteredOuting(null)}
-            className="text-scout-blue/50 hover:text-scout-blue text-xs font-medium touch-target"
+      {/* Selected event (gear check-in is scoped to this outing) */}
+      {checkinEvent && (
+        <div className="shrink-0 border-b border-gray-200 bg-white px-5 py-3 flex items-center justify-between gap-3">
+          <p
+            className="min-w-0 flex-1 truncate text-center text-base text-gray-900 sm:text-left"
+            title={`${checkinKindText}: ${checkinEvent.outingName}`}
           >
-            Clear
+            <span className="font-semibold text-gray-600">{checkinKindText}:</span>{' '}
+            <span className="font-semibold">{checkinEvent.outingName}</span>
+          </p>
+          <button
+            type="button"
+            onClick={changeCheckinOuting}
+            className="text-scout-blue text-xs font-medium hover:underline touch-target shrink-0"
+          >
+            Change outing
           </button>
         </div>
       )}
@@ -455,24 +445,42 @@ const Checkin = () => {
       {!isDesktop && (
         <div className="bg-white border-t border-gray-200 p-4">
           <button
+            type="button"
             onClick={handleSubmit}
-            disabled={loading || selectedItems.length === 0}
+            disabled={selectedItems.length === 0}
             className={`w-full h-12 text-base font-medium rounded-xl flex items-center justify-center transition-all shadow-xs disabled:opacity-50 ${
               selectedItems.length > 0
-                ? 'bg-scout-blue/12 border border-scout-blue/20 text-scout-blue'
+                ? 'bg-scout-green text-white'
                 : 'bg-gray-200 text-gray-400 border border-gray-200'
             }`}
           >
-            {loading
-              ? 'Processing...'
-              : selectedItems.length === 0
-                ? 'Check In 0 Items'
-                : `Check In ${selectedItems.length} Item${selectedItems.length > 1 ? 's' : ''}`
-            }
+            {selectedItems.length === 0
+              ? 'Check in'
+              : `Check in (${selectedItems.length})`}
           </button>
         </div>
       )}
       </AnimateMain>
+
+      <CheckinOutingModal
+        open={!checkinEvent}
+        onDismiss={() => navigate('/gear')}
+        dismissButtonLabel="Cancel"
+        onConfirm={(payload) => {
+          setCheckinEvent(payload);
+          setFilteredOuting(payload.outingName);
+          setFilteredCategory(null);
+          setViewMode('items');
+          setSelectedItems([]);
+          setSubmitError(null);
+          setSearchQuery('');
+        }}
+      />
+      <CartCheckinModal
+        open={checkinConfirmOpen}
+        onClose={() => setCheckinConfirmOpen(false)}
+        selectedItems={selectedItems}
+      />
     </div>
   );
 };

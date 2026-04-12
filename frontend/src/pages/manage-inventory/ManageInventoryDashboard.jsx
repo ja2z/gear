@@ -121,11 +121,11 @@ const ManageInventoryDashboard = () => {
                 </div>
               ) : (
                 <Link
-                  to="/manage-inventory/view?view=outings"
+                  to="/manage-inventory/view?view=events"
                   className="card flex h-full min-h-[4.5rem] touch-target flex-col justify-center p-3 no-underline transition-colors hover:bg-gray-50 active:bg-gray-100"
                 >
                   <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                    Active outings
+                    Active events
                   </p>
                   <p className="mt-0.5 text-2xl font-bold tabular-nums text-gray-900">
                     {stats.activeOutings}

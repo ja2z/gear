@@ -45,13 +45,27 @@ async function requireAuth(req, res, next) {
   next();
 }
 
+/** Normalize roles.name from Postgres (Admin / QM / Basic) — compare lowercase to allowed list. */
+function canonicalRoleName(raw) {
+  if (raw == null || raw === '') return null;
+  const s = String(raw).trim().toLowerCase();
+  if (s === 'administrator') return 'admin';
+  if (s === 'quartermaster') return 'qm';
+  return s;
+}
+
 function requireRole(...allowedRoles) {
+  const allowedNames = allowedRoles.map((r) => String(r).toLowerCase());
   return function (req, res, next) {
-    const role = req.user?.role ?? 'Admin'; // null = treat as admin (safety valve)
-    if (!allowedRoles.includes(role)) {
-      return res.status(403).json({ error: 'Forbidden: insufficient role' });
+    const raw = req.user?.role;
+    const name =
+      raw == null || raw === ''
+        ? 'admin'
+        : (canonicalRoleName(raw) ?? String(raw).trim().toLowerCase());
+    if (allowedNames.includes(name)) {
+      return next();
     }
-    next();
+    return res.status(403).json({ error: 'Forbidden: insufficient role' });
   };
 }
 

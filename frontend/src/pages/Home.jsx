@@ -71,7 +71,10 @@ const Home = () => {
         </div>
 
         <AnimateMain className="flex flex-1 flex-col min-h-0">
-        <HomeHeroCarousel />
+        {/* Cap hero height so hub tiles get more room; photo reads a bit shorter */}
+        <div className="relative w-full flex-1 min-h-[9rem] max-h-[min(38svh,20.5rem)] overflow-hidden sm:max-h-[min(40svh,22rem)]">
+          <HomeHeroCarousel className="h-full w-full !flex-none" />
+        </div>
 
         {/* Module buttons */}
         <div className="shrink-0 bg-white px-4 pt-1.5 pb-5 space-y-2.5 sm:px-5 sm:pb-6 sm:space-y-3">
@@ -79,17 +82,17 @@ const Home = () => {
             <button
               type="button"
               onClick={() => navigate('/gear')}
-              className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-blue text-white transition-all shadow-sm"
+              className="flex min-h-[6.25rem] flex-1 flex-col items-center justify-center gap-2 rounded-3xl py-6 touch-target bg-scout-blue text-white transition-all shadow-sm sm:min-h-[6.75rem] sm:py-7"
             >
-              <Backpack className="h-6 w-6" />
+              <Backpack className="h-6 w-6 sm:h-7 sm:w-7" />
               <span className="text-base font-bold">Gear</span>
             </button>
             <button
               type="button"
               onClick={() => navigate('/calendar')}
-              className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-green text-white transition-all shadow-sm"
+              className="flex min-h-[6.25rem] flex-1 flex-col items-center justify-center gap-2 rounded-3xl py-6 touch-target bg-scout-green text-white transition-all shadow-sm sm:min-h-[6.75rem] sm:py-7"
             >
-              <Calendar className="h-6 w-6" />
+              <Calendar className="h-6 w-6 sm:h-7 sm:w-7" />
               <span className="text-base font-bold">Calendar</span>
             </button>
           </div>
@@ -97,18 +100,18 @@ const Home = () => {
             <button
               type="button"
               onClick={() => navigate('/advancement')}
-              className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-scout-orange text-white transition-all shadow-sm"
+              className="flex min-h-[6.25rem] flex-1 flex-col items-center justify-center gap-2 rounded-3xl py-6 touch-target bg-scout-orange text-white transition-all shadow-sm sm:min-h-[6.75rem] sm:py-7"
             >
-              <Award className="h-6 w-6" />
+              <Award className="h-6 w-6 sm:h-7 sm:w-7" />
               <span className="text-base font-bold">Advancement</span>
             </button>
             <button
               type="button"
-              onClick={() => navigate('/outings')}
-              className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-3xl py-5 touch-target bg-slate-700 text-white transition-all shadow-sm"
+              onClick={() => navigate('/events')}
+              className="flex min-h-[6.25rem] flex-1 flex-col items-center justify-center gap-2 rounded-3xl py-6 touch-target bg-slate-700 text-white transition-all shadow-sm sm:min-h-[6.75rem] sm:py-7"
             >
-              <MapPin className="h-6 w-6" />
-              <span className="text-base font-bold">Outings</span>
+              <MapPin className="h-6 w-6 sm:h-7 sm:w-7" />
+              <span className="text-base font-bold">Events</span>
             </button>
           </div>
           <button

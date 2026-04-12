@@ -12,7 +12,7 @@ import { useDesktopHeader } from '../context/DesktopHeaderContext';
 const Reservations = () => {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
-  const { clearCart, setReservationMeta, addMultipleItems } = useCart();
+  const { clearCart, setCartReservationSession } = useCart();
   const { fetchReservations, fetchReservationItems } = useReservations();
 
   const [reservations, setReservations] = useState([]);
@@ -22,7 +22,10 @@ const Reservations = () => {
   const [deleteTarget, setDeleteTarget] = useState(null); // reservation pending delete confirmation
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const handleCreate = () => { clearCart(); navigate('/categories?mode=reserve'); };
+  const handleCreate = () => {
+    clearCart();
+    navigate('/gear?pickReservation=1');
+  };
 
   const desktopHeaderRight = useMemo(() => (
     <button
@@ -65,14 +68,20 @@ const Reservations = () => {
     setActionLoading({ eventId: res.eventId, type: 'checkout' });
     try {
       const reservation = await fetchReservationItems(res.eventId);
-      clearCart();
-      addMultipleItems(reservation.items);
-      setReservationMeta({
-        fromReservation: true,
-        eventId: reservation.eventId,
-        outingName: reservation.outingName,
-        scoutName: reservation.reservedBy,
-        originalItems: reservation.items.map(i => ({ itemId: i.itemId, description: i.description, itemClass: i.itemClass, itemNum: i.itemNum })),
+      setCartReservationSession({
+        items: reservation.items,
+        meta: {
+          fromReservation: true,
+          eventId: reservation.eventId,
+          outingName: reservation.outingName,
+          scoutName: reservation.reservedBy,
+          originalItems: reservation.items.map((i) => ({
+            itemId: i.itemId,
+            description: i.description,
+            itemClass: i.itemClass,
+            itemNum: i.itemNum,
+          })),
+        },
       });
       navigate('/categories?from=reservations');
     } catch (err) {
@@ -85,16 +94,22 @@ const Reservations = () => {
     setActionLoading({ eventId: res.eventId, type: 'edit' });
     try {
       const reservation = await fetchReservationItems(res.eventId);
-      clearCart();
-      addMultipleItems(reservation.items);
-      setReservationMeta({
-        isEditing: true,
-        eventId: reservation.eventId,
-        outingName: reservation.outingName,
-        scoutName: reservation.reservedBy,
-        reservedBy: reservation.reservedBy,
-        reservedEmail: reservation.reservedEmail,
-        originalItems: reservation.items.map(i => ({ itemId: i.itemId, description: i.description, itemClass: i.itemClass, itemNum: i.itemNum })),
+      setCartReservationSession({
+        items: reservation.items,
+        meta: {
+          isEditing: true,
+          eventId: reservation.eventId,
+          outingName: reservation.outingName,
+          scoutName: reservation.reservedBy,
+          reservedBy: reservation.reservedBy,
+          reservedEmail: reservation.reservedEmail,
+          originalItems: reservation.items.map((i) => ({
+            itemId: i.itemId,
+            description: i.description,
+            itemClass: i.itemClass,
+            itemNum: i.itemNum,
+          })),
+        },
       });
       navigate('/categories?mode=reserve');
     } catch (err) {
@@ -177,16 +192,21 @@ const Reservations = () => {
 
   /* ── Delete confirmation modal ── */
   const deleteModal = deleteTarget && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-      <button
-        type="button"
-        className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
-        aria-label="Close"
-        disabled={deleteLoading}
+    <div
+      className="modal-dialog-overlay-root select-none"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reservation-delete-modal-title"
+    >
+      <div
+        role="presentation"
+        aria-hidden
+        className="modal-dialog-backdrop-surface modal-dialog-backdrop-enter"
         onClick={() => !deleteLoading && setDeleteTarget(null)}
       />
-      <div className="modal-dialog-panel-enter relative z-[101] w-full max-w-md rounded-2xl bg-white px-5 pt-5 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
-        <h2 className="text-lg font-bold text-gray-900 mb-1">Delete Reservation?</h2>
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
+        <div className="modal-dialog-panel-enter pointer-events-auto relative z-[101] w-full max-w-md rounded-2xl bg-white px-5 pt-5 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl">
+        <h2 id="reservation-delete-modal-title" className="text-lg font-bold text-gray-900 mb-1">Delete Reservation?</h2>
         <p className="text-sm text-gray-600 mb-1">
           <span className="font-medium">{deleteTarget.outingName}</span>
         </p>
@@ -208,6 +228,7 @@ const Reservations = () => {
           >
             {deleteLoading ? 'Deleting...' : 'Delete'}
           </button>
+        </div>
         </div>
       </div>
     </div>

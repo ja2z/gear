@@ -4,7 +4,7 @@
  * Uses a 3-column grid so side icons align to the padded viewport edges on any width (no max-width inset).
  * @param {{ center: React.ReactNode, cornerRight?: React.ReactNode, contentClassName?: string }} props
  */
-const logoClass = 'h-9 w-auto shrink-0 sm:h-10';
+const logoClass = 'h-8 w-auto shrink-0 sm:h-9';
 
 /**
  * Match main content gutters (e.g. HomePage `px-3 sm:px-5`), with safe-area as minimum.
@@ -13,7 +13,7 @@ const logoClass = 'h-9 w-auto shrink-0 sm:h-10';
 const edgePadding =
   'pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:pl-[max(1.25rem,env(safe-area-inset-left))] sm:pr-[max(1.25rem,env(safe-area-inset-right))]';
 
-const headerInnerClass = `mx-auto grid w-full max-w-none grid-cols-[auto_1fr_auto] items-center gap-2 ${edgePadding} py-3 min-h-[3.75rem] sm:min-h-16 sm:gap-3 sm:py-3.5`;
+const headerInnerClass = `mx-auto grid w-full max-w-none grid-cols-[auto_1fr_auto] items-center gap-2 ${edgePadding} py-2 min-h-[3rem] sm:min-h-[3.25rem] sm:gap-2.5 sm:py-2.5`;
 
 const TroopBrandHeader = ({ center, cornerRight, contentClassName }) => {
   const innerClass = contentClassName ?? headerInnerClass;

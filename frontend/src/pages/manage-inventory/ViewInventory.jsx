@@ -16,7 +16,7 @@ import { useDesktopHeader } from '../../context/DesktopHeaderContext';
 const VIEW_TABS = [
   { key: 'category', label: 'Categories' },
   { key: 'item', label: 'Items' },
-  { key: 'outing', label: 'Outings' },
+  { key: 'outing', label: 'Events' },
 ];
 
 const ViewInventory = () => {
@@ -68,7 +68,7 @@ const ViewInventory = () => {
   useEffect(() => {
     const status = searchParams.get('status');
     const view = searchParams.get('view');
-    if (view === 'outings') {
+    if (view === 'outings' || view === 'events') {
       setViewMode('outing');
     } else if (status) {
       setViewMode('item');
@@ -224,7 +224,7 @@ const ViewInventory = () => {
       setOutings(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching outings:', error);
-      showToast('Failed to load outings', 'error');
+      showToast('Failed to load events', 'error');
       setOutings([]);
     } finally {
       setLoading(false);
@@ -528,7 +528,7 @@ const ViewInventory = () => {
           viewMode === 'category'
             ? 'Search categories...'
             : viewMode === 'outing'
-              ? 'Search outings...'
+              ? 'Search events...'
               : 'Search items...'
         }
         toolbarAccessory={
@@ -559,7 +559,7 @@ const ViewInventory = () => {
             <span className="min-w-0 text-sm font-medium text-scout-blue">
               {filteredOuting && (
                 <>
-                  Outing: <span className="font-semibold">{filteredOuting}</span>
+                  Event: <span className="font-semibold">{filteredOuting}</span>
                 </>
               )}
               {filteredOuting && filteredStatus && (
@@ -625,8 +625,8 @@ const ViewInventory = () => {
             {filteredOutingsList.length === 0 ? (
               <p className="py-10 text-center text-sm text-gray-500">
                 {searchQuery.trim()
-                  ? 'No outings match your search.'
-                  : 'No active outings with checked-out gear.'}
+                  ? 'No events match your search.'
+                  : 'No active events with checked-out gear.'}
               </p>
             ) : (
               filteredOutingsList.map((o) => (
@@ -735,21 +735,22 @@ const ViewInventory = () => {
 
       {addingItem && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
+          className="modal-dialog-overlay-root select-none z-[100]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="add-item-modal-title"
         >
-          <button
-            type="button"
-            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
-            aria-label="Close add item"
+          <div
+            role="presentation"
+            aria-hidden
+            className="modal-dialog-backdrop-surface modal-dialog-backdrop-enter"
             onClick={() => {
               setAddingItem(false);
               setAddItemCategory(null);
             }}
           />
-          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md lg:max-w-xl flex-col overflow-hidden rounded-2xl bg-gray-100 shadow-2xl">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4 sm:p-6">
+            <div className="modal-dialog-panel-enter pointer-events-auto relative z-[101] flex max-h-[96dvh] w-full max-w-md lg:max-w-xl flex-col overflow-hidden rounded-2xl bg-gray-100 shadow-2xl">
             <div className="header shrink-0">
               <button
                 type="button"
@@ -784,22 +785,25 @@ const ViewInventory = () => {
             />
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {editingItemId && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
+          className="modal-dialog-overlay-root select-none z-[100]"
           role="dialog"
           aria-modal="true"
+          aria-labelledby="view-inventory-edit-item-title"
         >
-          <button
-            type="button"
-            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
-            aria-label="Close editor"
+          <div
+            role="presentation"
+            aria-hidden
+            className="modal-dialog-backdrop-surface modal-dialog-backdrop-enter"
             onClick={() => setEditingItemId(null)}
           />
-          <div className="modal-dialog-panel-enter relative z-[101] flex max-h-[96dvh] w-full max-w-md lg:max-w-xl flex-col overflow-hidden rounded-2xl bg-gray-100 shadow-2xl">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4 sm:p-6">
+            <div className="modal-dialog-panel-enter pointer-events-auto relative z-[101] flex max-h-[96dvh] w-full max-w-md lg:max-w-xl flex-col overflow-hidden rounded-2xl bg-gray-100 shadow-2xl">
             <div className="header shrink-0">
               <button
                 type="button"
@@ -809,7 +813,7 @@ const ViewInventory = () => {
               >
                 ←
               </button>
-              <h1>Edit Item</h1>
+              <h1 id="view-inventory-edit-item-title">Edit Item</h1>
               <HeaderProfileMenu />
             </div>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -826,20 +830,23 @@ const ViewInventory = () => {
               />
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {deleteTarget && (
         <div
-          className={`fixed inset-0 flex items-center justify-center p-3 sm:p-4 ${
-            editingItemId || addingItem ? 'z-[120]' : 'z-50'
+          className={`modal-dialog-overlay-root select-none ${
+            editingItemId || addingItem ? 'z-[120]' : ''
           }`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="view-inventory-delete-item-title"
         >
-          <button
-            type="button"
-            className="modal-dialog-backdrop-enter absolute inset-0 bg-black/45"
-            aria-label="Close"
-            disabled={deleteLoading}
+          <div
+            role="presentation"
+            aria-hidden
+            className="modal-dialog-backdrop-surface modal-dialog-backdrop-enter"
             onClick={() => {
               if (!deleteLoading) {
                 setDeleteTarget(null);
@@ -847,8 +854,9 @@ const ViewInventory = () => {
               }
             }}
           />
-          <div className="modal-dialog-panel-enter relative z-[101] max-h-[min(90dvh,36rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white px-5 pt-5 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl lg:max-w-xl">
-            <h2 className="mb-1 text-lg font-bold text-gray-900">Remove item?</h2>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
+            <div className="modal-dialog-panel-enter pointer-events-auto relative z-[101] max-h-[min(90dvh,36rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white px-5 pt-5 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl lg:max-w-xl">
+            <h2 id="view-inventory-delete-item-title" className="mb-1 text-lg font-bold text-gray-900">Remove item?</h2>
             <p className="mb-1 text-sm text-gray-600">
               <span className="font-medium">{deleteTarget.itemId}</span>
             </p>
@@ -888,6 +896,7 @@ const ViewInventory = () => {
               >
                 {deleteLoading ? 'Removing…' : 'Remove'}
               </button>
+            </div>
             </div>
           </div>
         </div>

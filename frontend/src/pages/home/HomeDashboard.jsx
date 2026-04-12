@@ -13,6 +13,7 @@ import { useDesktopHeader } from '../../context/DesktopHeaderContext';
 import { useAuth } from '../../context/AuthContext';
 import { useInventory } from '../../hooks/useInventory';
 import { normalizeAnnouncements } from '../../utils/normalizeAnnouncements';
+import { formatTroopEventDate } from '../../utils/outingFormat';
 
 const TYPE_BADGE_COLOR = {
   'Day Outing':       'bg-scout-green/10 text-scout-green',
@@ -31,13 +32,7 @@ function todayLong() {
 
 function formatEventDate(startDate, endDate) {
   if (!startDate) return null;
-  const fmt = (d) => {
-    const [y, m, day] = d.split('-');
-    return new Date(+y, +m - 1, +day).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  const fmt = (d) => formatTroopEventDate(d, { short: true });
   return endDate ? `${fmt(startDate)}–${fmt(endDate)}` : fmt(startDate);
 }
 
@@ -211,7 +206,7 @@ export default function HomeDashboard() {
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200/90 bg-white px-3 py-1.5 text-xs text-gray-700 shadow-sm">
               <span className="font-semibold tabular-nums text-gray-900">{activeOutingsCount}</span>
-              {activeOutingsCount === 1 ? 'outing' : 'outings'} with gear out
+              {activeOutingsCount === 1 ? 'event' : 'events'} with gear out
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200/90 bg-white px-3 py-1.5 text-xs text-gray-700 shadow-sm">
               <span className="font-semibold tabular-nums text-gray-900">{reservationCount}</span>
