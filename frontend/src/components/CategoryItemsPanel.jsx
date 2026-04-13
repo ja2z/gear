@@ -282,7 +282,7 @@ export default function CategoryItemsPanel({
                                 isAvailable || isOwnReservation
                                   ? 'status-in-shed'
                                   : isReserved
-                                    ? 'status-checked-out'
+                                    ? 'status-reserved'
                                     : item.status === 'Checked out'
                                       ? 'status-checked-out'
                                       : item.status === 'Missing'

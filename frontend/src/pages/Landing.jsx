@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { LogOut, LogIn, BookMarked, Loader2, Package, Tent, TreePine } from 'lucide-react';
+import { LogOut, LogIn, BookMarked, Loader2, Package } from 'lucide-react';
 import { useInventory } from '../hooks/useInventory';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -150,17 +150,17 @@ const Landing = () => {
   const slowHint = useSlowLoad(anyLoading);
 
   const gearHubHero = (
-    <section className="rounded-3xl border border-scout-blue/15 bg-gradient-to-b from-scout-blue/[0.09] via-white to-white px-5 py-4 shadow-sm sm:py-5">
-      <div className="mb-3 flex h-16 items-end justify-center gap-0.5 sm:h-[4.5rem]" aria-hidden>
-        <TreePine className="h-10 w-10 shrink-0 text-emerald-600 sm:h-12 sm:w-12" strokeWidth={1.35} />
-        <Tent className="-mx-0.5 h-12 w-12 shrink-0 text-[#ea580c] sm:h-14 sm:w-14" strokeWidth={1.15} />
-        <TreePine className="h-10 w-10 shrink-0 text-emerald-600 sm:h-12 sm:w-12" strokeWidth={1.35} />
+    <section className="rounded-3xl border border-gray-200/90 bg-white px-5 py-4 shadow-sm sm:py-5">
+      <div className="mb-3 flex h-16 items-center justify-center sm:h-[4.5rem]" aria-hidden>
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-gray-200/90 bg-gray-50 sm:h-16 sm:w-16">
+          <Package className="h-8 w-8 text-scout-blue sm:h-9 sm:w-9" strokeWidth={2} />
+        </div>
       </div>
       <h2 className="text-center text-[15px] font-bold uppercase tracking-[0.14em] text-scout-blue">
         Gear room
       </h2>
       <p className="mt-1.5 text-center text-[13px] leading-snug text-gray-600 sm:text-sm">
-        Check out, return, or reserve troop gear for your next adventure.
+        Check out gear for troop events, return it when you're done, or reserve items ahead of time.
       </p>
     </section>
   );

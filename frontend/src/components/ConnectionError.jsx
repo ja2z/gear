@@ -20,8 +20,9 @@ const ConnectionError = ({ onRetry, onGoHome, detail }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-5">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+    <div className="h-screen-small overflow-y-auto overscroll-contain bg-gray-100">
+      <div className="flex min-h-full min-w-0 flex-col items-center justify-center px-5 py-8">
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full shrink-0 text-center">
         {/* Error Icon */}
         <div className="text-6xl mb-6">❌</div>
 
@@ -95,6 +96,7 @@ const ConnectionError = ({ onRetry, onGoHome, detail }) => {
             Go Home
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

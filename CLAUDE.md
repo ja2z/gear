@@ -211,3 +211,242 @@ psql "$DATABASE_URL"
 ```
 
 The `DATABASE_URL` in `.env` is the DEV Supabase instance. For prod, use `PROD_DATABASE_URL` instead.
+
+## Routes
+
+HashRouter (`#/`). All authenticated routes are wrapped in `ProtectedRoute > DesktopLayoutRoute` in `App.jsx`.
+
+| Path | Component | Auth |
+|------|-----------|------|
+| `/` | `SmartRoot` → `/home` if authed, else `LoginPage` | public |
+| `/auth/verify` | `VerifyPage` | public |
+| `/home` | `HomePage` | any |
+| `/gear` | `Landing` | any |
+| `/events` | `OutingsPage` | any |
+| `/calendar` | `CalendarPage` | any |
+| `/categories` | `Categories` | checkout |
+| `/items/:category` | `Items` | checkout |
+| `/cart` | `Cart` | checkout |
+| `/outing-selection` | `OutingSelection` | checkout |
+| `/checkout-options` | `CheckoutOptions` | checkout |
+| `/success` | `Success` | checkout |
+| `/checkin` | `Checkin` | checkin |
+| `/reservations` | `Reservations` | any |
+| `/reservation-success` | `ReservationSuccess` | any |
+| `/manage` | `ManageTables` | any |
+| `/manage/members` | `ManageMembers` | admin |
+| `/manage-inventory` | `ManageInventoryDashboard` | QM |
+| `/manage-inventory/view` | `ViewInventory` | QM |
+| `/manage-inventory/view-logs` | `ViewTransactionLog` | QM |
+| `/manage-inventory/item-log/:itemId` | `ItemTransactionLog` | QM |
+| `/manage-inventory/categories` | `ManageCategories` | QM |
+| `/manage-inventory/add-category` | `AddCategory` | QM |
+| `/manage-inventory/edit-category/:classCode` | `EditCategory` | QM |
+
+## Roles & Permissions (`frontend/src/utils/permissions.js`)
+
+Roles: `Admin` (role_id 1), `QM` (role_id 2), `Basic` (role_id 3).
+
+| Permission | Roles |
+|------------|-------|
+| `canCheckout` | Admin, QM |
+| `canCheckin` | Admin, QM |
+| `canManageInventory` | Admin, QM |
+| `canManageMembers` | Admin only |
+
+## Theme Colors (`frontend/src/index.css` `@theme`)
+
+| Token | Hex | Use |
+|-------|-----|-----|
+| `scout-blue` | `#1E398A` | Primary — headers, buttons, today indicator |
+| `scout-green` | `#28a745` | Success, check-in |
+| `scout-red` | `#DB364C` | Destructive actions |
+| `scout-orange` | `#ff6b35` | Reserve flow |
+| `scout-teal` | `#0f766e` | Calendar / schedule |
+| `scout-purple` | `#7c3aed` | Admin / manage |
+
+## Custom CSS Classes (`frontend/src/index.css`)
+
+**Layout**
+- `.h-screen-small` — `100dvh` (dynamic viewport, safe for mobile browser chrome)
+- `.header` — sticky top bar (glassy blue tint, flex row, safe-area padding)
+- `.header .back-button` — circular glassy back arrow
+
+**Buttons / inputs**
+- `.form-input` — standard text/select/date field (2px border, 0.75rem padding, 44px min-height)
+- `.search-input` — pill-shaped search field
+- `.touch-target` — min 44×44px touch area
+- `.btn-primary` / `.btn-secondary` / `.btn-success` / `.btn-danger` — glassy color variants
+- `.btn-primary-pill` — rounded-full scout-blue pill (Save / Create actions)
+
+**Modals** (see pattern below)
+- `.modal-dialog-overlay-root` — `fixed inset-0 z-100`
+- `.modal-dialog-backdrop-surface` — dimmed backdrop (rgba 0.45)
+- `.modal-dialog-backdrop-enter` / `.modal-dialog-backdrop-exit` — fade in/out
+- `.modal-dialog-panel-enter` / `.modal-dialog-panel-exit` — slide+scale in/out (0.28–0.34s)
+- `.modal-dialog-panel-exit-added` — special lift+green-glow exit (category "add to cart")
+
+**Animation**
+- `.page-main-animate` — page content fade+slide in (used by `AnimateMain`)
+- `.cart-badge-bump-animate` — cart badge bounce when item added
+- `.fly-to-cart-tag-animate` — "+N" flies toward cart badge (uses `--fly-dx`/`--fly-dy` CSS vars set from JS)
+
+## Patterns
+
+### Standard mobile page layout
+```jsx
+<div className="h-screen-small flex flex-col bg-gray-100">
+  <div className="header">
+    <Link to="/home" className="back-button no-underline">←</Link>
+    <h1>Page Title</h1>
+    <HeaderProfileMenu />
+  </div>
+  <AnimateMain className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    {/* scrollable content */}
+  </AnimateMain>
+</div>
+```
+Desktop pages use `useDesktopHeader({ title, subtitle })` instead of the header div, and skip `AnimateMain`. Check `useIsDesktop()` to branch.
+
+### Modal pattern (enter + exit animation)
+All modals follow this pattern — the parent keeps the modal mounted until `onClose()` fires after the exit animation completes:
+```jsx
+const [exiting, setExiting] = useState(false);
+const exitHandledRef = useRef(false);
+
+const finishClose = useCallback(() => {
+  if (exitHandledRef.current) return;
+  exitHandledRef.current = true;
+  onClose();
+}, [onClose]);
+
+const requestClose = useCallback(() => {
+  if (exiting) return;
+  exitHandledRef.current = false;
+  setExiting(true);
+}, [exiting]);
+
+// Fallback timer in case animationend doesn't fire
+useEffect(() => {
+  if (!exiting) return;
+  const id = setTimeout(finishClose, 450);
+  return () => clearTimeout(id);
+}, [exiting, finishClose]);
+
+// JSX
+<div className="modal-dialog-overlay-root">
+  <div className={`modal-dialog-backdrop-surface ${exiting ? 'modal-dialog-backdrop-exit' : 'modal-dialog-backdrop-enter'}`}
+       onPointerDown={requestClose} />
+  <div className={`modal-dialog-panel-enter ... ${exiting ? 'modal-dialog-panel-exit' : 'modal-dialog-panel-enter'}`}
+       onAnimationEnd={(e) => { if (exiting && e.target === e.currentTarget) finishClose(); }}>
+    {/* content */}
+  </div>
+</div>
+```
+
+### API fetch pattern
+```js
+const { getData, postData, patchData } = useInventory();
+// GET
+const items = await getData('/inventory');
+// POST — raw fetch is used for mutations in pages that need full control:
+const resp = await fetch(`${getApiBaseUrl()}/events`, {
+  method: 'POST', credentials: 'include',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload),
+});
+if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.error); }
+```
+`getData` deduplicates in-flight requests via a module-level promise cache. Always use `credentials: 'include'` on every fetch.
+
+### Date handling
+- All dates stored and passed as `YYYY-MM-DD` strings
+- Parse to local `Date` with `parseTroopApiDateToLocalDate(s)` from `utils/outingFormat.js` (handles both `DATE` and ISO strings from the API)
+- `OutingDatePicker` is a thin `<input type="date">` wrapper — value/onChange use `YYYY-MM-DD`
+
+## Key Files
+
+### Frontend pages (`frontend/src/pages/`)
+| File | Purpose |
+|------|---------|
+| `App.jsx` | Router setup — all route definitions live here |
+| `Landing.jsx` | App entry / landing screen |
+| `LoginPage.jsx` | Magic-link email form |
+| `VerifyPage.jsx` | Token verification after clicking email link |
+| `home/HomeDashboard.jsx` | Main home dashboard after login |
+| `Categories.jsx` | Category picker (checkout flow step 1) |
+| `Items.jsx` | Item picker within a category (checkout flow step 2) |
+| `Cart.jsx` | Cart + scout info form (checkout flow step 3) |
+| `Checkout.jsx` | Checkout confirmation screen |
+| `CheckoutOptions.jsx` | Checkout vs. reserve selector |
+| `OutingSelection.jsx` | Outing picker during checkout |
+| `Checkin.jsx` | Check-in flow |
+| `Reservations.jsx` | Reservation flow |
+| `CalendarPage.jsx` | Monthly calendar view — renders event pills, today indicator (filled blue circle) |
+| `OutingsPage.jsx` | Events list + create/edit/delete form modal; `handleFormChange` clamps start↔end dates |
+| `manage-inventory/ManageInventoryDashboard.jsx` | QM hub — links to inventory, transactions, categories |
+| `manage-inventory/ViewInventory.jsx` | All items grouped by category with stats |
+| `manage-inventory/ViewTransactionLog.jsx` | Transaction history table |
+| `manage-inventory/AddItemForm.jsx` / `EditItemForm.jsx` | Item CRUD forms |
+| `manage-inventory/AddCategory.jsx` / `EditCategory.jsx` / `ManageCategories.jsx` | Category CRUD |
+| `manage-inventory/SelectCategory.jsx` | Category picker for item forms |
+| `manage-inventory/ItemTransactionLog.jsx` | Per-item transaction history |
+| `manage-members/ManageMembers.jsx` / `AddMember.jsx` / `EditMember.jsx` | Roster management |
+
+### Frontend components (`frontend/src/components/`)
+| File | Purpose |
+|------|---------|
+| `CalendarEventModal.jsx` | Event detail bottom sheet (gear checked out, leaders, coming-soon sections) |
+| `CalendarDayModal.jsx` | Day tap → list of events for that day |
+| `OutingDatePicker.jsx` | Thin `<input type="date">` wrapper (YYYY-MM-DD ↔ native picker) |
+| `OutingListCard.jsx` | Event card in the outings list; edit/delete actions |
+| `CartCheckoutModal.jsx` | Checkout confirmation modal |
+| `CartCheckinModal.jsx` | Check-in confirmation modal |
+| `CartReserveModal.jsx` | Reserve confirmation modal |
+| `CheckoutOutingModal.jsx` | Outing picker used during checkout flow |
+| `CheckinOutingModal.jsx` | Outing picker used during check-in flow |
+| `ReservationPickerModal.jsx` | Outing picker for reservations |
+| `CategoryItemsPanel.jsx` | Item list within a category (expandable panel) |
+| `RosterSearchField.jsx` | Searchable user picker (used in event form, check-in, etc.) |
+| `HomeHeroCarousel.jsx` | Landing hero image carousel |
+| `AnimateMain.jsx` | Page transition wrapper (`<AnimateMain>`) |
+| `DesktopShell.jsx` | Desktop sidebar + main layout shell |
+| `DesktopLayoutRoute.jsx` | Route wrapper that activates desktop shell |
+| `SegmentedControl.jsx` | Tab/segment switcher (Upcoming / Past, etc.) |
+| `SearchableSegmentedToolbar.jsx` | Toolbar combining search + segmented control |
+| `Toast.jsx` | Toast notification component |
+| `TransactionCard.jsx` | Single transaction history card |
+| `UpcomingEvents.jsx` | Upcoming events widget for dashboard |
+| `HeaderProfileMenu.jsx` | Profile avatar + logout dropdown in mobile header |
+| `ProtectedRoute.jsx` | Auth gate — redirects unauthenticated users to login |
+| `ConnectionError.jsx` | Network/API error display |
+
+### Frontend context (`frontend/src/context/`)
+| File | Purpose |
+|------|---------|
+| `AuthContext.jsx` | User auth state, `useAuth()` hook, login/logout |
+| `CartContext.jsx` | Cart items, `checkoutEvent`, `reservationMeta` |
+| `DesktopHeaderContext.jsx` | Per-page desktop header title/subtitle via `useDesktopHeader()` |
+
+### Frontend utilities
+| File | Purpose |
+|------|---------|
+| `hooks/useInventory.js` | All API fetching via `getData()` / `postData()` etc. |
+| `hooks/useIsDesktop.js` | Breakpoint hook — returns true on sm+ |
+| `utils/outingFormat.js` | `parseTroopApiDateToLocalDate()` — DATE/ISO → local Date |
+| `utils/outingFilters.js` | `filterAndSortOutings()` — upcoming vs. past logic |
+| `utils/eventLabels.js` | Leader label helpers (`primaryLeaderLabel`, etc.) |
+| `config/apiBaseUrl.js` | `getApiBaseUrl()` — resolves API URL for dev vs. prod |
+
+### Backend routes (`backend/routes/`)
+| File | Prefix | Notes |
+|------|--------|-------|
+| `auth.js` | `/api/auth` | request-link, verify, me, logout |
+| `events.js` | `/api/events` | CRUD for outings/events + event types + users list |
+| `checkout.js` | `/api/checkout` | Checkout items to a scout |
+| `checkin.js` | `/api/checkin` | Check items back in |
+| `reservations.js` | `/api/reservations` | Create/list/delete reservations |
+| `inventory.js` | `/api/inventory` | Read inventory (public read, auth for write) |
+| `manage-inventory.js` | `/api/manage-inventory` | QM-only item/category mutations |
+| `manage-members.js` | `/api/manage-members` | QM-only roster mutations |
+| `metadata.js` | `/api/metadata` | Category list for UI dropdowns |

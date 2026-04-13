@@ -25,6 +25,11 @@ export default function CheckoutOutingModal({
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [continueLoading, setContinueLoading] = useState(false);
+  /** Reservation status for the currently selected event (preview before Continue). */
+  const [reservationPreview, setReservationPreview] = useState({
+    status: 'idle',
+    payload: null,
+  });
 
   const load = useCallback(async () => {
     try {
@@ -52,6 +57,27 @@ export default function CheckoutOutingModal({
     setEventId(checkoutEvent?.eventId || '');
     setSelectedName(checkoutEvent?.outingName || '');
   }, [open, checkoutEvent?.eventId, checkoutEvent?.outingName]);
+
+  useEffect(() => {
+    if (!open || !eventId) {
+      setReservationPreview({ status: 'idle', payload: null });
+      return;
+    }
+    let cancelled = false;
+    setReservationPreview({ status: 'loading', payload: null });
+    fetchReservationItemsIfExists(eventId)
+      .then((payload) => {
+        if (cancelled) return;
+        if (!payload) setReservationPreview({ status: 'none', payload: null });
+        else setReservationPreview({ status: 'loaded', payload });
+      })
+      .catch(() => {
+        if (!cancelled) setReservationPreview({ status: 'error', payload: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, eventId, fetchReservationItemsIfExists]);
 
   /** Today or future events; soonest first (troop timezone). */
   const eligibleEvents = useMemo(() => checkoutModalEligibleEvents(events), [events]);
@@ -142,7 +168,7 @@ export default function CheckoutOutingModal({
       />
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
         <div
-          className="modal-dialog-panel-enter pointer-events-auto relative z-[121] max-h-[min(90dvh,42rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white px-6 pt-6 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl"
+          className="modal-dialog-panel-enter pointer-events-auto relative z-[121] max-h-[min(85dvh,36rem)] w-full max-w-sm overflow-y-auto rounded-2xl bg-white px-6 pt-6 pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-start justify-between gap-3">
@@ -191,6 +217,69 @@ export default function CheckoutOutingModal({
                 ))}
               </select>
             </div>
+
+            {eventId && reservationPreview.status !== 'idle' && (
+              <div
+                className={`rounded-xl border px-4 py-3 ${
+                  reservationPreview.status === 'loaded'
+                    ? 'border-scout-orange/40 bg-orange-50/90'
+                    : 'border-gray-200 bg-gray-50'
+                }`}
+              >
+                {reservationPreview.status === 'loading' && (
+                  <p className="text-sm text-gray-500">Checking whether this outing has a reservation…</p>
+                )}
+                {reservationPreview.status === 'error' && (
+                  <p className="text-sm text-amber-900">
+                    Could not load reservation status. You can still continue and check out gear.
+                  </p>
+                )}
+                {reservationPreview.status === 'none' && (
+                  <p className="text-sm text-gray-700">
+                    <span className="font-semibold text-gray-900">No reservation on file.</span>{' '}
+                    There is no gear reservation recorded for this outing. You can still browse and check out gear for
+                    this event.
+                  </p>
+                )}
+                {reservationPreview.status === 'loaded' && reservationPreview.payload && (
+                  <>
+                    <p className="text-sm font-semibold text-gray-900">Reservation on file</p>
+                    <p className="mt-1 text-sm text-gray-700">
+                      Gear is reserved for{' '}
+                      <span className="font-medium">
+                        {selectedName || reservationPreview.payload.outingName || 'this outing'}
+                      </span>
+                      {reservationPreview.payload.reservedBy ? (
+                        <>
+                          {' '}
+                          by <span className="font-medium">{reservationPreview.payload.reservedBy}</span>
+                        </>
+                      ) : null}
+                      .
+                    </p>
+                    {Array.isArray(reservationPreview.payload.items) && reservationPreview.payload.items.length > 0 ? (
+                      <>
+                        <ul className="mt-2 max-h-32 space-y-0.5 overflow-y-auto text-sm text-gray-800">
+                          {reservationPreview.payload.items.slice(0, 8).map((it) => (
+                            <li key={it.itemId} className="flex min-w-0 gap-2">
+                              <span className="shrink-0 font-medium text-scout-blue">{it.itemId}</span>
+                              <span className="min-w-0 truncate text-gray-600">{it.description || '—'}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {reservationPreview.payload.items.length > 8 && (
+                          <p className="mt-1.5 text-xs text-gray-500">
+                            + {reservationPreview.payload.items.length - 8} more reserved
+                            {reservationPreview.payload.items.length - 8 === 1 ? ' item' : ' items'}
+                          </p>
+                        )}
+                      </>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="flex flex-row gap-3">
               {onDismiss && (
                 <button

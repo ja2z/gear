@@ -1,7 +1,9 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import SegmentedControl from '../components/SegmentedControl';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useCart } from '../context/CartContext';
+import { useInventory } from '../hooks/useInventory';
+import { eventKindLabel } from '../utils/eventKindLabel';
 import { AnimateMain, SegmentSwitchAnimate } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
 import CartCheckoutModal from '../components/CartCheckoutModal';
@@ -12,7 +14,20 @@ import { useDesktopHeader } from '../context/DesktopHeaderContext';
 const Cart = () => {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'checkout';
-  const { items, removeItem, getTotalItems } = useCart();
+  const {
+    items,
+    removeItem,
+    getTotalItems,
+    reservationMeta,
+    checkoutEvent,
+    setCheckoutEvent,
+    mergeReservationMeta,
+  } = useCart();
+  const { getData } = useInventory();
+  const reservationMetaRef = useRef(reservationMeta);
+  reservationMetaRef.current = reservationMeta;
+  const checkoutEventRef = useRef(checkoutEvent);
+  checkoutEventRef.current = checkoutEvent;
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [reserveModalOpen, setReserveModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState('items');
@@ -28,6 +43,71 @@ const Cart = () => {
   const scrollContainerRef = useRef(null);
   const isDesktop = useIsDesktop();
 
+  useEffect(() => {
+    if (!reservationMeta?.eventId || reservationMeta?.eventType) return;
+    let cancelled = false;
+    const id = reservationMeta.eventId;
+    getData(`/events/${id}`)
+      .then((ev) => {
+        if (cancelled || !ev?.eventType) return;
+        const prev = reservationMetaRef.current;
+        if (!prev || String(prev.eventId) !== String(id)) return;
+        mergeReservationMeta({ eventType: ev.eventType });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [reservationMeta?.eventId, reservationMeta?.eventType, getData, mergeReservationMeta]);
+
+  useEffect(() => {
+    if (mode !== 'checkout' || !checkoutEvent?.eventId || checkoutEvent?.eventType) return;
+    let cancelled = false;
+    const id = checkoutEvent.eventId;
+    getData(`/events/${id}`)
+      .then((ev) => {
+        if (cancelled || !ev?.eventType) return;
+        const prev = checkoutEventRef.current;
+        if (!prev || String(prev.eventId) !== String(id)) return;
+        setCheckoutEvent({ ...prev, eventType: ev.eventType });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, checkoutEvent?.eventId, checkoutEvent?.eventType, getData, setCheckoutEvent]);
+
+  const gearOutingLine = useMemo(() => {
+    const lineFromEventLike = (ev) => {
+      if (!ev) return null;
+      const display =
+        ev.outingName?.trim() ||
+        (ev.eventId != null && String(ev.eventId) !== '' ? `Event ${ev.eventId}` : '');
+      if (!display) return null;
+      return { kind: eventKindLabel(ev.eventType), display };
+    };
+
+    if (mode === 'reserve' && reservationMeta) {
+      return lineFromEventLike(reservationMeta);
+    }
+    if (mode === 'checkout') {
+      return lineFromEventLike(checkoutEvent) ?? lineFromEventLike(reservationMeta);
+    }
+    return null;
+  }, [mode, reservationMeta, checkoutEvent]);
+
+  const gearOutingBanner = gearOutingLine && (
+    <div className="shrink-0 border-b border-gray-200 bg-white px-5 py-3">
+      <p
+        className="truncate text-center text-base text-gray-900 sm:text-left"
+        title={`${gearOutingLine.kind}: ${gearOutingLine.display}`}
+      >
+        <span className="font-semibold text-gray-600">{gearOutingLine.kind}:</span>{' '}
+        <span className="font-semibold">{gearOutingLine.display}</span>
+      </p>
+    </div>
+  );
+
   const totalItems = getTotalItems();
   const headerTitle = mode === 'reserve'
     ? `Reservation Cart (${totalItems} ${totalItems === 1 ? 'item' : 'items'})`
@@ -35,6 +115,9 @@ const Cart = () => {
 
   useDesktopHeader({
     title: headerTitle,
+    ...(gearOutingLine && {
+      subtitle: `${gearOutingLine.kind}: ${gearOutingLine.display}`,
+    }),
   });
 
   const handleRemoveItem = (itemId) => {
@@ -42,17 +125,17 @@ const Cart = () => {
     setButtonRenderKey(prev => prev + 1);
   };
 
-useEffect(() => {
-  if (scrollingToCategory || !scrollContainerRef.current) {
-    return;
-  }
-  
-  requestAnimationFrame(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = 0;
+  useEffect(() => {
+    if (scrollingToCategory || !scrollContainerRef.current) {
+      return;
     }
-  });
-}, [viewMode]);
+
+    requestAnimationFrame(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0;
+      }
+    });
+  }, [viewMode]);
 
   const getItemsByCategory = () => {
     const grouped = {};
@@ -294,6 +377,7 @@ useEffect(() => {
   if (isDesktop) {
     return (
       <>
+        {gearOutingBanner}
         <div className="lg:grid lg:grid-cols-[1fr_20rem] lg:gap-6">
           {/* Left column: segmented control + item list */}
           <div ref={scrollContainerRef}>
@@ -325,6 +409,8 @@ useEffect(() => {
         <h1>{headerTitle}</h1>
         <HeaderProfileMenu />
       </div>
+
+      {gearOutingBanner}
 
       <AnimateMain className="flex flex-1 flex-col min-h-0">
       {segmentedControl}

@@ -28,7 +28,7 @@ const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const EVENT_COLORS = {
   'Day Outing': { bg: 'bg-green-500', text: 'text-white' },
   'Overnight Outing': { bg: 'bg-scout-blue', text: 'text-white' },
-  Meeting: { bg: 'bg-gray-400', text: 'text-white' },
+  Meeting: { bg: 'bg-amber-500', text: 'text-white' },
 };
 
 function getEventColor(eventType) {

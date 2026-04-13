@@ -4,7 +4,11 @@ import { format } from 'date-fns';
 import { useInventory } from '../hooks/useInventory';
 import { OUTING_TYPE_BADGES } from './OutingListCard';
 import { parseTroopApiDateToLocalDate } from '../utils/outingFormat';
-import { primaryLeaderLabel } from '../utils/eventLabels';
+import {
+  adultLeaderNameFromEvent,
+  primaryLeaderLabel,
+  primaryLeaderNameFromEvent,
+} from '../utils/eventLabels';
 
 function parseYmd(s) {
   return parseTroopApiDateToLocalDate(s);
@@ -97,6 +101,9 @@ export default function CalendarEventModal({ event, onClose }) {
       : format(startDate, 'EEEE, MMMM d, yyyy')
     : null;
 
+  const splName = primaryLeaderNameFromEvent(event);
+  const adultName = adultLeaderNameFromEvent(event);
+
   return (
     <div
       className="modal-dialog-overlay-root select-none"
@@ -146,24 +153,22 @@ export default function CalendarEventModal({ event, onClose }) {
 
         {/* Scrollable body */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] sm:px-5">
-          {/* Leaders */}
-          {(event.eventSplName || event.adultLeaderName) && (
-            <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Leaders</h3>
-              <div className="space-y-1">
-                {event.eventSplName && (
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium text-gray-500">{primaryLeaderLabel(event.eventType)}</span> — {event.eventSplName}
-                  </p>
-                )}
-                {event.adultLeaderName && (
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium text-gray-500">Adult leader</span> — {event.adultLeaderName}
-                  </p>
-                )}
-              </div>
-            </section>
-          )}
+          {/* Leaders — always two lines (placeholders) so layout matches every event */}
+          <section>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Leaders</h3>
+            <div className="space-y-1">
+              <p className={`text-sm ${splName ? 'text-gray-700' : 'text-gray-400'}`}>
+                <span className="font-medium text-gray-500">{primaryLeaderLabel(event.eventType)}</span>
+                {' — '}
+                {splName || '—'}
+              </p>
+              <p className={`text-sm ${adultName ? 'text-gray-700' : 'text-gray-400'}`}>
+                <span className="font-medium text-gray-500">Adult leader</span>
+                {' — '}
+                {adultName || '—'}
+              </p>
+            </div>
+          </section>
 
           {/* Gear checked out */}
           <section>

@@ -1,12 +1,12 @@
 import { Calendar, Footprints, Tent, Users } from 'lucide-react';
 import { formatOutingDate } from '../utils/outingFormat';
-import { primaryLeaderLabel } from '../utils/eventLabels';
+import { adultLeaderNameFromEvent, primaryLeaderLabel, primaryLeaderNameFromEvent } from '../utils/eventLabels';
 
 /** Badge classes — match TYPE_CONFIG for consistent type identity */
 export const OUTING_TYPE_BADGES = {
   'Day Outing': 'bg-green-100 text-green-800',
   'Overnight Outing': 'bg-blue-100 text-blue-800',
-  Meeting: 'bg-gray-100 text-gray-700',
+  Meeting: 'bg-amber-100 text-amber-900',
 };
 
 const TYPE_CONFIG = {
@@ -23,10 +23,10 @@ const TYPE_CONFIG = {
     iconBg: 'bg-scout-blue/10',
   },
   Meeting: {
-    rail: 'border-l-gray-300',
+    rail: 'border-l-amber-400',
     Icon: Users,
-    iconClass: 'text-gray-500',
-    iconBg: 'bg-gray-100',
+    iconClass: 'text-amber-800',
+    iconBg: 'bg-amber-100',
   },
 };
 
@@ -50,21 +50,24 @@ export function getTypeConfig(eventType) {
 export default function OutingListCard({ ev, onEdit, onDelete }) {
   const cfg = getTypeConfig(ev.eventType);
   const splLabel = primaryLeaderLabel(ev.eventType);
+  const splName = primaryLeaderNameFromEvent(ev);
+  const adultName = adultLeaderNameFromEvent(ev);
   const Icon = cfg.Icon;
   const badgeClass = OUTING_TYPE_BADGES[ev.eventType] || 'bg-gray-100 text-gray-700';
   const dateLine =
     ev.startDate &&
     `${formatOutingDate(ev.startDate)}${ev.endDate ? ` – ${formatOutingDate(ev.endDate)}` : ''}`;
-  const hasLeaders = Boolean(ev.eventSplName || ev.adultLeaderName);
 
   return (
     <div
-      className={`group flex items-start gap-2 rounded-2xl border border-gray-200/90 bg-white py-3 pl-2.5 pr-1.5 shadow-sm transition-[border-color,box-shadow] border-l-[3px] ${cfg.rail} hover:border-scout-blue/20 hover:shadow-md sm:gap-2.5 sm:pl-3 sm:pr-2`}
+      className={`group flex items-stretch gap-2.5 rounded-2xl border border-gray-200/90 bg-white px-3 py-3 shadow-sm transition-[border-color,box-shadow] border-l-[3px] ${cfg.rail} hover:border-scout-blue/20 hover:shadow-md sm:gap-3 sm:px-4 sm:py-3.5`}
     >
-      <div
-        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${cfg.iconBg} ${cfg.iconClass}`}
-      >
-        <Icon className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+      <div className="flex shrink-0 items-center">
+        <div
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${cfg.iconBg} ${cfg.iconClass}`}
+        >
+          <Icon className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+        </div>
       </div>
 
       <div className="min-w-0 flex-1">
@@ -82,34 +85,26 @@ export default function OutingListCard({ ev, onEdit, onDelete }) {
             <span className="min-w-0">{dateLine}</span>
           </p>
         )}
-        {hasLeaders ? (
-          <div className="mt-1.5 space-y-0.5 text-[11px] leading-snug text-gray-800">
-            {ev.eventSplName && (
-              <p className="min-w-0">
-                <span className="font-medium text-gray-600">{splLabel}:</span>{' '}
-                <span className="text-gray-900">{ev.eventSplName}</span>
-              </p>
-            )}
-            {ev.adultLeaderName && (
-              <p className="min-w-0">
-                <span className="font-medium text-gray-600">Adult leader:</span>{' '}
-                <span className="text-gray-900">{ev.adultLeaderName}</span>
-              </p>
-            )}
-          </div>
-        ) : (
-          <p className="mt-1.5 text-[11px] italic leading-snug text-gray-400">No leaders listed</p>
-        )}
+        <div className="mt-1.5 space-y-0.5 text-[11px] leading-snug text-gray-800">
+          <p className="min-w-0">
+            <span className="font-medium text-gray-600">{splLabel}:</span>{' '}
+            <span className={splName ? 'text-gray-900' : 'text-gray-400'}>{splName || '—'}</span>
+          </p>
+          <p className="min-w-0">
+            <span className="font-medium text-gray-600">Adult leader:</span>{' '}
+            <span className={adultName ? 'text-gray-900' : 'text-gray-400'}>{adultName || '—'}</span>
+          </p>
+        </div>
       </div>
 
-      <div className="mt-0.5 flex w-[4.75rem] shrink-0 flex-col gap-1.5 self-start sm:w-[5.25rem]">
+      <div className="flex min-h-0 shrink-0 flex-col items-stretch justify-between self-stretch border-l border-gray-100 pl-3 sm:pl-3.5">
         <button
           type="button"
           onClick={(e) => {
             e.preventDefault();
             onEdit();
           }}
-          className="touch-target min-h-9 w-full rounded-md border border-scout-blue/22 bg-scout-blue/[0.09] px-2 py-1.5 text-[11px] font-semibold text-scout-blue/85 shadow-sm transition-colors hover:bg-scout-blue/14 active:bg-scout-blue/18 sm:min-h-10 sm:text-xs"
+          className="touch-target inline-flex min-h-10 w-full min-w-[5.25rem] shrink-0 items-center justify-center rounded-lg border border-scout-blue/22 bg-scout-blue/[0.09] px-3 py-2 text-xs font-semibold text-scout-blue/85 shadow-sm transition-colors hover:bg-scout-blue/14 active:bg-scout-blue/18 sm:min-h-11 sm:min-w-[5.5rem] sm:px-3.5"
         >
           Edit
         </button>
@@ -119,7 +114,7 @@ export default function OutingListCard({ ev, onEdit, onDelete }) {
             e.preventDefault();
             onDelete();
           }}
-          className="touch-target min-h-9 w-full rounded-md border border-scout-red/28 bg-white px-2 py-1.5 text-[11px] font-semibold text-scout-red shadow-sm transition-colors hover:bg-scout-red/[0.06] active:bg-scout-red/10 sm:min-h-10 sm:text-xs"
+          className="touch-target inline-flex min-h-10 w-full min-w-[5.25rem] shrink-0 items-center justify-center rounded-lg border border-scout-red/28 bg-white px-3 py-2 text-xs font-semibold text-scout-red shadow-sm transition-colors hover:bg-scout-red/[0.06] active:bg-scout-red/10 sm:min-h-11 sm:min-w-[5.5rem] sm:px-3.5"
         >
           Delete
         </button>

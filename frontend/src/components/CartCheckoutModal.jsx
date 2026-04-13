@@ -173,7 +173,7 @@ export default function CartCheckoutModal({ open, onClose }) {
         />
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
           <div
-            className="modal-dialog-panel-enter pointer-events-auto relative z-[141] flex max-h-[min(92dvh,44rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+            className="modal-dialog-panel-enter pointer-events-auto relative z-[141] flex max-h-[min(85dvh,38rem)] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-5 py-4">
@@ -230,7 +230,7 @@ export default function CartCheckoutModal({ open, onClose }) {
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Items
                   </p>
-                  <div className="max-h-32 space-y-2 overflow-y-auto">
+                  <div className="max-h-28 space-y-2 overflow-y-auto">
                     {Object.entries(groupedItems).map(([classCode, group]) => (
                       <div key={classCode}>
                         <p className="text-xs text-gray-500">{group.description}</p>
@@ -311,7 +311,7 @@ export default function CartCheckoutModal({ open, onClose }) {
             onClick={() => setRemovedItemsWarning(null)}
           />
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
-            <div className="modal-dialog-panel-enter pointer-events-auto relative z-[151] w-full max-w-md rounded-2xl bg-white px-6 pt-6 pb-[max(2rem,env(safe-area-inset-bottom,0px))] shadow-2xl sm:pb-10">
+            <div className="modal-dialog-panel-enter pointer-events-auto relative z-[151] w-full max-w-sm rounded-2xl bg-white px-6 pt-6 pb-[max(2rem,env(safe-area-inset-bottom,0px))] shadow-2xl sm:pb-10">
               <div className="mb-2 flex items-start justify-between gap-3">
                 <h2 id="cart-checkout-removed-title" className="min-w-0 flex-1 pr-2 text-lg font-bold text-gray-900">
                   Items not being checked out

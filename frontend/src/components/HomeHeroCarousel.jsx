@@ -8,7 +8,7 @@ import { getHeroBackgroundPosition, HERO_COVER_RELAX_FACTOR } from '../utils/her
 const SWIPE_MIN_PX = 48;
 const WHEEL_THRESHOLD = 28;
 /** Auto-advance interval on the home hero (front page / hub). */
-const AUTO_ADVANCE_MS = 7000;
+const AUTO_ADVANCE_MS = 5000;
 
 const CENTER = -100 / 3;
 const NEXT_OFFSET = -200 / 3;

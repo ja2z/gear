@@ -110,7 +110,7 @@ export default function CartCheckinModal({ open, onClose, selectedItems }) {
       />
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
         <div
-          className="modal-dialog-panel-enter pointer-events-auto relative z-[141] flex max-h-[min(92dvh,44rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+          className="modal-dialog-panel-enter pointer-events-auto relative z-[141] flex max-h-[min(85dvh,38rem)] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-5 py-4">
@@ -134,21 +134,19 @@ export default function CartCheckinModal({ open, onClose, selectedItems }) {
 
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             <form id="cart-checkin-form" onSubmit={handleSubmit} className="space-y-4">
-              <div className="rounded-xl border border-gray-100 bg-gray-50/80 px-3 py-2">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Items
+              <div className="rounded-xl border border-scout-green/25 bg-scout-green/10 px-3 py-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-scout-green/90">
+                  Items to check in
                 </p>
-                <div className="max-h-32 space-y-2 overflow-y-auto">
+                <div className="max-h-32 space-y-3 overflow-y-auto overscroll-contain">
                   {Object.entries(groupedItems).map(([classCode, group]) => (
                     <div key={classCode}>
-                      <p className="text-xs text-gray-500">{group.description}</p>
-                      <ul className="mt-0.5 space-y-0.5">
+                      <p className="text-xs font-medium text-scout-green/75">{group.description}</p>
+                      <ul className="mt-1 space-y-1">
                         {group.items.map((item) => (
-                          <li key={item.itemId} className="text-sm text-gray-800">
-                            <span className="font-medium text-scout-green">{item.itemId}</span>
-                            {item.description ? (
-                              <span className="text-gray-600"> — {item.description}</span>
-                            ) : null}
+                          <li key={item.itemId} className="flex min-w-0 gap-2 text-sm text-gray-900">
+                            <span className="shrink-0 font-medium text-scout-blue">{item.itemId}</span>
+                            <span className="min-w-0 truncate text-gray-700">{item.description || '—'}</span>
                           </li>
                         ))}
                       </ul>

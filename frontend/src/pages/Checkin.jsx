@@ -36,7 +36,7 @@ const Checkin = () => {
   checkinEventRef.current = checkinEvent;
 
   useEffect(() => {
-    if (!checkinEvent?.eventId || checkinEvent.eventType) return;
+    if (checkinEvent?.allEvents || !checkinEvent?.eventId || checkinEvent.eventType) return;
     let cancelled = false;
     const id = checkinEvent.eventId;
     getData(`/events/${id}`)
@@ -53,8 +53,10 @@ const Checkin = () => {
   }, [checkinEvent?.eventId, checkinEvent?.eventType, getData]);
 
   const effectiveItems = useMemo(() => {
-    if (!checkinEvent?.outingName) return [];
-    const name = String(checkinEvent.outingName).trim();
+    if (!checkinEvent) return [];
+    if (checkinEvent.allEvents) return allCheckedOutItems;
+    const name = checkinEvent.outingName != null ? String(checkinEvent.outingName).trim() : '';
+    if (!name) return [];
     return allCheckedOutItems.filter(
       (i) => String(i.outingName || '').trim() === name
     );
@@ -62,6 +64,17 @@ const Checkin = () => {
 
   useLayoutEffect(() => {
     const payload = location.state?.checkinEvent;
+    if (payload?.allEvents) {
+      setCheckinEvent({ allEvents: true });
+      setFilteredOuting(null);
+      setFilteredCategory(null);
+      setViewMode('items');
+      setSelectedItems([]);
+      setSubmitError(null);
+      setSearchQuery('');
+      navigate('/checkin', { replace: true, state: {} });
+      return;
+    }
     if (!payload?.eventId || !payload?.outingName) return;
     setCheckinEvent(payload);
     setFilteredOuting(payload.outingName);
@@ -223,7 +236,9 @@ const Checkin = () => {
             <div className="text-center py-12">
               <p className="text-gray-500">
                 {effectiveItems.length === 0
-                  ? (checkinEvent ? 'No checked-out gear for this outing' : 'No items are currently checked out')
+                  ? (checkinEvent && !checkinEvent.allEvents
+                      ? 'No checked-out gear for this outing'
+                      : 'No items are currently checked out')
                   : 'No categories match your search'}
               </p>
             </div>
@@ -241,34 +256,38 @@ const Checkin = () => {
                 <div
                   key={item.itemId}
                   onClick={() => handleItemSelect(item)}
-                  className={`card card-compact cursor-pointer transition-all duration-200 ${
+                  className={`card card-compact cursor-pointer transition-all duration-200 flex flex-row gap-3 items-start sm:items-center ${
                     isSelected ? 'card-selected' : ''
                   }`}
                 >
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-0.5">
                       {item.itemId}
                     </h3>
-                    <p className="text-sm text-gray-600 mb-1">{item.description}</p>
-                    <p className="text-xs text-gray-700">
+                    <p className="text-sm text-gray-600">{item.description}</p>
+                    <p className="text-xs text-gray-700 mt-1">
                       Checked out to: {item.checkedOutTo}
                     </p>
                     {item.outingName && (
-                      <p className="text-xs text-gray-500">Event: {item.outingName}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Event: {item.outingName}</p>
                     )}
                   </div>
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Item Condition:
+                  <div
+                    className="shrink-0 flex w-[7.25rem] flex-col gap-1 sm:w-36"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <label className="text-xs font-medium text-gray-600" htmlFor={`condition-${item.itemId}`}>
+                      Condition
                     </label>
                     <select
+                      id={`condition-${item.itemId}`}
                       value={isSelected ? isSelected.condition : 'Usable'}
                       onClick={(e) => e.stopPropagation()}
                       onChange={(e) => {
                         e.stopPropagation();
                         handleConditionChange(item.itemId, e.target.value);
                       }}
-                      className="form-input w-full rounded-lg border border-gray-300 bg-white text-gray-800 text-sm py-2 px-3"
+                      className="form-input w-full rounded-lg border border-gray-300 bg-white text-gray-800 text-sm py-2 px-2"
                     >
                       <option value="Usable">Usable</option>
                       <option value="Not usable">Not usable</option>
@@ -283,7 +302,9 @@ const Checkin = () => {
             <div className="text-center py-12">
               <p className="text-gray-500">
                 {effectiveItems.length === 0
-                  ? (checkinEvent ? 'No checked-out gear for this outing' : 'No items are currently checked out')
+                  ? (checkinEvent && !checkinEvent.allEvents
+                      ? 'No checked-out gear for this outing'
+                      : 'No items are currently checked out')
                   : 'No items match your search'}
               </p>
             </div>
@@ -309,29 +330,41 @@ const Checkin = () => {
           </h3>
           <div className="space-y-3 max-h-[calc(100vh-18rem)] overflow-y-auto">
             {selectedItems.map(item => (
-              <div key={item.itemId} className="pb-3 border-b border-gray-100 last:border-0 last:pb-0">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-sm font-medium text-gray-900">{item.itemId}</span>
-                  <button
-                    onClick={() => handleItemSelect(item)}
-                    className="text-gray-400 hover:text-scout-red text-xs shrink-0"
-                    aria-label={`Remove ${item.itemId}`}
-                  >
-                    ✕
-                  </button>
+              <div
+                key={item.itemId}
+                className="flex flex-row gap-3 items-center border-b border-gray-100 pb-3 last:border-0 last:pb-0"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-gray-900">{item.itemId}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleItemSelect(item)}
+                      className="text-gray-400 hover:text-scout-red text-xs shrink-0 touch-target"
+                      aria-label={`Remove ${item.itemId}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  {item.description && (
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">{item.description}</p>
+                  )}
                 </div>
-                {item.description && (
-                  <p className="text-xs text-gray-500 mb-2 truncate">{item.description}</p>
-                )}
-                <select
-                  value={item.condition}
-                  onChange={(e) => handleConditionChange(item.itemId, e.target.value)}
-                  className="w-full text-sm border border-gray-300 rounded-md bg-white py-1.5 px-2"
-                >
-                  <option value="Usable">Usable</option>
-                  <option value="Not usable">Not usable</option>
-                  <option value="Missing">Missing</option>
-                </select>
+                <div className="shrink-0 w-[7.25rem]">
+                  <label className="sr-only" htmlFor={`sidebar-condition-${item.itemId}`}>
+                    Condition for {item.itemId}
+                  </label>
+                  <select
+                    id={`sidebar-condition-${item.itemId}`}
+                    value={item.condition}
+                    onChange={(e) => handleConditionChange(item.itemId, e.target.value)}
+                    className="w-full text-sm border border-gray-300 rounded-md bg-white py-1.5 px-2"
+                  >
+                    <option value="Usable">Usable</option>
+                    <option value="Not usable">Not usable</option>
+                    <option value="Missing">Missing</option>
+                  </select>
+                </div>
               </div>
             ))}
           </div>
@@ -353,7 +386,8 @@ const Checkin = () => {
     </div>
   );
 
-  const checkinKindText = checkinEvent ? eventKindLabel(checkinEvent.eventType) : '';
+  const checkinKindText =
+    checkinEvent && !checkinEvent.allEvents ? eventKindLabel(checkinEvent.eventType) : '';
 
   return (
     <div className={isDesktop ? 'flex flex-col bg-gray-100 flex-1 min-h-0' : 'h-screen-small flex flex-col bg-gray-100'}>
@@ -381,22 +415,34 @@ const Checkin = () => {
         searchPlaceholder={searchPlaceholder}
       />
 
-      {/* Selected event (gear check-in is scoped to this outing) */}
+      {/* Selected scope: one event or all events */}
       {checkinEvent && (
-        <div className="shrink-0 border-b border-gray-200 bg-white px-5 py-3 flex items-center justify-between gap-3">
+        <div className="shrink-0 border-b border-gray-200 bg-white px-4 py-2 flex items-center justify-between gap-2">
           <p
-            className="min-w-0 flex-1 truncate text-center text-base text-gray-900 sm:text-left"
-            title={`${checkinKindText}: ${checkinEvent.outingName}`}
+            className={`min-w-0 flex-1 truncate text-center text-gray-900 sm:text-left ${
+              checkinEvent.allEvents ? 'text-sm font-semibold' : 'text-base'
+            }`}
+            title={
+              checkinEvent.allEvents
+                ? 'All events'
+                : `${checkinKindText}: ${checkinEvent.outingName}`
+            }
           >
-            <span className="font-semibold text-gray-600">{checkinKindText}:</span>{' '}
-            <span className="font-semibold">{checkinEvent.outingName}</span>
+            {checkinEvent.allEvents ? (
+              'All events'
+            ) : (
+              <>
+                <span className="font-semibold text-gray-600">{checkinKindText}:</span>{' '}
+                <span className="font-semibold">{checkinEvent.outingName}</span>
+              </>
+            )}
           </p>
           <button
             type="button"
             onClick={changeCheckinOuting}
             className="text-scout-blue text-xs font-medium hover:underline touch-target shrink-0"
           >
-            Change outing
+            Change
           </button>
         </div>
       )}
@@ -467,8 +513,8 @@ const Checkin = () => {
         onDismiss={() => navigate('/gear')}
         dismissButtonLabel="Cancel"
         onConfirm={(payload) => {
-          setCheckinEvent(payload);
-          setFilteredOuting(payload.outingName);
+          setCheckinEvent(payload.allEvents ? { allEvents: true } : payload);
+          setFilteredOuting(payload.allEvents ? null : payload.outingName);
           setFilteredCategory(null);
           setViewMode('items');
           setSelectedItems([]);

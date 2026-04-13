@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useCategories, useInventory } from '../hooks/useInventory';
@@ -12,6 +12,7 @@ import HeaderProfileMenu from '../components/HeaderProfileMenu';
 import useIsDesktop from '../hooks/useIsDesktop';
 import { useDesktopHeader } from '../context/DesktopHeaderContext';
 import { eventKindLabel } from '../utils/eventKindLabel';
+import { X } from 'lucide-react';
 
 const Categories = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,16 +35,13 @@ const Categories = () => {
     checkoutEvent,
     addMultipleItems,
     mergeReservationMeta,
+    setCheckoutEvent,
   } = useCart();
   const { categories, loading, error, refreshCategories } = useCategories();
   const { getData } = useInventory();
   const [connectionError, setConnectionError] = useState(false);
   const slowHint = useSlowLoad(loading && categories.length === 0);
   const isDesktop = useIsDesktop();
-
-  useDesktopHeader({
-    title: mode === 'reserve' ? 'Reserve Gear' : 'Select Category',
-  });
 
   useEffect(() => {
     if (error && !loading) {
@@ -53,9 +51,12 @@ const Categories = () => {
 
   const reservationMetaRef = useRef(reservationMeta);
   reservationMetaRef.current = reservationMeta;
+  const checkoutEventRef = useRef(checkoutEvent);
+  checkoutEventRef.current = checkoutEvent;
 
+  /** Backfill event kind for banner whenever reservationMeta is loaded (reserve or checkout-from-reservation). */
   useEffect(() => {
-    if (mode !== 'reserve' || !reservationMeta?.eventId || reservationMeta.eventType) return;
+    if (!reservationMeta?.eventId || reservationMeta.eventType) return;
     let cancelled = false;
     const id = reservationMeta.eventId;
     getData(`/events/${id}`)
@@ -69,7 +70,50 @@ const Categories = () => {
     return () => {
       cancelled = true;
     };
-  }, [mode, reservationMeta?.eventId, reservationMeta?.eventType, getData, mergeReservationMeta]);
+  }, [reservationMeta?.eventId, reservationMeta?.eventType, getData, mergeReservationMeta]);
+
+  useEffect(() => {
+    if (mode !== 'checkout' || !checkoutEvent?.eventId || checkoutEvent?.eventType) return;
+    let cancelled = false;
+    const id = checkoutEvent.eventId;
+    getData(`/events/${id}`)
+      .then((ev) => {
+        if (cancelled || !ev?.eventType) return;
+        const prev = checkoutEventRef.current;
+        if (!prev || String(prev.eventId) !== String(id)) return;
+        setCheckoutEvent({ ...prev, eventType: ev.eventType });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, checkoutEvent?.eventId, checkoutEvent?.eventType, getData, setCheckoutEvent]);
+
+  const gearOutingLine = useMemo(() => {
+    const lineFromEventLike = (ev) => {
+      if (!ev) return null;
+      const display =
+        ev.outingName?.trim() ||
+        (ev.eventId != null && String(ev.eventId) !== '' ? `Event ${ev.eventId}` : '');
+      if (!display) return null;
+      return { kind: eventKindLabel(ev.eventType), display };
+    };
+
+    if (mode === 'reserve' && reservationMeta) {
+      return lineFromEventLike(reservationMeta);
+    }
+    if (mode === 'checkout') {
+      return lineFromEventLike(checkoutEvent) ?? lineFromEventLike(reservationMeta);
+    }
+    return null;
+  }, [mode, reservationMeta, checkoutEvent]);
+
+  useDesktopHeader({
+    title: mode === 'reserve' ? 'Reserve Gear' : 'Select Category',
+    ...(gearOutingLine && {
+      subtitle: `${gearOutingLine.kind}: ${gearOutingLine.display}`,
+    }),
+  });
 
   const needsOuting =
     mode !== 'reserve' && !reservationMeta?.eventId && !checkoutEvent?.eventId;
@@ -280,24 +324,14 @@ const Categories = () => {
     </div>
   );
 
-  const reserveOutingDisplay =
-    mode === 'reserve' && reservationMeta
-      ? reservationMeta.outingName?.trim() ||
-        (reservationMeta.eventId != null && String(reservationMeta.eventId) !== ''
-          ? `Event ${reservationMeta.eventId}`
-          : null)
-      : null;
-
-  const reserveKind = eventKindLabel(reservationMeta?.eventType);
-
-  const reserveGearOutingBanner = reserveOutingDisplay && (
+  const gearOutingBanner = gearOutingLine && (
     <div className="shrink-0 border-b border-gray-200 bg-white px-5 py-3">
       <p
         className="truncate text-center text-base text-gray-900"
-        title={`${reserveKind}: ${reserveOutingDisplay}`}
+        title={`${gearOutingLine.kind}: ${gearOutingLine.display}`}
       >
-        <span className="font-semibold text-gray-600">{reserveKind}:</span>{' '}
-        <span className="font-semibold">{reserveOutingDisplay}</span>
+        <span className="font-semibold text-gray-600">{gearOutingLine.kind}:</span>{' '}
+        <span className="font-semibold">{gearOutingLine.display}</span>
       </p>
     </div>
   );
@@ -386,16 +420,29 @@ const Categories = () => {
     return (
       <AnimateMain className="flex flex-1 flex-col min-h-0">
         <div className="border-b border-gray-200 bg-white px-5 py-4">
-          <input
-            type="text"
-            placeholder="Search for gear..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input w-full"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              autoComplete="off"
+              placeholder="Search for gear..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`search-input w-full ${searchTerm ? 'pr-10' : ''}`}
+            />
+            {searchTerm ? (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="touch-target absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" strokeWidth={2} aria-hidden />
+              </button>
+            ) : null}
+          </div>
         </div>
 
-        {reserveGearOutingBanner}
+        {gearOutingBanner}
 
         <div className="flex-1 overflow-y-auto">
           <div className="px-5 py-5 lg:grid lg:grid-cols-[1fr_18rem] lg:gap-6">
@@ -455,13 +502,26 @@ const Categories = () => {
       <AnimateMain className="flex flex-1 flex-col min-h-0">
       <div className="border-b border-gray-200 bg-white px-5 py-4">
         <div className="flex items-center gap-3">
-          <input
-            type="text"
-            placeholder="Search for gear..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input min-w-0 flex-1"
-          />
+          <div className="relative min-w-0 flex-1">
+            <input
+              type="text"
+              autoComplete="off"
+              placeholder="Search for gear..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`search-input w-full min-w-0 ${searchTerm ? 'pr-10' : ''}`}
+            />
+            {searchTerm ? (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="touch-target absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" strokeWidth={2} aria-hidden />
+              </button>
+            ) : null}
+          </div>
           <Link
             ref={cartFlyTargetRef}
             to={`/cart?mode=${mode}`}
@@ -477,7 +537,7 @@ const Categories = () => {
         </div>
       </div>
 
-      {reserveGearOutingBanner}
+      {gearOutingBanner}
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 py-5 pb-20">

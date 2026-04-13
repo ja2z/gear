@@ -1,7 +1,6 @@
-import { useId, useLayoutEffect, useMemo, useRef, useState, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import { useId, useMemo, useState, useEffect, useCallback, useRef } from 'react';
 
-const MAX_VISIBLE = 5;
+const MAX_VISIBLE = 3;
 
 /**
  * Match if every whitespace-separated token appears somewhere in the full name (case-insensitive).
@@ -25,25 +24,12 @@ export function filterScoutsByNameQuery(users, query) {
   return filterRosterByNameQuery(users, query);
 }
 
-/** Walk up from `el` and collect elements that can scroll (modal bodies, overflow-y-auto forms, etc.). */
-function getScrollableAncestors(el) {
-  const list = [];
-  let p = el?.parentElement;
-  while (p && p !== document.documentElement) {
-    const st = getComputedStyle(p);
-    const oy = st.overflowY;
-    const ox = st.overflowX;
-    if (/(auto|scroll|overlay)/.test(oy) || /(auto|scroll|overlay)/.test(ox)) {
-      list.push(p);
-    }
-    p = p.parentElement;
-  }
-  return list;
-}
-
 /**
- * Searchable roster picker (youth or adults). Dropdown only when ≤ MAX_VISIBLE matches.
- * List is portaled to `document.body` with fixed positioning (below the input).
+ * Searchable roster picker (youth or adults). Dropdown when ≤ MAX_VISIBLE matches.
+ *
+ * The list is in normal document flow below the input: it adds height under the field so
+ * only content *below* moves down. We do not scroll the modal programmatically — scrolling
+ * would increase scrollTop and shift everything above the field upward on screen.
  */
 export default function RosterSearchField({
   users,
@@ -53,13 +39,14 @@ export default function RosterSearchField({
   onSearchTextChange,
   disabled = false,
   fieldId: fieldIdProp,
+  /** Tighter vertical spacing (e.g. event form modal). */
+  compact = false,
 }) {
   const genId = useId();
   const fieldId = fieldIdProp ?? genId;
   const listId = useId();
-  const anchorRef = useRef(null);
+  const inputRef = useRef(null);
   const blurCloseTimerRef = useRef(null);
-  const [menuStyle, setMenuStyle] = useState(null);
   const [inputFocused, setInputFocused] = useState(false);
 
   const userList = Array.isArray(users) ? users : [];
@@ -78,10 +65,6 @@ export default function RosterSearchField({
     return true;
   }, [filtered.length, searchText, userList.length]);
 
-  /**
-   * Hide the list while a saved selection is showing as plain text (edit outing, etc.).
-   * Re-opens on focus so the user can pick someone else.
-   */
   const hideListWhileClosedSelection = useMemo(() => {
     if (!value || inputFocused) return false;
     if (!selectedUser) return false;
@@ -98,67 +81,18 @@ export default function RosterSearchField({
     return true;
   }, [baseShowDropdown, hideListWhileClosedSelection]);
 
-  const updatePosition = useCallback(() => {
-    if (!anchorRef.current || !showDropdown) {
-      setMenuStyle(null);
-      return;
-    }
-    const r = anchorRef.current.getBoundingClientRect();
-    const maxH = Math.max(120, window.innerHeight - r.bottom - 12);
-    setMenuStyle({
-      position: 'fixed',
-      left: r.left,
-      top: r.bottom + 4,
-      width: r.width,
-      maxHeight: maxH,
-      zIndex: 5000,
-    });
-  }, [showDropdown]);
-
-  useLayoutEffect(() => {
-    updatePosition();
-    const id = requestAnimationFrame(() => updatePosition());
-    return () => cancelAnimationFrame(id);
-  }, [updatePosition, searchText, filtered.length, showDropdown]);
-
-  useEffect(() => {
-    if (!showDropdown) return;
-    const anchor = anchorRef.current;
-    if (!anchor) return;
-
-    const run = () => {
-      updatePosition();
-    };
-
-    const scrollParents = getScrollableAncestors(anchor);
-    scrollParents.forEach((el) => {
-      el.addEventListener('scroll', run, { passive: true });
-    });
-    window.addEventListener('scroll', run, true);
-    window.addEventListener('resize', run);
-
-    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
-    if (vv) {
-      vv.addEventListener('resize', run);
-      vv.addEventListener('scroll', run);
-    }
-
-    return () => {
-      scrollParents.forEach((el) => {
-        el.removeEventListener('scroll', run);
-      });
-      window.removeEventListener('scroll', run, true);
-      window.removeEventListener('resize', run);
-      if (vv) {
-        vv.removeEventListener('resize', run);
-        vv.removeEventListener('scroll', run);
-      }
-    };
-  }, [showDropdown, updatePosition]);
-
   const selectUser = (u) => {
     onChange(String(u.id));
     onSearchTextChange(u.fullName || '');
+    /** mousedown preventDefault on options keeps focus on the input — blur so the list can dismiss. */
+    if (blurCloseTimerRef.current) {
+      clearTimeout(blurCloseTimerRef.current);
+      blurCloseTimerRef.current = null;
+    }
+    setInputFocused(false);
+    requestAnimationFrame(() => {
+      inputRef.current?.blur();
+    });
   };
 
   const handleFocus = useCallback(() => {
@@ -183,59 +117,49 @@ export default function RosterSearchField({
     [],
   );
 
-  const listbox =
-    showDropdown &&
-    menuStyle &&
-    createPortal(
-      <ul
-        id={`${listId}-listbox`}
-        role="listbox"
-        style={menuStyle}
-        className="overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
-      >
-        {filtered.map((u) => (
-          <li key={u.id} role="option" aria-selected={String(u.id) === String(value)}>
-            <button
-              type="button"
-              className="touch-target w-full px-3 py-2.5 text-left text-sm text-gray-900 hover:bg-scout-blue/8"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => selectUser(u)}
-            >
-              {u.fullName}
-            </button>
-          </li>
-        ))}
-      </ul>,
-      document.body,
-    );
-
   return (
-    <>
-      <div className="relative w-full">
-        <div ref={anchorRef}>
-          <input
-            id={fieldId}
-            type="search"
-            autoComplete="off"
-            spellCheck={false}
-            disabled={disabled}
-            placeholder="Search by name…"
-            value={searchText}
-            onChange={(e) => {
-              const t = e.target.value;
-              onSearchTextChange(t);
-              if (value) onChange('');
-            }}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            className="search-input w-full"
-            aria-expanded={showDropdown}
-            aria-controls={showDropdown ? `${listId}-listbox` : undefined}
-            aria-autocomplete="list"
-          />
-        </div>
-      </div>
-      {listbox}
-    </>
+    <div className={`flex w-full flex-col ${compact ? 'gap-1' : 'gap-2'}`}>
+      <input
+        ref={inputRef}
+        id={fieldId}
+        type="search"
+        autoComplete="off"
+        spellCheck={false}
+        disabled={disabled}
+        placeholder="Search by name…"
+        value={searchText}
+        onChange={(e) => {
+          const t = e.target.value;
+          onSearchTextChange(t);
+          if (value) onChange('');
+        }}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        className="search-input w-full"
+        aria-expanded={showDropdown}
+        aria-controls={showDropdown ? `${listId}-listbox` : undefined}
+        aria-autocomplete="list"
+      />
+      {showDropdown && (
+        <ul
+          id={`${listId}-listbox`}
+          role="listbox"
+          className="w-full max-h-[min(14rem,45dvh)] overflow-y-auto overscroll-contain rounded-lg border border-gray-200 bg-white py-1 shadow-sm ring-1 ring-black/5"
+        >
+          {filtered.map((u) => (
+            <li key={u.id} role="option" aria-selected={String(u.id) === String(value)}>
+              <button
+                type="button"
+                className="touch-target w-full px-3 py-2.5 text-left text-sm text-gray-900 hover:bg-scout-blue/8"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => selectUser(u)}
+              >
+                {u.fullName}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

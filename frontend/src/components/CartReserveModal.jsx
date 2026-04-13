@@ -129,7 +129,7 @@ export default function CartReserveModal({ open, onClose }) {
       />
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
         <div
-          className="modal-dialog-panel-enter pointer-events-auto relative z-[141] flex max-h-[min(92dvh,44rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+          className="modal-dialog-panel-enter pointer-events-auto relative z-[141] flex max-h-[min(85dvh,38rem)] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-5 py-4">

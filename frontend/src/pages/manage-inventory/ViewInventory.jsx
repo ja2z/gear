@@ -472,6 +472,7 @@ const ViewInventory = () => {
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case 'In shed': return 'status-in-shed';
+      case 'Reserved': return 'status-reserved';
       case 'Checked out': return 'status-checked-out';
       case 'Missing': return 'status-missing';
       case 'Out for repair': return 'status-out-for-repair';

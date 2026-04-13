@@ -18,7 +18,7 @@ import { formatTroopEventDate } from '../../utils/outingFormat';
 const TYPE_BADGE_COLOR = {
   'Day Outing':       'bg-scout-green/10 text-scout-green',
   'Overnight Outing': 'bg-scout-blue/10 text-scout-blue',
-  'Meeting':          'bg-gray-100 text-gray-500',
+  'Meeting':          'bg-amber-100 text-amber-900',
 };
 
 function todayLong() {

@@ -5,6 +5,7 @@ import { Loader2, Plus, X } from 'lucide-react';
 import { AnimateMain, SegmentSwitchAnimate } from '../components/AnimateMain';
 import HeaderProfileMenu from '../components/HeaderProfileMenu';
 import { useInventory } from '../hooks/useInventory';
+import { useCart } from '../context/CartContext';
 import { getApiBaseUrl } from '../config/apiBaseUrl';
 import useIsDesktop from '../hooks/useIsDesktop';
 import { useDesktopHeader } from '../context/DesktopHeaderContext';
@@ -20,6 +21,9 @@ const OUTING_LIST_TABS = [
   { key: 'past', label: 'Past' },
 ];
 
+/** Must match input exactly (after trim) to enable destructive delete. */
+const DELETE_CONFIRM_PHRASE = 'CONFIRM';
+
 const defaultForm = {
   name: '',
   eventTypeId: '',
@@ -31,7 +35,12 @@ const defaultForm = {
 
 const OutingsPage = () => {
   const { getData } = useInventory();
+  const { checkoutEvent, reservationMeta, mergeReservationMeta, setCheckoutEvent } = useCart();
   const isDesktop = useIsDesktop();
+  const reservationMetaRef = useRef(reservationMeta);
+  reservationMetaRef.current = reservationMeta;
+  const checkoutEventRef = useRef(checkoutEvent);
+  checkoutEventRef.current = checkoutEvent;
 
   const [events, setEvents] = useState([]);
   const [eventTypes, setEventTypes] = useState([]);
@@ -83,6 +92,42 @@ const OutingsPage = () => {
   }, [getData]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  /** Backfill event type for cart banner (same idea as Categories reserve flow). */
+  useEffect(() => {
+    if (!reservationMeta?.eventId || reservationMeta?.eventType) return;
+    let cancelled = false;
+    const id = reservationMeta.eventId;
+    getData(`/events/${id}`)
+      .then((ev) => {
+        if (cancelled || !ev?.eventType) return;
+        const prev = reservationMetaRef.current;
+        if (!prev || String(prev.eventId) !== String(id)) return;
+        mergeReservationMeta({ eventType: ev.eventType });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [reservationMeta?.eventId, reservationMeta?.eventType, getData, mergeReservationMeta]);
+
+  /** Backfill event type for checkout banner (same idea as reservation above). */
+  useEffect(() => {
+    if (!checkoutEvent?.eventId || checkoutEvent?.eventType) return;
+    let cancelled = false;
+    const id = checkoutEvent.eventId;
+    getData(`/events/${id}`)
+      .then((ev) => {
+        if (cancelled || !ev?.eventType) return;
+        const prev = checkoutEventRef.current;
+        if (!prev || String(prev.eventId) !== String(id)) return;
+        setCheckoutEvent({ ...prev, eventType: ev.eventType });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [checkoutEvent?.eventId, checkoutEvent?.eventType, getData, setCheckoutEvent]);
 
   const usersList = Array.isArray(users) ? users : [];
   const eventTypesList = Array.isArray(eventTypes) ? eventTypes : [];
@@ -187,11 +232,13 @@ const OutingsPage = () => {
   };
 
   const handleFormChange = (field, value) => {
-    setForm(prev => ({
-      ...prev,
-      [field]: value,
-      ...(field === 'eventTypeId' ? { endDate: '' } : {}),
-    }));
+    setForm(prev => {
+      const next = { ...prev, [field]: value };
+      if (field === 'eventTypeId') next.endDate = '';
+      if (field === 'startDate' && next.endDate && value > next.endDate) next.endDate = value;
+      if (field === 'endDate' && next.startDate && value < next.startDate) next.startDate = value;
+      return next;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -253,7 +300,7 @@ const OutingsPage = () => {
 
   const handleDelete = async () => {
     if (!deletingEvent) return;
-    if (deleteConfirmText !== deletingEvent.name) return;
+    if (deleteConfirmText.trim() !== DELETE_CONFIRM_PHRASE) return;
     setDeleteError(null);
     try {
       setDeleteLoading(true);
@@ -381,39 +428,41 @@ const OutingsPage = () => {
       />
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
         <div
-          className={`pointer-events-auto relative z-[101] flex h-[min(46rem,92dvh)] w-full max-w-[26rem] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ${formModalClosing ? 'modal-dialog-panel-exit' : 'modal-dialog-panel-enter'}`}
+          className={`pointer-events-auto relative z-[101] flex max-h-[92dvh] w-full max-w-[22rem] flex-col overflow-y-auto overscroll-contain rounded-2xl bg-white shadow-2xl sm:max-w-[23rem] ${formModalClosing ? 'modal-dialog-panel-exit' : 'modal-dialog-panel-enter'}`}
           onAnimationEnd={handleFormModalPanelAnimationEnd}
         >
-        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 sm:px-3.5">
-          <h2 id="event-form-modal-title" className="text-base font-bold text-gray-900 sm:text-lg">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-1.5 sm:px-3.5">
+          <h2 id="event-form-modal-title" className="text-sm font-bold leading-tight text-gray-900 sm:text-[15px]">
             {editingEvent ? 'Edit event' : 'New event'}
           </h2>
           <button
             type="button"
             onClick={requestCloseFormModal}
-            className="touch-target rounded-full p-2 text-gray-500 hover:bg-gray-100"
+            className="rounded-full p-1.5 text-gray-500 hover:bg-gray-100"
             aria-label="Close"
           >
-            <X className="h-5 w-5" strokeWidth={2} />
+            <X className="h-4 w-4" strokeWidth={2} />
           </button>
         </div>
         <form
           onSubmit={handleSubmit}
-          className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:space-y-3 sm:px-3.5 sm:pt-3.5 sm:pb-4"
+          className="flex flex-col"
         >
-          <div>
-            <label className="mb-0.5 block text-sm font-semibold text-gray-700">Name *</label>
+          <div
+            className="relative z-30 space-y-4 px-3 pt-2.5 pb-3 sm:space-y-5 sm:px-4 sm:pt-3 sm:pb-4 [&_button.form-input]:!h-10 [&_button.form-input]:!min-h-10 [&_button.form-input]:!py-2 [&_input.form-input]:!h-10 [&_input.form-input]:!min-h-10 [&_input.form-input]:!py-2 [&_input.search-input]:!min-h-10 [&_input.search-input]:!py-2 [&_input.search-input]:!px-3 [&_select.form-input]:!h-10 [&_select.form-input]:!min-h-10 [&_select.form-input]:!py-2"
+          >
+          <div className="flex flex-col gap-0.5">
+            <label className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">Name *</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => handleFormChange('name', e.target.value)}
-              autoFocus={!editingEvent}
               className="form-input w-full"
               placeholder="e.g. Spring Campout 2026"
             />
           </div>
-          <div>
-            <label className="mb-0.5 block text-sm font-semibold text-gray-700">Type *</label>
+          <div className="flex flex-col gap-0.5">
+            <label className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">Type *</label>
             <select value={form.eventTypeId} onChange={e => handleFormChange('eventTypeId', parseInt(e.target.value, 10))} className="form-input w-full">
               {eventTypesList.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -424,8 +473,8 @@ const OutingsPage = () => {
           </div>
           {isOvernight ? (
             <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label htmlFor="outing-start-date" className="mb-0.5 block text-sm font-semibold text-gray-700">
+              <div className="flex flex-col gap-0.5">
+                <label htmlFor="outing-start-date" className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">
                   Start date *
                 </label>
                 <OutingDatePicker
@@ -435,8 +484,8 @@ const OutingsPage = () => {
                   disabled={modalLoading}
                 />
               </div>
-              <div>
-                <label htmlFor="outing-end-date" className="mb-0.5 block text-sm font-semibold text-gray-700">
+              <div className="flex flex-col gap-0.5">
+                <label htmlFor="outing-end-date" className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">
                   End date *
                 </label>
                 <OutingDatePicker
@@ -449,8 +498,8 @@ const OutingsPage = () => {
               </div>
             </div>
           ) : (
-            <div>
-              <label htmlFor="outing-single-date" className="mb-0.5 block text-sm font-semibold text-gray-700">
+            <div className="flex flex-col gap-0.5">
+              <label htmlFor="outing-single-date" className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">
                 Date *
               </label>
               <OutingDatePicker
@@ -461,8 +510,8 @@ const OutingsPage = () => {
               />
             </div>
           )}
-          <div>
-            <label htmlFor="event-spl-leader" className="mb-0.5 block text-sm font-semibold text-gray-700">
+          <div className="flex flex-col gap-0.5">
+            <label htmlFor="event-spl-leader" className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">
               {splLeaderFieldLabel} *
             </label>
             <RosterSearchField
@@ -473,10 +522,11 @@ const OutingsPage = () => {
               searchText={outingLeaderSearch}
               onSearchTextChange={setOutingLeaderSearch}
               disabled={modalLoading}
+              compact
             />
           </div>
-          <div>
-            <label htmlFor="event-adult-leader" className="mb-0.5 block text-sm font-semibold text-gray-700">Adult leader *</label>
+          <div className="flex flex-col gap-0.5">
+            <label htmlFor="event-adult-leader" className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">Adult leader *</label>
             <RosterSearchField
               fieldId="event-adult-leader"
               users={adults}
@@ -485,17 +535,23 @@ const OutingsPage = () => {
               searchText={adultLeaderSearch}
               onSearchTextChange={setAdultLeaderSearch}
               disabled={modalLoading}
+              compact
             />
           </div>
           {modalError && <p className="text-sm leading-snug text-red-600">{modalError}</p>}
-          <div className="flex gap-2 pt-0.5 sm:gap-2.5">
-            <button type="button" onClick={requestCloseFormModal} className="h-10 flex-1 rounded-md border border-gray-300 text-sm font-medium text-gray-700 sm:h-11">
+          </div>
+          <div className="flex shrink-0 gap-3 border-t border-gray-100 bg-white px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:gap-3.5 sm:px-4 sm:pt-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <button
+              type="button"
+              onClick={requestCloseFormModal}
+              className="flex h-11 min-h-11 flex-1 items-center justify-center rounded-md border border-gray-300 text-sm font-medium text-gray-700"
+            >
               Cancel
             </button>
             <button
               type="submit"
               disabled={modalLoading || !isOutingFormValid}
-              className="h-10 flex-1 rounded-md border text-sm font-medium transition-colors disabled:cursor-not-allowed bg-scout-blue/12 border-scout-blue/20 text-scout-blue enabled:hover:bg-scout-blue/18 disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:opacity-100 sm:h-11"
+              className="flex h-11 min-h-11 flex-1 items-center justify-center rounded-md border text-sm font-medium transition-colors disabled:cursor-not-allowed bg-scout-blue/12 border-scout-blue/20 text-scout-blue enabled:hover:bg-scout-blue/18 disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:opacity-100"
             >
               {modalLoading ? 'Saving…' : (editingEvent ? 'Save changes' : 'Create event')}
             </button>
@@ -526,24 +582,37 @@ const OutingsPage = () => {
         onClick={closeDeleteModal}
       />
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
-        <div className="modal-dialog-panel-enter pointer-events-auto relative z-[101] flex h-[min(28rem,78dvh)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white px-6 pt-6 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:pb-6 shadow-2xl">
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5">
-        <h2 id="event-delete-modal-title" className="mb-1 text-lg font-bold text-gray-900">Delete event?</h2>
-        <p className="mb-3 text-sm text-gray-600">
+        <div className="modal-dialog-panel-enter pointer-events-auto relative z-[101] flex w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="max-h-[min(70dvh,calc(100dvh-6rem))] overflow-y-auto overscroll-contain px-5 pt-5">
+        <h2 id="event-delete-modal-title" className="mb-1 text-base font-bold text-gray-900 sm:text-lg">Delete event?</h2>
+        <p className="mb-3 text-sm leading-snug text-gray-600">
           This will permanently delete <span className="font-semibold">{deletingEvent.name}</span> and cannot be undone.
           Any gear still checked out for this event will be returned to inventory.
           Transaction history will be preserved but will lose the event link.
         </p>
-        <p className="mb-1 text-sm font-semibold text-gray-700">Type the event name to confirm:</p>
-        <p className="mb-2 break-all font-mono text-xs text-gray-400">{deletingEvent.name}</p>
-        <input type="text" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} autoFocus placeholder="Type event name…" className="form-input mb-2 w-full" />
-        {deleteError && <p className="text-sm text-red-600 mb-2">{deleteError}</p>}
+        <p className="mb-1.5 text-sm font-semibold text-gray-700">Type <span className="font-mono text-gray-900">CONFIRM</span> to delete:</p>
+        <input
+          type="text"
+          value={deleteConfirmText}
+          onChange={(e) => setDeleteConfirmText(e.target.value)}
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="CONFIRM"
+          className="form-input mb-2 w-full"
+          aria-label="Type CONFIRM to delete this event"
+        />
+        {deleteError && <p className="mb-0 text-sm text-red-600">{deleteError}</p>}
         </div>
-        <div className="mt-4 flex shrink-0 gap-3 border-t border-gray-100 pt-4">
+        <div className="flex shrink-0 gap-3 border-t border-gray-100 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
           <button type="button" onClick={closeDeleteModal} className="flex-1 h-11 rounded-md border border-gray-300 text-sm font-medium text-gray-700">
             Cancel
           </button>
-          <button type="button" onClick={handleDelete} disabled={deleteLoading || deleteConfirmText !== deletingEvent.name} className="flex-1 h-11 rounded-md bg-red-500 text-white text-sm font-medium disabled:opacity-30">
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleteLoading || deleteConfirmText.trim() !== DELETE_CONFIRM_PHRASE}
+            className="flex-1 h-11 rounded-md bg-red-500 text-sm font-medium text-white disabled:opacity-30"
+          >
             {deleteLoading ? 'Deleting…' : 'Delete'}
           </button>
         </div>

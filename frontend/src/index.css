@@ -660,13 +660,6 @@ input[type="date"] {
   max-width: 100%;
 }
 
-/* react-day-picker — troop hub outing modal (scoped) */
-.outing-date-popover .rdp-root {
-  --rdp-accent-color: #1e398a;
-  --rdp-accent-background-color: rgba(30, 57, 138, 0.12);
-  --rdp-day_button-border-radius: 9999px;
-  --rdp-today-color: #1e398a;
-}
 
 /* Form input styles */
 .form-input {
@@ -699,6 +692,16 @@ input[type="date"] {
 .status-checked-out {
   background-color: #fee2e2;
   color: #991b1b;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  border-radius: 9999px;
+}
+
+/* Reservation flow theme (--color-scout-orange #ff6b35) — not checked-out red */
+.status-reserved {
+  background-color: rgba(255, 107, 53, 0.14);
+  color: #ff6b35;
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   line-height: 1rem;

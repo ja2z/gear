@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useReservations, useInventory } from '../hooks/useInventory';
 import { useAuth } from '../context/AuthContext';
 import { formatTroopEventDate } from '../utils/outingFormat';
+import { checkoutModalEligibleEvents } from '../utils/outingFilters';
 
 /** Modal: pick calendar event, then edit an existing reservation or start a new gear hold. */
 export default function ReservationPickerModal({ open, onDismiss }) {
@@ -27,8 +28,10 @@ export default function ReservationPickerModal({ open, onDismiss }) {
   /** User tapped “create reservation” for the current outing — stays on this modal; enables Edit reserved gear */
   const [newReservationReady, setNewReservationReady] = useState(false);
 
-  const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, name }
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, name, itemCount?, items? }
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  /** Full item rows when an outing with a reservation is selected (modal only). */
+  const [reservationItemsState, setReservationItemsState] = useState({ status: 'idle', items: [] });
 
   const userFullName = user ? `${user.first_name} ${user.last_name}` : '';
 
@@ -78,6 +81,38 @@ export default function ReservationPickerModal({ open, onDismiss }) {
     return list.find((r) => String(r.eventId) === String(selectedEventId)) ?? null;
   }, [selectedEventId, list]);
 
+  useEffect(() => {
+    if (!selectedEventId || !reservationForSelectedOuting) {
+      setReservationItemsState({ status: 'idle', items: [] });
+      return;
+    }
+    let cancelled = false;
+    setReservationItemsState({ status: 'loading', items: [] });
+    fetchReservationItems(selectedEventId)
+      .then((res) => {
+        if (cancelled) return;
+        setReservationItemsState({ status: 'loaded', items: res?.items ?? [] });
+      })
+      .catch(() => {
+        if (!cancelled) setReservationItemsState({ status: 'error', items: [] });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedEventId, reservationForSelectedOuting?.eventId, fetchReservationItems]);
+
+  /** Today or later only (same rule as gear checkout event picker). */
+  const eligibleEvents = useMemo(() => checkoutModalEligibleEvents(events), [events]);
+
+  useEffect(() => {
+    if (!open || !selectedEventId) return;
+    const stillValid = eligibleEvents.some((ev) => String(ev.id) === String(selectedEventId));
+    if (!stillValid) {
+      setSelectedEventId('');
+      setNewReservationReady(false);
+    }
+  }, [open, eligibleEvents, selectedEventId]);
+
   const handleOutingChange = (e) => {
     setDraftError(null);
     setNewReservationReady(false);
@@ -96,7 +131,7 @@ export default function ReservationPickerModal({ open, onDismiss }) {
 
   const proceedToReserveCategories = () => {
     if (!selectedEventId) return;
-    const ev = events.find((x) => String(x.id) === String(selectedEventId));
+    const ev = eligibleEvents.find((x) => String(x.id) === String(selectedEventId));
     const outingName = ev?.name || `Event ${selectedEventId}`;
     beginReserveCategoriesDraft({
       eventId: selectedEventId,
@@ -117,7 +152,7 @@ export default function ReservationPickerModal({ open, onDismiss }) {
     setListError(null);
     try {
       const reservation = await fetchReservationItems(selectedEventId);
-      const eventRow = events.find((e) => String(e.id) === String(selectedEventId));
+      const eventRow = eligibleEvents.find((e) => String(e.id) === String(selectedEventId));
       setCartReservationSession({
         items: reservation.items,
         meta: {
@@ -208,10 +243,10 @@ export default function ReservationPickerModal({ open, onDismiss }) {
       />
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 sm:p-4">
         <div
-          className="modal-dialog-panel-enter pointer-events-auto relative z-[121] flex max-h-[min(90dvh,46rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+          className="modal-dialog-panel-enter pointer-events-auto relative z-[121] flex max-h-[min(85dvh,38rem)] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pt-6 pb-6">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-6 pt-6 pb-6">
             {isRemoveStep && deleteConfirm && (
               <>
                 <div className="mb-1 flex items-start justify-between gap-2">
@@ -239,11 +274,27 @@ export default function ReservationPickerModal({ open, onDismiss }) {
                     <X className="h-5 w-5" />
                   </button>
                 </div>
-                <p className="text-sm text-gray-600 mb-5">
+                <p className="text-sm text-gray-600 mb-3">
                   Frees gear held for{' '}
                   <span className="font-medium text-gray-900">{deleteConfirm.name}</span>. The event stays on the
                   calendar.
                 </p>
+                {Array.isArray(deleteConfirm.items) && deleteConfirm.items.length > 0 ? (
+                  <ul className="mb-5 max-h-32 space-y-0.5 overflow-y-auto overscroll-contain rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-800">
+                    {deleteConfirm.items.map((it) => (
+                      <li key={it.itemId} className="flex min-w-0 gap-2">
+                        <span className="shrink-0 font-medium text-scout-blue">{it.itemId}</span>
+                        <span className="min-w-0 truncate text-gray-600">{it.description || '—'}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mb-5 text-sm text-gray-500">
+                    {deleteConfirm.itemCount === 1
+                      ? '1 reserved item will be released.'
+                      : `${deleteConfirm.itemCount ?? 0} reserved items will be released.`}
+                  </p>
+                )}
                 {listError && <p className="text-center text-sm text-scout-red">{listError}</p>}
               </>
             )}
@@ -254,7 +305,7 @@ export default function ReservationPickerModal({ open, onDismiss }) {
                   <h2 id="reservation-picker-title" className="text-lg font-bold text-gray-900 mb-1">
                     Choose an event
                   </h2>
-                  <p className="text-sm text-gray-600 mb-5">
+                  <p className="text-sm text-gray-600">
                     Pick the event, then reserve gear or edit an existing hold.
                   </p>
                 </div>
@@ -296,7 +347,7 @@ export default function ReservationPickerModal({ open, onDismiss }) {
                   className="form-input w-full"
                 >
                   <option value="">{eventsLoading ? 'Loading events…' : 'Select an event…'}</option>
-                  {events.map((ev) => (
+                  {eligibleEvents.map((ev) => (
                     <option key={ev.id} value={String(ev.id)}>
                       {ev.name}
                       {ev.startDate ? ` — ${formatTroopEventDate(ev.startDate)}` : ''}
@@ -318,6 +369,11 @@ export default function ReservationPickerModal({ open, onDismiss }) {
                           setDeleteConfirm({
                             id: String(reservationForSelectedOuting.eventId),
                             name: reservationForSelectedOuting.outingName,
+                            itemCount: reservationForSelectedOuting.itemCount,
+                            items:
+                              reservationItemsState.status === 'loaded'
+                                ? reservationItemsState.items
+                                : undefined,
                           })
                         }
                         disabled={listLoading || confirmLoading}
@@ -338,27 +394,49 @@ export default function ReservationPickerModal({ open, onDismiss }) {
                           {reservationForSelectedOuting.reservedEmail}
                         </dd>
                       </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1">
-                        <div>
-                          <dt className="text-gray-500">Items</dt>
-                          <dd className="mt-0.5 font-medium text-gray-900">
-                            {reservationForSelectedOuting.itemCount}{' '}
-                            {reservationForSelectedOuting.itemCount === 1 ? 'item' : 'items'}
+                      <div>
+                        <dt className="text-gray-500">Reserved gear</dt>
+                        <dd className="mt-1">
+                          {reservationItemsState.status === 'loading' && (
+                            <div className="flex justify-center py-3">
+                              <Loader2 className="h-5 w-5 animate-spin text-gray-400" aria-hidden />
+                            </div>
+                          )}
+                          {reservationItemsState.status === 'error' && (
+                            <p className="text-sm text-gray-500">Could not load the item list.</p>
+                          )}
+                          {reservationItemsState.status === 'loaded' &&
+                            reservationItemsState.items.length > 0 && (
+                              <ul className="max-h-32 space-y-0.5 overflow-y-auto overscroll-contain rounded-lg border border-gray-100 bg-white px-2.5 py-2 text-sm text-gray-800">
+                                {reservationItemsState.items.map((it) => (
+                                  <li key={it.itemId} className="flex min-w-0 gap-2">
+                                    <span className="shrink-0 font-medium text-scout-blue">{it.itemId}</span>
+                                    <span className="min-w-0 truncate text-gray-600">{it.description || '—'}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          {reservationItemsState.status === 'loaded' &&
+                            reservationItemsState.items.length === 0 && (
+                              <p className="text-sm text-gray-600">
+                                {reservationForSelectedOuting.itemCount}{' '}
+                                {reservationForSelectedOuting.itemCount === 1 ? 'item' : 'items'} reserved.
+                              </p>
+                            )}
+                        </dd>
+                      </div>
+                      {reservationForSelectedOuting.createdAt && (
+                        <div className="border-t border-gray-200/90 pt-3">
+                          <dt className="text-gray-500">Reserved on</dt>
+                          <dd className="mt-0.5 text-gray-900">
+                            {new Date(reservationForSelectedOuting.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
                           </dd>
                         </div>
-                        {reservationForSelectedOuting.createdAt && (
-                          <div>
-                            <dt className="text-gray-500">Reserved on</dt>
-                            <dd className="mt-0.5 text-gray-900">
-                              {new Date(reservationForSelectedOuting.createdAt).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              })}
-                            </dd>
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </dl>
                   </div>
                 )}
