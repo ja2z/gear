@@ -1,5 +1,5 @@
 /** Days before today still counted as “upcoming” (ongoing trips, late planning). */
-export const UPCOMING_BUFFER_DAYS = 3;
+export const UPCOMING_BUFFER_DAYS = 0;
 
 /** Troop calendar dates for gear checkout / check-in modals (align with event `startDate` comparisons). */
 export const TROOP_TZ = 'America/Los_Angeles';
