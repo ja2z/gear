@@ -25,8 +25,12 @@
     "resend": "^6.10.0"
   },
   "devDependencies": {
+    "axios": "^1.9.0",
+    "axios-cookiejar-support": "^5.0.0",
+    "cheerio": "^1.0.0",
     "nodemon": "^3.1.10",
     "pg": "^8.20.0",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "tough-cookie": "^5.1.0"
   }
 }
