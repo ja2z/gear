@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Loader2, X } from 'lucide-react';
 import { useInventory } from '../hooks/useInventory';
 import { checkinModalEligibleEvents } from '../utils/outingFilters';
@@ -26,6 +26,22 @@ export default function CheckinOutingModal({
   const [eventsLoading, setEventsLoading] = useState(true);
   /** All gear currently checked out for the selected event (same API as calendar / manage). */
   const [checkedOutState, setCheckedOutState] = useState({ status: 'idle', items: [] });
+  const flashBoxRef = useRef(null);
+  const flashTimeoutRef = useRef(null);
+
+  const triggerFlash = useCallback(() => {
+    if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+    // 400ms clears the iOS native picker dismiss animation before we start
+    flashTimeoutRef.current = setTimeout(() => {
+      const el = flashBoxRef.current;
+      if (!el) return;
+      el.classList.remove('gear-confirmed-flash-animate');
+      // Force reflow — reliable on iOS Safari (double rAF is not)
+      // eslint-disable-next-line no-unused-expressions
+      void el.offsetWidth;
+      el.classList.add('gear-confirmed-flash-animate');
+    }, 400);
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -119,16 +135,19 @@ export default function CheckinOutingModal({
     if (!id) {
       setEventId(CHECKIN_ALL_EVENTS_VALUE);
       setSelectedName('');
+      triggerFlash();
       return;
     }
     if (id === CHECKIN_ALL_EVENTS_VALUE) {
       setEventId(CHECKIN_ALL_EVENTS_VALUE);
       setSelectedName('');
+      triggerFlash();
       return;
     }
     const selected = eligibleEvents.find((ev) => String(ev.id) === String(id));
     setEventId(String(id));
     setSelectedName(selected?.name || '');
+    triggerFlash();
   };
 
   const handleContinue = (e) => {
@@ -219,29 +238,39 @@ export default function CheckinOutingModal({
               </select>
             </div>
 
-            {eventId && checkedOutState.status !== 'idle' && (
-              <div className="rounded-xl border border-scout-green/25 bg-scout-green/[0.06] p-4">
+            {eventId && (
+              <div ref={flashBoxRef} className="rounded-xl border border-scout-green/25 bg-scout-green/[0.06] p-4">
                 <p className="text-sm font-semibold text-gray-900">
                   Checked out gear
-                  {eventId === CHECKIN_ALL_EVENTS_VALUE ? (
-                    <span className="font-normal text-gray-600"> (all events)</span>
-                  ) : null}
+                  {checkedOutState.status === 'loaded' && (
+                    <span className="font-normal text-gray-600">
+                      {' '}({checkedOutState.items.length === 1 ? '1 item' : `${checkedOutState.items.length} items`})
+                    </span>
+                  )}
                 </p>
-                <div className="mt-2">
-                  {checkedOutState.status === 'loading' && (
-                    <div className="flex justify-center py-4">
+                <div className="mt-2 h-32 overflow-y-auto overscroll-contain">
+                  {checkedOutState.status === 'idle' || checkedOutState.status === 'loading' ? (
+                    <div className="flex h-full items-center justify-center">
                       <Loader2 className="h-6 w-6 animate-spin text-gray-400" aria-hidden />
                     </div>
-                  )}
-                  {checkedOutState.status === 'error' && (
-                    <p className="text-sm text-gray-600">
-                      {eventId === CHECKIN_ALL_EVENTS_VALUE
-                        ? 'Could not load checked-out gear.'
-                        : 'Could not load checked-out gear for this event.'}
-                    </p>
-                  )}
-                  {checkedOutState.status === 'loaded' && checkedOutState.items.length > 0 && (
-                    <ul className="max-h-32 space-y-0.5 overflow-y-auto overscroll-contain text-sm text-gray-800">
+                  ) : checkedOutState.status === 'error' ? (
+                    <div className="flex h-full items-center">
+                      <p className="text-sm text-gray-600">
+                        {eventId === CHECKIN_ALL_EVENTS_VALUE
+                          ? 'Could not load checked-out gear.'
+                          : 'Could not load checked-out gear for this event.'}
+                      </p>
+                    </div>
+                  ) : checkedOutState.items.length === 0 ? (
+                    <div className="flex h-full items-center">
+                      <p className="text-sm text-gray-600">
+                        {eventId === CHECKIN_ALL_EVENTS_VALUE
+                          ? 'No gear is currently checked out.'
+                          : 'No gear is currently checked out for this event.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <ul className="space-y-0.5 text-sm text-gray-800">
                       {checkedOutState.items.map((it) => (
                         <li key={it.itemId} className="flex min-w-0 gap-2">
                           <span className="shrink-0 font-medium text-scout-blue">{it.itemId}</span>
@@ -249,13 +278,6 @@ export default function CheckinOutingModal({
                         </li>
                       ))}
                     </ul>
-                  )}
-                  {checkedOutState.status === 'loaded' && checkedOutState.items.length === 0 && (
-                    <p className="text-sm text-gray-600">
-                      {eventId === CHECKIN_ALL_EVENTS_VALUE
-                        ? 'No gear is currently checked out.'
-                        : 'No gear is currently checked out for this event.'}
-                    </p>
                   )}
                 </div>
               </div>

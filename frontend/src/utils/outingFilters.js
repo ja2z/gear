@@ -43,8 +43,8 @@ export function checkoutModalEligibleEvents(events) {
 }
 
 /**
- * Check-in outing modal: events starting today or earlier, with at least one item still checked out.
- * Sort: today first, then progressively farther in the past.
+ * Check-in outing modal: any event with at least one item still checked out, regardless of date.
+ * Sort: today first, then progressively farther in the past, then future events soonest first.
  * @param {object[]} events from GET /events
  * @param {Array<{ eventId: string|number, itemCount?: number }>} outingsWithItems from GET /inventory/outings
  */
@@ -57,12 +57,18 @@ export function checkinModalEligibleEvents(events, outingsWithItems) {
   );
   return [...(events || [])]
     .filter((ev) => {
-      const d = eventStartYmdTroop(ev);
-      if (d == null || d > t) return false;
       if (!withGear.has(String(ev.id))) return false;
       return true;
     })
-    .sort((a, b) => eventStartYmdTroop(b).localeCompare(eventStartYmdTroop(a)));
+    .sort((a, b) => {
+      const da = eventStartYmdTroop(a) ?? '';
+      const db = eventStartYmdTroop(b) ?? '';
+      // Past/today events first (sorted newest → oldest), then future events (soonest first)
+      const aFuture = da > t;
+      const bFuture = db > t;
+      if (aFuture !== bFuture) return aFuture ? 1 : -1;
+      return aFuture ? da.localeCompare(db) : db.localeCompare(da);
+    });
 }
 
 /** @param {string | undefined} s YYYY-MM-DD */

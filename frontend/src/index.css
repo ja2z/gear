@@ -379,6 +379,16 @@ a.back-button:active {
   }
 }
 
+/* Checked-out gear box: border glow flash on event selection confirmation */
+@keyframes gear-confirmed-flash {
+  0%, 35% { border-color: rgb(40 167 69); box-shadow: 0 0 0 4px rgb(40 167 69 / 0.3); }
+  100%     { border-color: rgb(40 167 69 / 0.25); box-shadow: 0 0 0 0px transparent; }
+}
+
+.gear-confirmed-flash-animate {
+  animation: gear-confirmed-flash 0.75s ease-out both;
+}
+
 .fly-to-cart-tag-animate {
   --fly-dx: min(38vw, 9.5rem);
   --fly-dy: -46vh;
