@@ -276,7 +276,7 @@ export default function CheckinOutingModal({
                 disabled={continueDisabled}
                 className={`min-h-12 rounded-md bg-scout-green text-white text-base font-medium disabled:opacity-50 touch-target ${onDismiss ? 'flex-1' : 'w-full'}`}
               >
-                Check in
+                Begin Check in
               </button>
             </div>
           </form>
