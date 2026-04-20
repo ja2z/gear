@@ -37,9 +37,11 @@ gear/
 │   ├── public/images/         # Source PNGs + pre-generated .webp and .lqip.webp
 │   └── plugins/               # imageOptimization.js (Vite plugin, build-only)
 └── scripts/
-    ├── pregen-images.sh       # Pre-generate WebP/LQIP from PNGs
-    ├── restart-servers.sh     # Kill and restart frontend + backend locally
-    └── keep-alive.sh          # Curl /api/ping to prevent Render cold start
+    ├── pregen-images.sh              # Pre-generate WebP/LQIP from PNGs
+    ├── restart-servers.sh            # Kill and restart frontend + backend locally
+    ├── keep-alive.sh                 # Curl /api/ping to prevent Render cold start
+    ├── sync-trooptrack-users.sh      # One-way TT→Supabase user sync
+    └── sync-trooptrack-events.sh     # One-way TT→Supabase event sync (today+60d window)
 ```
 
 ## Data Model
@@ -67,8 +69,35 @@ gear/
 ### `metadata` — gear categories
 - `class` (PK, immutable), `class_desc` (UNIQUE, max 22 chars)
 
+### `events` — scout outings and meetings
+- `id`, `name` (VARCHAR 255, used as human-readable label)
+- `event_type_id` (FK → event_types), `start_date` (TIMESTAMPTZ UTC), `end_date` (TIMESTAMPTZ UTC), `timezone` (IANA, default `America/Los_Angeles`)
+- `event_spl`, `event_aspl`, `adult_leader` (all FK → users — managed in gear app, NOT overwritten by TT sync)
+- `tt_event_id` (INTEGER UNIQUE) — TroopTrack event ID; used as upsert key during sync
+- `description` (TEXT) — synced from TroopTrack; images stripped
+- `created_at`
+
+### `event_types` — event category lookup
+- `id`, `type` (VARCHAR 50, UNIQUE), `color` (hex)
+- Current rows: Day Outing (1), Overnight Outing (2), Meeting (3), Court of Honor (4), Service Project (5), Patrol Leader Council (6)
+
+### `event_types_mapping` — TroopTrack → gear event type mapping
+- `tt_event_type` (TEXT PK) — TroopTrack event type string (e.g. "Campout", "Meeting")
+- `event_id` (FK → event_types) — corresponding gear event type ID
+- Used by `sync-trooptrack-events.js` to translate TT types; unknown types fall back to Day Outing
+
+### `rsvp_types` — RSVP response lookup
+- `id`, `response` (TEXT UNIQUE)
+- Rows: 1=Going, 2=Not Going, 3=No Response
+
+### `rsvp` — event attendance (synced from TroopTrack)
+- `id`, `user_id` (FK → users), `event_id` (FK → events), `rsvp_type_id` (FK → rsvp_types)
+- UNIQUE on (user_id, event_id)
+- Sync writes only `rsvp_type_id=1` (Going); full replace per event on each sync run
+
 ### `users` / `roles` — user roster
 - `id`, `email`, `first_name`, `last_name`, `role_id` → `roles(name)`
+- `tt_user_id` (TEXT, nullable) — TroopTrack profile ID from `/manage/users/{id}`; used to match RSVP attendees
 
 ### `sessions` — active login sessions
 - `user_id` (FK), `token_hash` (UNIQUE), `expires_at`, `created_at`, `updated_at`
@@ -172,6 +201,10 @@ Quartermaster-only section accessible from landing. Supports:
 - `npm run build` — builds frontend (installs deps + vite build)
 - `npm start` — build + node server.js (used by Render)
 - `npm run migrate` — run database migrations
+
+## Sync Scripts (shell, run from repo root)
+- `scripts/sync-trooptrack-users.sh` — one-way TT→Supabase user sync; upserts users by email with name-match fallback for placeholder emails
+- `scripts/sync-trooptrack-events.sh` — one-way TT→Supabase event sync; scrapes today+60d window; upserts events by `tt_event_id` (name-match fallback for pre-existing events); fully replaces RSVPs (Going only) per event; interactive confirm before writing; requires `TROOPTRACK_USERNAME` + `TROOPTRACK_PASSWORD` in `backend/.env`
 
 ## Hero Image Optimization
 

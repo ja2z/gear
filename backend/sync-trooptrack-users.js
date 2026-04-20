@@ -149,56 +149,68 @@ function parseTtDate(raw) {
 }
 
 // ---------------------------------------------------------------------------
-// Scrape Members page → Map<normalizedName, troopTrackUserId>
+// Scrape Members modal → { nameToId: Map<normalizedName, ttUserId>, scoutNames: Set }
+// Quick Nav "Members" uses data-remote=true → /powerbars/user returns JS that
+// injects modal HTML via $('#the_modal').html("..."). We fetch it as AJAX.
+// Names in the modal are "Last, First" — we normalize to "first last".
 // ---------------------------------------------------------------------------
 async function scrapeMembersPage(client) {
-  // The /plan page has a Quick Nav link labelled "Members"
-  let planResp;
+  let jsResp;
   try {
-    planResp = await client.get(`${TT_BASE}/plan`);
+    jsResp = await client.get(`${TT_BASE}/powerbars/user`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: '*/*' },
+    });
   } catch (err) {
-    console.warn('Warning: Could not fetch /plan — DOBs will not be scraped');
-    return new Map();
+    console.warn(`Warning: Could not fetch members modal (${err.message}) — TT IDs and DOBs will not be scraped`);
+    return { nameToId: new Map(), scoutNames: new Set() };
   }
-  const $plan = cheerio.load(planResp.data);
 
-  let membersUrl = null;
-  $plan('a').each((_, el) => {
-    if (/^members$/i.test($plan(el).text().trim())) {
-      membersUrl = $plan(el).attr('href');
+  // Extract the HTML string from inside: $('#the_modal').html("...escaped HTML...");
+  const js = typeof jsResp.data === 'string' ? jsResp.data : JSON.stringify(jsResp.data);
+  const htmlMatch = js.match(/\$\('#the_modal'\)\.html\("([\s\S]+?)"\)/);
+  if (!htmlMatch) {
+    console.warn('Warning: Unexpected members modal format — TT IDs and DOBs will not be scraped');
+    return { nameToId: new Map(), scoutNames: new Set() };
+  }
+
+  const rawHtml = htmlMatch[1]
+    .replace(/\\\//g, '/')
+    .replace(/\\"/g, '"')
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t');
+
+  const $ = cheerio.load(rawHtml);
+
+  const nameToId = new Map();  // normalized "first last" → tt_user_id (all members)
+  const scoutNames = new Set(); // normalized names of scouts only
+
+  let currentSection = null;
+  $('h3, a[href*="/manage/users/"]').each((_, el) => {
+    if (el.tagName === 'h3') {
+      currentSection = $(el).text().trim().toLowerCase();
+      return;
     }
-  });
-
-  if (!membersUrl) {
-    console.warn('Warning: Could not find Members link on /plan — DOBs will not be scraped');
-    return new Map();
-  }
-  if (!membersUrl.startsWith('http')) membersUrl = TT_BASE + membersUrl;
-
-  console.log('Fetching members page...');
-  let membersResp;
-  try {
-    membersResp = await client.get(membersUrl);
-  } catch (err) {
-    console.warn(`Warning: Could not fetch members page (${err.message}) — DOBs will not be scraped`);
-    return new Map();
-  }
-  const $m = cheerio.load(membersResp.data);
-
-  const nameToId = new Map();
-  $m('a[href*="/manage/users/"]').each((_, el) => {
-    const href = $m(el).attr('href') || '';
+    const href = $(el).attr('href') || '';
     const match = href.match(/\/manage\/users\/(\d+)/);
     if (!match) return;
-    const userId = match[1];
-    const name = $m(el).text().replace(/\s+/g, ' ').trim().toLowerCase();
-    if (name && !nameToId.has(name)) {
-      nameToId.set(name, userId);
+    const ttId = match[1];
+    const raw = $(el).text().replace(/\s+/g, ' ').trim();
+    const commaIdx = raw.indexOf(',');
+    let normName;
+    if (commaIdx !== -1) {
+      const last = raw.substring(0, commaIdx).trim();
+      const first = raw.substring(commaIdx + 1).trim();
+      normName = `${first} ${last}`.toLowerCase().replace(/\s+/g, ' ');
+    } else {
+      normName = raw.toLowerCase().replace(/\s+/g, ' ');
     }
+    if (!normName || nameToId.has(normName)) return;
+    nameToId.set(normName, ttId);
+    if (currentSection === 'scouts') scoutNames.add(normName);
   });
 
-  console.log(`Found ${nameToId.size} scout(s) on members page.`);
-  return nameToId;
+  console.log(`Found ${nameToId.size} member(s) on members modal (${scoutNames.size} scouts, ${nameToId.size - scoutNames.size} adults).`);
+  return { nameToId, scoutNames };
 }
 
 // ---------------------------------------------------------------------------
@@ -287,8 +299,8 @@ async function main() {
   // 2. Parse directory
   const { users: ttUsers, skippedCount } = scrapeDirectory(html);
 
-  // 3. Scrape Members page to identify scouts and get their TroopTrack user IDs
-  const scoutNameToId = await scrapeMembersPage(client);
+  // 3. Scrape Members modal — get TT user IDs for all members + identify scouts
+  const { nameToId, scoutNames } = await scrapeMembersPage(client);
 
   // 4. Fetch DOBs for each scout found in the directory
   const dobByNormName = new Map(); // normalizedName → 'YYYY-MM-DD' | null
@@ -296,18 +308,21 @@ async function main() {
 
   for (const u of ttUsers.values()) {
     const normName = `${u.firstName} ${u.lastName}`.toLowerCase().replace(/\s+/g, ' ').trim();
-    const userId = scoutNameToId.get(normName);
-    if (userId) scoutMatches.push({ normName, userId });
+    const userId = nameToId.get(normName);
+    if (userId && scoutNames.has(normName)) scoutMatches.push({ normName, userId });
   }
 
   if (scoutMatches.length > 0) {
-    console.log(`Fetching DOBs for ${scoutMatches.length} scout(s)...`);
-    for (let i = 0; i < scoutMatches.length; i++) {
-      const { normName, userId } = scoutMatches[i];
-      const dob = await scrapeUserDob(client, userId);
-      dobByNormName.set(normName, dob);
-      process.stdout.write(`\r  ${i + 1}/${scoutMatches.length} done`);
-      if (i < scoutMatches.length - 1) await sleep(DOB_FETCH_DELAY_MS);
+    const DOB_CONCURRENCY = 4;
+    console.log(`Fetching DOBs for ${scoutMatches.length} scout(s) (${DOB_CONCURRENCY} at a time)...`);
+    let doneCount = 0;
+    for (let i = 0; i < scoutMatches.length; i += DOB_CONCURRENCY) {
+      const batch = scoutMatches.slice(i, i + DOB_CONCURRENCY);
+      const results = await Promise.all(batch.map(({ userId }) => scrapeUserDob(client, userId)));
+      batch.forEach(({ normName }, j) => dobByNormName.set(normName, results[j]));
+      doneCount += batch.length;
+      process.stdout.write(`\r  ${doneCount}/${scoutMatches.length} done`);
+      if (i + DOB_CONCURRENCY < scoutMatches.length) await sleep(DOB_FETCH_DELAY_MS);
     }
     process.stdout.write('\n');
   }
@@ -315,48 +330,82 @@ async function main() {
   // 5. Fetch existing Supabase users
   const { data: dbUsers, error: dbErr } = await supabase
     .from('users')
-    .select('id, email, first_name, last_name, role_id');
+    .select('id, email, first_name, last_name, role_id, tt_user_id');
   if (dbErr) throw new Error(`Supabase fetch failed: ${dbErr.message}`);
 
-  // Primary match index: email → db row
+  // Match indexes
+  const existingByTtId  = new Map(dbUsers.filter(u => u.tt_user_id).map(u => [u.tt_user_id, u]));
   const existingByEmail = new Map(dbUsers.map(u => [u.email.toLowerCase().trim(), u]));
-
-  // Secondary match index: full name → db row, for placeholder emails only
-  const normName = u => `${u.first_name} ${u.last_name}`.toLowerCase().replace(/\s+/g, ' ').trim();
+  const dbNormName = u => `${u.first_name} ${u.last_name}`.toLowerCase().replace(/\s+/g, ' ').trim();
   const placeholderByName = new Map(
     dbUsers
       .filter(u => u.email.toLowerCase().endsWith('@placeholder.t222.org'))
-      .map(u => [normName(u), u])
+      .map(u => [dbNormName(u), u])
   );
 
-  const ttEmails = new Set(ttUsers.keys()); // already lowercased during scrape
-
   // 6. Classify each TroopTrack user
+  // Match priority: tt_user_id → email → placeholder name → insert
   const toInsert   = []; // new — no match in DB
-  const toUpdate   = []; // matched by email
-  const toFixEmail = []; // matched by name to a placeholder row → email will change
+  const toUpdate   = []; // matched; email unchanged → batch upsert on email conflict
+  const toFixEmail = []; // matched; email will change → update by id
+
+  const EXCLUDED_EMAILS = new Set([
+    'medforms@t222.org',
+    'rzghosh@gmail.com',
+    'williampknox@gmail.com',
+    'krisdelislecpa@gmail.com',
+    'aawaitzjr@gmail.com',
+  ]);
 
   for (const u of ttUsers.values()) {
-    if (existingByEmail.has(u.email)) {
-      toUpdate.push({ tt: u, db: existingByEmail.get(u.email) });
+    if (EXCLUDED_EMAILS.has(u.email)) continue;
+    const key = `${u.firstName} ${u.lastName}`.toLowerCase().replace(/\s+/g, ' ').trim();
+    const ttId = nameToId.get(key);
+
+    const dbByTtId = ttId ? existingByTtId.get(ttId) : undefined;
+    if (dbByTtId) {
+      // Matched by tt_user_id — check if email also matches or has drifted
+      if (dbByTtId.email.toLowerCase().trim() === u.email) {
+        toUpdate.push({ tt: u, db: dbByTtId, via: 'tt_id' });
+      } else {
+        toFixEmail.push({ tt: u, db: dbByTtId, via: 'tt_id' }); // email changed
+      }
+    } else if (existingByEmail.has(u.email)) {
+      toUpdate.push({ tt: u, db: existingByEmail.get(u.email), via: 'email' });
     } else {
-      const key = `${u.firstName} ${u.lastName}`.toLowerCase().replace(/\s+/g, ' ').trim();
       const dbMatch = placeholderByName.get(key);
       if (dbMatch) {
-        toFixEmail.push({ tt: u, db: dbMatch });
+        toFixEmail.push({ tt: u, db: dbMatch, via: 'name' });
       } else {
         toInsert.push(u);
       }
     }
   }
 
-  // DB-only: not matched by email and not matched by name (placeholder)
-  const fixedDbIds = new Set(toFixEmail.map(({ db }) => db.id));
-  const dbOnly = dbUsers.filter(u => {
-    if (ttEmails.has(u.email.toLowerCase().trim())) return false; // matched by email
-    if (fixedDbIds.has(u.id)) return false;                       // matched by name
-    return true;
-  });
+  // Second pass: stamp tt_user_id on DB users that the main loop never reached
+  // because they have no email in TroopTrack (e.g. scouts without an email address).
+  // These appear in the members modal with a tt_user_id but not in the print directory.
+  const alreadyMatchedDbIds = new Set([...toUpdate, ...toFixEmail].map(({ db }) => db.id));
+  const toStampTtId = [];
+  for (const [normName, ttId] of nameToId) {
+    if (existingByTtId.has(ttId)) continue; // already has tt_user_id in DB
+    const dbMatch = dbUsers.find(u =>
+      !alreadyMatchedDbIds.has(u.id) &&
+      !u.tt_user_id &&
+      `${u.first_name} ${u.last_name}`.toLowerCase().replace(/\s+/g, ' ').trim() === normName
+    );
+    if (dbMatch) toStampTtId.push({ db: dbMatch, ttId, normName });
+  }
+
+  // DB-only: any row not matched by any path.
+  // Also exclude users who already have a tt_user_id that's still in the modal
+  // (e.g. not in print directory but previously synced) — they're accounted for.
+  const modalTtIds = new Set(nameToId.values());
+  const matchedDbIds = new Set([
+    ...[...toUpdate, ...toFixEmail, ...toStampTtId].map(({ db }) => db.id),
+    ...dbUsers.filter(u => u.tt_user_id && modalTtIds.has(u.tt_user_id)).map(u => u.id),
+  ]);
+  const dbOnly = dbUsers.filter(u => !matchedDbIds.has(u.id));
 
   // 7. Reconciliation report
   const PAD = 28;
@@ -371,22 +420,54 @@ async function main() {
   }
 
   console.log('');
-  console.log(`EXISTING (update name, preserve role) : ${toUpdate.length}`);
-  for (const { tt, db } of toUpdate) {
+  console.log(`EXISTING (update, preserve role) : ${toUpdate.length}`);
+  for (const { tt, db, via } of toUpdate) {
     const roleName = ROLE_NAMES[db.role_id] ?? db.role_id;
-    console.log(`  ~ ${(tt.firstName + ' ' + tt.lastName).padEnd(PAD)} ${tt.email}  [role: ${roleName}]`);
+    console.log(`  ~ ${(tt.firstName + ' ' + tt.lastName).padEnd(PAD)} ${tt.email}  [role: ${roleName}]  [via: ${via}]`);
   }
 
   console.log('');
-  console.log(`PLACEHOLDER EMAIL FIX (name-matched, email will update) : ${toFixEmail.length}`);
-  for (const { tt, db } of toFixEmail) {
+  console.log(`EMAIL FIX (matched by ${[...new Set(toFixEmail.map(x => x.via))].join('/')}, email will update) : ${toFixEmail.length}`);
+  for (const { tt, db, via } of toFixEmail) {
     const roleName = ROLE_NAMES[db.role_id] ?? db.role_id;
-    console.log(`  * ${(tt.firstName + ' ' + tt.lastName).padEnd(PAD)} ${db.email}  →  ${tt.email}  [role: ${roleName}]`);
+    console.log(`  * ${(tt.firstName + ' ' + tt.lastName).padEnd(PAD)} ${db.email}  →  ${tt.email}  [role: ${roleName}]  [via: ${via}]`);
   }
 
   console.log('');
-  console.log(`IN SUPABASE ONLY (not in TroopTrack — no action) : ${dbOnly.length}`);
-  for (const u of dbOnly) {
+  console.log(`TT ID STAMP (in modal, no email, matched by name) : ${toStampTtId.length}`);
+  for (const { db, ttId } of toStampTtId) {
+    const roleName = ROLE_NAMES[db.role_id] ?? db.role_id;
+    const displayName = `${db.first_name} ${db.last_name}`;
+    console.log(`  # ${displayName.padEnd(PAD)} tt_user_id=${ttId}  [role: ${roleName}]`);
+  }
+
+  // Split dbOnly into duplicates (same name as a matched user → stale row from email case drift)
+  // vs genuine orphans (no TT presence at all).
+  const matchedNormNames = new Set([
+    ...[...toUpdate].map(({ tt }) => `${tt.firstName} ${tt.lastName}`.toLowerCase().replace(/\s+/g, ' ').trim()),
+    ...[...toFixEmail].map(({ tt }) => `${tt.firstName} ${tt.lastName}`.toLowerCase().replace(/\s+/g, ' ').trim()),
+    ...[...toStampTtId].map(({ db }) => `${db.first_name} ${db.last_name}`.toLowerCase().replace(/\s+/g, ' ').trim()),
+  ]);
+  const dbDuplicates = dbOnly.filter(u =>
+    matchedNormNames.has(`${u.first_name} ${u.last_name}`.toLowerCase().replace(/\s+/g, ' ').trim())
+  );
+  const dbOrphans = dbOnly.filter(u =>
+    !matchedNormNames.has(`${u.first_name} ${u.last_name}`.toLowerCase().replace(/\s+/g, ' ').trim())
+  );
+
+  console.log('');
+  if (dbDuplicates.length > 0) {
+    console.log(`DUPLICATE ROWS (stale email — same name already matched above) : ${dbDuplicates.length}`);
+    console.log('  These rows exist because email case drifted between TT and DB. Safe to delete manually.');
+    for (const u of dbDuplicates) {
+      const roleName = ROLE_NAMES[u.role_id] ?? u.role_id;
+      console.log(`  ! ${(u.first_name + ' ' + u.last_name).padEnd(PAD)} ${u.email}  [role: ${roleName}]  [db id: ${u.id}]`);
+    }
+    console.log('');
+  }
+
+  console.log(`IN SUPABASE ONLY (no TroopTrack match — no action) : ${dbOrphans.length}`);
+  for (const u of dbOrphans) {
     const roleName = ROLE_NAMES[u.role_id] ?? u.role_id;
     console.log(`  ? ${(u.first_name + ' ' + u.last_name).padEnd(PAD)} ${u.email}  [role: ${roleName}]`);
   }
@@ -402,26 +483,35 @@ async function main() {
 
   // Helper: resolve DOB for a user — scouts get scraped DOB (if found), adults get 1970-01-01
   const resolveDob = (firstName, lastName) => {
-    const normName = `${firstName} ${lastName}`.toLowerCase().replace(/\s+/g, ' ').trim();
-    if (scoutNameToId.has(normName)) {
-      // Scout: use scraped DOB if we got one; otherwise omit (preserves existing DB value)
-      return dobByNormName.get(normName) ?? undefined;
+    const key = `${firstName} ${lastName}`.toLowerCase().replace(/\s+/g, ' ').trim();
+    if (scoutNames.has(key)) {
+      return dobByNormName.get(key) ?? undefined;
     }
     return '1970-01-01'; // Adult
+  };
+
+  // Helper: resolve TroopTrack user ID
+  const resolveTtId = (firstName, lastName) => {
+    const key = `${firstName} ${lastName}`.toLowerCase().replace(/\s+/g, ' ').trim();
+    return nameToId.get(key) ?? undefined;
   };
 
   // 9a. Batch upsert: new inserts + email-matched updates
   const upsertRows = [
     ...toInsert.map(u => {
       const dob = resolveDob(u.firstName, u.lastName);
+      const ttId = resolveTtId(u.firstName, u.lastName);
       const row = { first_name: u.firstName, last_name: u.lastName, email: u.email, role_id: 3 };
       if (dob !== undefined) row.dob = dob;
+      if (ttId !== undefined) row.tt_user_id = ttId;
       return row;
     }),
     ...toUpdate.map(({ tt, db }) => {
       const dob = resolveDob(tt.firstName, tt.lastName);
+      const ttId = resolveTtId(tt.firstName, tt.lastName);
       const row = { first_name: tt.firstName, last_name: tt.lastName, email: tt.email, role_id: db.role_id };
       if (dob !== undefined) row.dob = dob;
+      if (ttId !== undefined) row.tt_user_id = ttId;
       return row;
     }),
   ];
@@ -436,8 +526,10 @@ async function main() {
   // 9b. Placeholder email fixes: update by id (email changes so can't upsert on email)
   for (const { tt, db } of toFixEmail) {
     const dob = resolveDob(tt.firstName, tt.lastName);
+    const ttId = resolveTtId(tt.firstName, tt.lastName);
     const update = { first_name: tt.firstName, last_name: tt.lastName, email: tt.email };
     if (dob !== undefined) update.dob = dob;
+    if (ttId !== undefined) update.tt_user_id = ttId;
     const { error } = await supabase
       .from('users')
       .update(update)
@@ -445,7 +537,16 @@ async function main() {
     if (error) throw new Error(`Failed to fix email for ${tt.firstName} ${tt.lastName}: ${error.message}`);
   }
 
-  console.log(`\nDone. Inserted: ${toInsert.length}, Updated: ${toUpdate.length}, Email fixed: ${toFixEmail.length}`);
+  // 9c. Stamp tt_user_id for no-email scouts matched by name from modal
+  for (const { db, ttId } of toStampTtId) {
+    const { error } = await supabase
+      .from('users')
+      .update({ tt_user_id: ttId })
+      .eq('id', db.id);
+    if (error) console.error(`Failed to stamp tt_user_id for ${db.first_name} ${db.last_name}: ${error.message}`);
+  }
+
+  console.log(`\nDone. Inserted: ${toInsert.length}, Updated: ${toUpdate.length}, Email fixed: ${toFixEmail.length}, TT ID stamped: ${toStampTtId.length}`);
 }
 
 main().catch(err => {
