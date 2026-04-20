@@ -71,10 +71,11 @@ export function checkinModalEligibleEvents(events, outingsWithItems) {
     });
 }
 
-/** @param {string | undefined} s YYYY-MM-DD */
-export function parseOutingYmd(s) {
-  if (!s || typeof s !== 'string') return null;
-  const [y, m, d] = s.split('-').map(Number);
+/** Accepts YYYY-MM-DD or ISO timestamp; returns a local midnight Date in troop TZ. */
+export function parseOutingYmd(raw) {
+  const ymd = calendarYmdTroop(raw);
+  if (!ymd) return null;
+  const [y, m, d] = ymd.split('-').map(Number);
   if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return null;
   return new Date(y, m - 1, d);
 }

@@ -52,7 +52,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/events — create a new event
 router.post('/', async (req, res) => {
   try {
-    const { name, eventTypeId, startDate, endDate, eventSplId, eventAsplId, adultLeaderId } = req.body;
+    const { name, eventTypeId, startDate, startTime, endDate, endTime, timezone, eventSplId, eventAsplId, adultLeaderId } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Event name is required' });
@@ -68,7 +68,10 @@ router.post('/', async (req, res) => {
       name: name.trim(),
       eventTypeId,
       startDate,
+      startTime: startTime || null,
       endDate: endDate || null,
+      endTime: endTime || null,
+      timezone: timezone || 'America/Los_Angeles',
       eventSplId: eventSplId || null,
       eventAsplId: eventAsplId || null,
       adultLeaderId: adultLeaderId || null,
@@ -87,7 +90,7 @@ router.put('/:id', async (req, res) => {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid event ID' });
 
-    const { name, eventTypeId, startDate, endDate, eventSplId, eventAsplId, adultLeaderId } = req.body;
+    const { name, eventTypeId, startDate, startTime, endDate, endTime, timezone, eventSplId, eventAsplId, adultLeaderId } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Event name is required' });
@@ -103,7 +106,10 @@ router.put('/:id', async (req, res) => {
       name: name.trim(),
       eventTypeId,
       startDate,
+      startTime: startTime || null,
       endDate: endDate || null,
+      endTime: endTime || null,
+      timezone: timezone || 'America/Los_Angeles',
       eventSplId: eventSplId || null,
       eventAsplId: eventAsplId || null,
       adultLeaderId: adultLeaderId || null,

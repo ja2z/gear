@@ -46,3 +46,49 @@ export function formatOutingDate(dateStr) {
   const s = formatTroopEventDate(dateStr, { list: true });
   return s || null;
 }
+
+/**
+ * Parse a stored ISO timestamp back to { date: 'YYYY-MM-DD', time: 'HH:mm' } in the event's timezone.
+ * Returns time as '' when it is midnight (no specific time was set).
+ */
+export function isoToLocalDateTimeParts(isoStr, timezone) {
+  if (!isoStr) return { date: '', time: '' };
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return { date: '', time: '' };
+  const tz = timezone || TROOP_TZ;
+  const date = d.toLocaleDateString('en-CA', { timeZone: tz });
+  const timeFmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d).replace('24:', '00:');
+  return { date, time: timeFmt === '00:00' ? '' : timeFmt };
+}
+
+/**
+ * Format an event's start datetime for display.
+ * Shows date only when time is midnight; shows date + time + TZ abbreviation otherwise.
+ */
+export function formatEventDateTime(isoStr, timezone, opts = {}) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return '';
+  const tz = timezone || TROOP_TZ;
+  const timeFmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d).replace('24:', '00:');
+  if (timeFmt === '00:00') return formatTroopEventDate(isoStr, opts);
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(d);
+}

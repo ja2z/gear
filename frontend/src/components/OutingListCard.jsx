@@ -1,5 +1,5 @@
 import { Calendar, Footprints, Tent, Users } from 'lucide-react';
-import { formatOutingDate } from '../utils/outingFormat';
+import { formatEventDateTime } from '../utils/outingFormat';
 import { adultLeaderNameFromEvent, primaryLeaderLabel, primaryLeaderNameFromEvent } from '../utils/eventLabels';
 
 /** Badge classes — match TYPE_CONFIG for consistent type identity */
@@ -56,7 +56,7 @@ export default function OutingListCard({ ev, onEdit, onDelete }) {
   const badgeClass = OUTING_TYPE_BADGES[ev.eventType] || 'bg-gray-100 text-gray-700';
   const dateLine =
     ev.startDate &&
-    `${formatOutingDate(ev.startDate)}${ev.endDate ? ` – ${formatOutingDate(ev.endDate)}` : ''}`;
+    `${formatEventDateTime(ev.startDate, ev.timezone)}${ev.endDate ? ` – ${formatEventDateTime(ev.endDate, ev.timezone)}` : ''}`;
 
   return (
     <div

@@ -14,6 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useInventory } from '../../hooks/useInventory';
 import { normalizeAnnouncements } from '../../utils/normalizeAnnouncements';
 import { formatTroopEventDate } from '../../utils/outingFormat';
+import { todayYmdTroop, calendarYmdTroop } from '../../utils/outingFilters';
 
 const TYPE_BADGE_COLOR = {
   'Day Outing':       'bg-scout-green/10 text-scout-green',
@@ -139,10 +140,10 @@ function useDashboardData() {
     load();
   }, [load]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayYmdTroop();
   const upcoming = events
-    .filter((e) => e.startDate && e.startDate >= today)
-    .sort((a, b) => a.startDate.localeCompare(b.startDate))
+    .filter((e) => { const d = calendarYmdTroop(e.startDate); return d != null && d >= today; })
+    .sort((a, b) => (calendarYmdTroop(a.startDate) || '').localeCompare(calendarYmdTroop(b.startDate) || ''))
     .slice(0, 4);
 
   const activeOutingsCount = outingsData.length;

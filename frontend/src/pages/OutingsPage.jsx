@@ -12,6 +12,7 @@ import { useDesktopHeader } from '../context/DesktopHeaderContext';
 import RosterSearchField from '../components/RosterSearchField';
 import OutingDatePicker from '../components/OutingDatePicker';
 import OutingListCard from '../components/OutingListCard';
+import { isoToLocalDateTimeParts } from '../utils/outingFormat';
 import SegmentedControl from '../components/SegmentedControl';
 import { filterAndSortOutings, UPCOMING_BUFFER_DAYS } from '../utils/outingFilters';
 import { primaryLeaderLabel } from '../utils/eventLabels';
@@ -24,11 +25,23 @@ const OUTING_LIST_TABS = [
 /** Must match input exactly (after trim) to enable destructive delete. */
 const DELETE_CONFIRM_PHRASE = 'CONFIRM';
 
+const US_TIMEZONES = [
+  { value: 'America/Los_Angeles', label: 'Pacific — Los Angeles' },
+  { value: 'America/Denver',      label: 'Mountain — Denver' },
+  { value: 'America/Chicago',     label: 'Central — Chicago' },
+  { value: 'America/New_York',    label: 'Eastern — New York' },
+  { value: 'America/Anchorage',   label: 'Alaska — Anchorage' },
+  { value: 'Pacific/Honolulu',    label: 'Hawaii — Honolulu' },
+];
+
 const defaultForm = {
   name: '',
   eventTypeId: '',
   startDate: '',
+  startTime: '',
   endDate: '',
+  endTime: '',
+  timezone: 'America/Los_Angeles',
   eventSplId: '',
   adultLeaderId: '',
 };
@@ -141,7 +154,6 @@ const OutingsPage = () => {
     return eventTypesList.find((t) => Number(t.id) === n);
   }, [eventTypesList, form.eventTypeId]);
 
-  const isOvernight = matchedEventType?.type === 'Overnight Outing';
   const splLeaderFieldLabel = primaryLeaderLabel(matchedEventType?.type);
 
   const isOutingFormValid = useMemo(() => {
@@ -149,10 +161,7 @@ const OutingsPage = () => {
     if (form.eventTypeId === '' || form.eventTypeId == null) return false;
     if (Number.isNaN(parseInt(form.eventTypeId, 10))) return false;
     if (!form.startDate) return false;
-    if (isOvernight) {
-      if (!form.endDate) return false;
-      if (form.endDate < form.startDate) return false;
-    }
+    if (form.endDate && form.endDate < form.startDate) return false;
     if (!form.eventSplId) return false;
     if (!form.adultLeaderId) return false;
     return true;
@@ -163,7 +172,6 @@ const OutingsPage = () => {
     form.endDate,
     form.eventSplId,
     form.adultLeaderId,
-    isOvernight,
   ]);
 
   const finishCloseFormModal = useCallback(() => {
@@ -215,11 +223,17 @@ const OutingsPage = () => {
     formExitHandledRef.current = false;
     setFormModalClosing(false);
     setEditingEvent(ev);
+    const tz = ev.timezone || 'America/Los_Angeles';
+    const { date: startDate, time: startTime } = isoToLocalDateTimeParts(ev.startDate, tz);
+    const { date: endDate, time: endTime } = isoToLocalDateTimeParts(ev.endDate, tz);
     setForm({
       name: ev.name,
       eventTypeId: ev.eventTypeId,
-      startDate: ev.startDate || '',
-      endDate: ev.endDate || '',
+      startDate,
+      startTime,
+      endDate,
+      endTime,
+      timezone: tz,
       eventSplId: ev.eventSplId || '',
       adultLeaderId: ev.adultLeaderId || '',
     });
@@ -234,7 +248,6 @@ const OutingsPage = () => {
   const handleFormChange = (field, value) => {
     setForm(prev => {
       const next = { ...prev, [field]: value };
-      if (field === 'eventTypeId') next.endDate = '';
       if (field === 'startDate' && next.endDate && value > next.endDate) next.endDate = value;
       if (field === 'endDate' && next.startDate && value < next.startDate) next.startDate = value;
       return next;
@@ -246,12 +259,8 @@ const OutingsPage = () => {
     setModalError(null);
 
     if (!form.name.trim()) { setModalError('Event name is required'); return; }
-    if (!form.startDate) {
-      setModalError(isOvernight ? 'Start date is required' : 'Date is required');
-      return;
-    }
-    if (isOvernight && !form.endDate) { setModalError('End date is required for overnight events'); return; }
-    if (isOvernight && form.endDate && form.startDate && form.endDate < form.startDate) {
+    if (!form.startDate) { setModalError('Start date is required'); return; }
+    if (form.endDate && form.startDate && form.endDate < form.startDate) {
       setModalError('End date must be on or after start date');
       return;
     }
@@ -262,7 +271,10 @@ const OutingsPage = () => {
       name: form.name.trim(),
       eventTypeId: parseInt(form.eventTypeId, 10),
       startDate: form.startDate,
-      endDate: isOvernight ? (form.endDate || null) : null,
+      startTime: form.startTime || null,
+      endDate: form.endDate || null,
+      endTime: form.endTime || null,
+      timezone: form.timezone || 'America/Los_Angeles',
       eventSplId: form.eventSplId || null,
       eventAsplId: null,
       adultLeaderId: form.adultLeaderId || null,
@@ -471,7 +483,7 @@ const OutingsPage = () => {
               ))}
             </select>
           </div>
-          {isOvernight ? (
+          <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-0.5">
                 <label htmlFor="outing-start-date" className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">
@@ -486,7 +498,7 @@ const OutingsPage = () => {
               </div>
               <div className="flex flex-col gap-0.5">
                 <label htmlFor="outing-end-date" className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">
-                  End date *
+                  End date
                 </label>
                 <OutingDatePicker
                   id="outing-end-date"
@@ -497,19 +509,51 @@ const OutingsPage = () => {
                 />
               </div>
             </div>
-          ) : (
-            <div className="flex flex-col gap-0.5">
-              <label htmlFor="outing-single-date" className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">
-                Date *
-              </label>
-              <OutingDatePicker
-                id="outing-single-date"
-                value={form.startDate}
-                onChange={(v) => handleFormChange('startDate', v)}
-                disabled={modalLoading}
-              />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-0.5">
+                <label htmlFor="outing-start-time" className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">
+                  Start time
+                </label>
+                <input
+                  type="time"
+                  id="outing-start-time"
+                  value={form.startTime}
+                  onChange={(e) => handleFormChange('startTime', e.target.value)}
+                  disabled={modalLoading}
+                  className="form-input w-full cursor-pointer"
+                />
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <label htmlFor="outing-end-time" className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">
+                  End time
+                </label>
+                <input
+                  type="time"
+                  id="outing-end-time"
+                  value={form.endTime}
+                  onChange={(e) => handleFormChange('endTime', e.target.value)}
+                  disabled={modalLoading}
+                  className="form-input w-full cursor-pointer"
+                />
+              </div>
             </div>
-          )}
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label htmlFor="outing-timezone" className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">
+              Timezone
+            </label>
+            <select
+              id="outing-timezone"
+              value={form.timezone}
+              onChange={(e) => handleFormChange('timezone', e.target.value)}
+              disabled={modalLoading}
+              className="form-input w-full"
+            >
+              {US_TIMEZONES.map((tz) => (
+                <option key={tz.value} value={tz.value}>{tz.label}</option>
+              ))}
+            </select>
+          </div>
           <div className="flex flex-col gap-0.5">
             <label htmlFor="event-spl-leader" className="block text-xs font-semibold leading-tight text-gray-700 sm:text-sm">
               {splLeaderFieldLabel} *

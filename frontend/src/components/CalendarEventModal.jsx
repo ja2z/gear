@@ -3,7 +3,7 @@ import { X, Package, ClipboardList, UtensilsCrossed, Loader2 } from 'lucide-reac
 import { format } from 'date-fns';
 import { useInventory } from '../hooks/useInventory';
 import { OUTING_TYPE_BADGES } from './OutingListCard';
-import { parseTroopApiDateToLocalDate } from '../utils/outingFormat';
+import { parseTroopApiDateToLocalDate, formatEventDateTime } from '../utils/outingFormat';
 import {
   adultLeaderNameFromEvent,
   primaryLeaderLabel,
@@ -95,10 +95,11 @@ export default function CalendarEventModal({ event, onClose }) {
 
   const startDate = parseYmd(event.startDate);
   const endDate = parseYmd(event.endDate);
+  const isMultiDay = startDate && endDate && event.startDate !== event.endDate;
   const dateStr = startDate
-    ? endDate && event.startDate !== event.endDate
+    ? isMultiDay
       ? `${format(startDate, 'MMM d')} – ${format(endDate, 'MMM d, yyyy')}`
-      : format(startDate, 'EEEE, MMMM d, yyyy')
+      : formatEventDateTime(event.startDate, event.timezone)
     : null;
 
   const splName = primaryLeaderNameFromEvent(event);

@@ -61,6 +61,30 @@ function mapRowToItem(row) {
   };
 }
 
+/**
+ * Convert a local datetime string (YYYY-MM-DDTHH:mm) in an IANA timezone to a UTC ISO string.
+ * Uses Intl to compute the offset at that instant, handling DST correctly.
+ */
+function localDateTimeToUTC(localDateTimeStr, ianaTimezone) {
+  if (!localDateTimeStr) return null;
+  const normalized = localDateTimeStr.replace(' ', 'T');
+  const withSeconds = normalized.length === 16 ? normalized + ':00' : normalized;
+  const asUTC = new Date(withSeconds + 'Z');
+  if (isNaN(asUTC.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: ianaTimezone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(asUTC);
+  const p = {};
+  parts.forEach(({ type, value }) => { p[type] = value; });
+  const h = p.hour === '24' ? '00' : p.hour;
+  const localAsUTC = new Date(`${p.year}-${p.month}-${p.day}T${h}:${p.minute}:${p.second}Z`);
+  const offsetMs = asUTC.getTime() - localAsUTC.getTime();
+  return new Date(asUTC.getTime() + offsetMs).toISOString();
+}
+
 function mapRowToEvent(row) {
   const splUser = Array.isArray(row.spl_user) ? row.spl_user[0] : row.spl_user;
   const asplUser = Array.isArray(row.aspl_user) ? row.aspl_user[0] : row.aspl_user;
@@ -72,6 +96,7 @@ function mapRowToEvent(row) {
     eventType: row.event_types?.type || '',
     startDate: row.start_date,
     endDate: row.end_date,
+    timezone: row.timezone || 'America/Los_Angeles',
     eventSplId: row.event_spl,
     eventSplName: splUser ? `${splUser.first_name} ${splUser.last_name}` : null,
     eventSplEmail: splUser?.email || null,
@@ -85,7 +110,7 @@ function mapRowToEvent(row) {
 }
 
 const EVENT_SELECT = `
-  id, name, event_type_id, start_date, end_date, event_spl, event_aspl, adult_leader, created_at,
+  id, name, event_type_id, start_date, end_date, timezone, event_spl, event_aspl, adult_leader, created_at,
   event_types(type),
   spl_user:users!events_event_spl_fkey(first_name, last_name, email),
   aspl_user:users!events_event_aspl_fkey(first_name, last_name),
@@ -487,13 +512,21 @@ const supabaseAPI = {
   },
 
   async createEvent(eventData) {
+    const tz = eventData.timezone || 'America/Los_Angeles';
+    const startUTC = eventData.startDate
+      ? localDateTimeToUTC(`${eventData.startDate}T${eventData.startTime || '00:00'}`, tz)
+      : null;
+    const endUTC = eventData.endDate
+      ? localDateTimeToUTC(`${eventData.endDate}T${eventData.endTime || '00:00'}`, tz)
+      : null;
     const { data, error } = await supabase
       .from('events')
       .insert({
         name: eventData.name,
         event_type_id: eventData.eventTypeId,
-        start_date: eventData.startDate || null,
-        end_date: eventData.endDate || null,
+        start_date: startUTC,
+        end_date: endUTC,
+        timezone: tz,
         event_spl: eventData.eventSplId || null,
         event_aspl: eventData.eventAsplId || null,
         adult_leader: eventData.adultLeaderId || null,
@@ -505,13 +538,21 @@ const supabaseAPI = {
   },
 
   async updateEvent(id, eventData) {
+    const tz = eventData.timezone || 'America/Los_Angeles';
+    const startUTC = eventData.startDate
+      ? localDateTimeToUTC(`${eventData.startDate}T${eventData.startTime || '00:00'}`, tz)
+      : null;
+    const endUTC = eventData.endDate
+      ? localDateTimeToUTC(`${eventData.endDate}T${eventData.endTime || '00:00'}`, tz)
+      : null;
     const { data, error } = await supabase
       .from('events')
       .update({
         name: eventData.name,
         event_type_id: eventData.eventTypeId,
-        start_date: eventData.startDate || null,
-        end_date: eventData.endDate || null,
+        start_date: startUTC,
+        end_date: endUTC,
+        timezone: tz,
         event_spl: eventData.eventSplId || null,
         event_aspl: eventData.eventAsplId || null,
         adult_leader: eventData.adultLeaderId || null,

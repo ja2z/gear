@@ -22,6 +22,7 @@ import { useInventory } from '../hooks/useInventory';
 import useIsDesktop from '../hooks/useIsDesktop';
 import { useDesktopHeader } from '../context/DesktopHeaderContext';
 import { parseTroopApiDateToLocalDate } from '../utils/outingFormat';
+import { calendarYmdTroop } from '../utils/outingFilters';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -61,8 +62,8 @@ function getEventDaySpan(ev, day) {
 }
 
 function sortEventsForDay(a, b) {
-  const sa = a.startDate || '';
-  const sb = b.startDate || '';
+  const sa = calendarYmdTroop(a.startDate) || '';
+  const sb = calendarYmdTroop(b.startDate) || '';
   if (sa !== sb) return sa.localeCompare(sb);
   return (a.name || '').localeCompare(b.name || '');
 }
