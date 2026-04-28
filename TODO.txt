@@ -1,0 +1,2 @@
+* clear reservation for past outings (e.g. a reservation was made but some items weren't checked out from it, no need to keep reservation around indefinitely)
+* add ability to print a reservation on demand
